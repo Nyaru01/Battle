@@ -62,7 +62,7 @@ func _test_tower_defends_lane() -> void:
 	simulation.energy[BattleSim.ENEMY] = 10.0
 	simulation.play_card(BattleSim.ENEMY, "guardian", 0)
 	var unit: Dictionary = simulation.units[0]
-	unit.y = 840.0
+	unit.y = 820.0
 	var initial_hp: float = unit.hp
 	for index in range(12):
 		simulation.step(0.1)

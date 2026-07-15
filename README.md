@@ -23,6 +23,8 @@ Le développement du premier prototype jouable est en cours.
 - IA équitable utilisant les mêmes commandes que le joueur ;
 - sauvegarde locale des victoires et défaites ;
 - contrôles souris et tactiles ;
+- arène 2,5D originale avec chemins, rivière et ponts ;
+- cartes illustrées et silhouettes distinctes pour les unités ;
 - export APK Android debug.
 
 ## Lancer le projet

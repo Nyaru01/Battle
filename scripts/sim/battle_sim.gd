@@ -129,7 +129,7 @@ func get_units_in_lane(side: int, lane: int) -> Array:
 
 
 func _spawn_unit(side: int, card_id: String, lane: int, card: Dictionary) -> void:
-	var spawn_y := 850.0 if side == PLAYER else 260.0
+	var spawn_y := 820.0 if side == PLAYER else 310.0
 	units.append({
 		"id": next_unit_id,
 		"side": side,
@@ -172,10 +172,10 @@ func _update_units(delta: float) -> void:
 				unit.attack_timer = unit.interval
 				events.append({"type": "hit", "source": unit.id, "target": target.id})
 			continue
-		var target_y := 190.0 if unit.side == PLAYER else 920.0
+		var target_y := 240.0 if unit.side == PLAYER else 900.0
 		var target_side: int = 1 - int(unit.side)
 		if towers[target_side].lanes[unit.lane] <= 0.0:
-			target_y = 110.0 if unit.side == PLAYER else 1005.0
+			target_y = 205.0 if unit.side == PLAYER else 955.0
 		var distance := absf(target_y - unit.y)
 		if distance <= unit.range:
 			if unit.attack_timer <= 0.0:
@@ -201,7 +201,7 @@ func _closest_enemy_unit(source: Dictionary):
 
 func _update_towers(delta: float) -> void:
 	for side in [PLAYER, ENEMY]:
-		var tower_y := 920.0 if side == PLAYER else 190.0
+		var tower_y := 900.0 if side == PLAYER else 240.0
 		for lane in range(LANE_COUNT):
 			tower_attack_timers[side][lane] = maxf(0.0, tower_attack_timers[side][lane] - delta)
 			if towers[side].lanes[lane] <= 0.0 or tower_attack_timers[side][lane] > 0.0:

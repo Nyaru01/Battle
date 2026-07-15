@@ -1,0 +1,30 @@
+# Provenance des actifs visuels
+
+Ce document suit l'origine des actifs visuels intégrés au projet afin d'éviter l'introduction accidentelle de contenus propriétaires tiers.
+
+## `assets/icon.png`
+
+- Date : 2026-07-15
+- Origine : génération OpenAI intégrée à Codex
+- Usage : icône Android et écran d'accueil
+- Direction : deux forteresses originales cyan et rouge séparées par une énergie lumineuse
+- Référence propriétaire utilisée : aucune
+
+## `assets/arena-v2.png`
+
+- Date : 2026-07-15
+- Origine : génération OpenAI intégrée à Codex
+- Usage : fond de l'arène du prototype 0.2
+- Direction : arène verticale 2,5D originale, deux voies, rivière turquoise, deux ponts, chemins et six plateformes vides
+- Référence : une capture de jeu fournie par le propriétaire du dépôt, utilisée uniquement pour comprendre la composition générale et la lisibilité attendue
+- Contraintes de génération : aucun personnage, tour, texte, logo, interface ou actif reconnaissable du jeu de référence
+
+## `assets/card-art-v2.png`
+
+- Date : 2026-07-15
+- Origine : génération OpenAI intégrée à Codex
+- Usage : portraits des quatre cartes du prototype 0.2
+- Contenu : Gardien, Éclaireuse, Colosse et Comète, tous originaux
+- Référence propriétaire utilisée : aucune
+
+La capture de référence n'est pas versionnée dans Git et n'est pas distribuée avec le jeu.
