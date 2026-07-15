@@ -17,6 +17,7 @@ Le développement du premier prototype jouable est en cours.
 ## Prototype actuel
 
 - menu et trois difficultés d'IA ;
+- tutoriel interactif guidant les quatre premières actions tactiles ;
 - arène à deux voies avec tours et noyaux ;
 - deck de huit cartes avec main tournante de quatre cartes et prochaine pioche visible ;
 - huit cartes originales, dont trois nouveaux combattants et le sort de ralentissement Stase ;
