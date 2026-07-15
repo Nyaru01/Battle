@@ -11,6 +11,11 @@ func _capture() -> void:
 	await process_frame
 	await process_frame
 	_save_viewport("res://builds/menu.png")
+	scene._build_collection()
+	for index in range(2):
+		await process_frame
+	_save_viewport("res://builds/collection.png")
+	scene._build_menu()
 	scene._start_tutorial()
 	scene._select_card("guardian")
 	for index in range(2):

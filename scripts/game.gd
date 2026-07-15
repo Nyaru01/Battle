@@ -1,6 +1,6 @@
 extends Node2D
 
-enum ScreenState { MENU, BATTLE, RESULT }
+enum ScreenState { MENU, COLLECTION, BATTLE, RESULT }
 
 const DESIGN_SIZE := Vector2(720.0, 1280.0)
 const LANE_X := [210.0, 510.0]
@@ -114,6 +114,9 @@ func _draw() -> void:
 	if state == ScreenState.MENU:
 		_draw_menu_backdrop()
 		return
+	if state == ScreenState.COLLECTION:
+		_draw_collection_backdrop()
+		return
 	_draw_arena()
 	_draw_objectives()
 	_draw_units()
@@ -123,6 +126,13 @@ func _draw_menu_backdrop() -> void:
 	draw_texture_rect(ICON_TEXTURE, Rect2(160.0, 100.0, 400.0, 400.0), false)
 	draw_rect(Rect2(0.0, 470.0, 720.0, 135.0), Color(0.04, 0.08, 0.13, 0.88), true)
 	draw_line(Vector2(100.0, 810.0), Vector2(620.0, 810.0), Color("4e88aa"), 3.0)
+
+
+func _draw_collection_backdrop() -> void:
+	draw_rect(Rect2(0.0, 0.0, 720.0, 1280.0), Color("0d1725"), true)
+	for row in range(7):
+		draw_line(Vector2(24.0, 145.0 + row * 150.0), Vector2(696.0, 145.0 + row * 150.0), Color(0.25, 0.55, 0.72, 0.08), 2.0)
+	draw_circle(Vector2(360.0, 54.0), 170.0, Color(0.12, 0.45, 0.62, 0.08))
 
 
 func _draw_arena() -> void:
@@ -253,13 +263,95 @@ func _build_menu() -> void:
 	training.add_theme_font_size_override("font_size", 20)
 	training.pressed.connect(_start_tutorial)
 	ui_layer.add_child(training)
-	var version := _label("Prototype 0.10 • Hors ligne", Vector2(160.0, 1140.0), Vector2(400.0, 36.0), 18)
+	var collection := Button.new()
+	collection.text = "COLLECTION"
+	collection.position = Vector2(180.0, 1018.0)
+	collection.size = Vector2(360.0, 58.0)
+	collection.add_theme_font_size_override("font_size", 19)
+	collection.pressed.connect(_build_collection)
+	ui_layer.add_child(collection)
+	var version := _label("Prototype 0.11 • Hors ligne", Vector2(160.0, 1190.0), Vector2(400.0, 36.0), 18)
 	version.add_theme_color_override("font_color", Color("71889a"))
-	var record := _label("%d victoires  •  %d défaites" % [profile.wins, profile.losses], Vector2(160.0, 1030.0), Vector2(400.0, 40.0), 18)
+	var record := _label("%d victoires  •  %d défaites" % [profile.wins, profile.losses], Vector2(160.0, 1080.0), Vector2(400.0, 36.0), 17)
 	record.add_theme_color_override("font_color", Color("8fa7b8"))
-	var progression := _label("Niveau %d  •  %d/%d XP  •  ◈ %d" % [profile.level, profile.xp, BattleProgression.xp_to_next(profile.level), profile.coins], Vector2(110.0, 1070.0), Vector2(500.0, 40.0), 18)
+	var progression := _label("Niveau %d  •  %d/%d XP  •  ◈ %d" % [profile.level, profile.xp, BattleProgression.xp_to_next(profile.level), profile.coins], Vector2(110.0, 1118.0), Vector2(500.0, 36.0), 17)
 	progression.add_theme_color_override("font_color", Color("f2c96d"))
 	queue_redraw()
+
+
+func _build_collection() -> void:
+	_clear_pause_overlay()
+	_clear_ui()
+	state = ScreenState.COLLECTION
+	ui_layer = CanvasLayer.new()
+	add_child(ui_layer)
+	var title := _label("COLLECTION", Vector2(80.0, 28.0), Vector2(560.0, 58.0), 38)
+	title.add_theme_color_override("font_color", Color("76d6ff"))
+	var subtitle := _label("8 cartes disponibles • deck de combat actuel", Vector2(90.0, 82.0), Vector2(540.0, 38.0), 18)
+	subtitle.add_theme_color_override("font_color", Color("a9bdca"))
+	for index in range(BattleSim.DEFAULT_DECK.size()):
+		var card_id: String = BattleSim.DEFAULT_DECK[index]
+		var card: Dictionary = BattleSim.CARDS[card_id]
+		var column := index % 2
+		var row := index / 2
+		var panel := Panel.new()
+		panel.position = Vector2(24.0 + column * 348.0, 142.0 + row * 225.0)
+		panel.size = Vector2(324.0, 205.0)
+		panel.clip_contents = true
+		panel.add_theme_stylebox_override("panel", _card_style(card_id, false))
+		ui_layer.add_child(panel)
+		var portrait := TextureRect.new()
+		portrait.texture = _card_texture(card_id, CARD_QUADRANTS[card_id])
+		portrait.position = Vector2(10.0, 10.0)
+		portrait.size = Vector2(126.0, 126.0)
+		portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		portrait.stretch_mode = TextureRect.STRETCH_SCALE
+		portrait.clip_contents = true
+		panel.add_child(portrait)
+		var name_label := Label.new()
+		name_label.text = card.name
+		name_label.position = Vector2(145.0, 14.0)
+		name_label.size = Vector2(165.0, 34.0)
+		name_label.add_theme_font_size_override("font_size", 20)
+		panel.add_child(name_label)
+		var cost_label := Label.new()
+		cost_label.text = "●  %d énergie" % int(card.cost)
+		cost_label.position = Vector2(145.0, 50.0)
+		cost_label.size = Vector2(165.0, 30.0)
+		cost_label.add_theme_font_size_override("font_size", 16)
+		cost_label.add_theme_color_override("font_color", Color("e879ff"))
+		panel.add_child(cost_label)
+		var details := Label.new()
+		details.text = _card_details(card)
+		details.position = Vector2(145.0, 84.0)
+		details.size = Vector2(165.0, 76.0)
+		details.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		details.add_theme_font_size_override("font_size", 14)
+		details.add_theme_color_override("font_color", Color("b8c8d2"))
+		panel.add_child(details)
+		var status := Label.new()
+		status.text = "DÉBLOQUÉE"
+		status.position = Vector2(12.0, 162.0)
+		status.size = Vector2(300.0, 30.0)
+		status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		status.add_theme_font_size_override("font_size", 14)
+		status.add_theme_color_override("font_color", Color("79e28c"))
+		panel.add_child(status)
+	var back := Button.new()
+	back.text = "RETOUR"
+	back.position = Vector2(210.0, 1070.0)
+	back.size = Vector2(300.0, 68.0)
+	back.add_theme_font_size_override("font_size", 21)
+	back.pressed.connect(_build_menu)
+	ui_layer.add_child(back)
+	queue_redraw()
+
+
+func _card_details(card: Dictionary) -> String:
+	if card.type == "spell":
+		var effect := " • ralentit" if card.has("slow_duration") else ""
+		return "Sort • %d dégâts%s" % [int(card.damage), effect]
+	return "%d PV\n%d dégâts • portée %d" % [int(card.hp), int(card.damage), int(card.range)]
 
 
 func _start_battle() -> void:

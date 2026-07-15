@@ -18,6 +18,7 @@ Le développement du premier prototype jouable est en cours.
 
 - menu et trois difficultés d'IA ;
 - tutoriel interactif guidant les quatre premières actions tactiles ;
+- écran Collection présentant les huit cartes, leurs coûts et statistiques ;
 - arène à deux voies avec tours et noyaux ;
 - deck de huit cartes avec main tournante de quatre cartes et prochaine pioche visible ;
 - huit cartes originales, dont trois nouveaux combattants et le sort de ralentissement Stase ;
