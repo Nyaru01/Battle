@@ -491,7 +491,7 @@ func _build_menu() -> void:
 	collection.add_theme_font_size_override("font_size", 19)
 	collection.pressed.connect(_build_collection)
 	ui_layer.add_child(collection)
-	var version := _label("Prototype 0.16 • Hors ligne", Vector2(160.0, 1202.0), Vector2(400.0, 36.0), 18)
+	var version := _label("Prototype 0.17 • Hors ligne", Vector2(160.0, 1202.0), Vector2(400.0, 36.0), 18)
 	version.add_theme_color_override("font_color", Color("71889a"))
 	var record := _label("%d victoires  •  %d défaites" % [profile.wins, profile.losses], Vector2(160.0, 1080.0), Vector2(400.0, 36.0), 17)
 	record.add_theme_color_override("font_color", Color("8fa7b8"))
@@ -938,13 +938,8 @@ func _clear_ui() -> void:
 
 
 func _load_profile() -> void:
-	if not FileAccess.file_exists(SAVE_PATH):
-		return
-	var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
-	if file == null:
-		return
-	var parsed = JSON.parse_string(file.get_as_text())
-	if typeof(parsed) != TYPE_DICTIONARY:
+	var parsed := BattleProfileStore.load_profile(SAVE_PATH)
+	if parsed.is_empty():
 		return
 	profile = BattleProgression.normalize(parsed)
 	sound_enabled = profile.sound_enabled
@@ -955,6 +950,4 @@ func _save_profile() -> void:
 	profile.sound_enabled = sound_enabled
 	profile.difficulty = selected_difficulty
 	profile.version = BattleProgression.CURRENT_VERSION
-	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-	if file != null:
-		file.store_string(JSON.stringify(profile))
+	BattleProfileStore.save_profile(SAVE_PATH, profile)

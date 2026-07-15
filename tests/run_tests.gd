@@ -18,6 +18,7 @@ func _run() -> void:
 	_test_overtime_rules()
 	_test_tutorial_flow()
 	_test_forfeit()
+	_test_profile_store()
 	_test_progression()
 	_test_battle_intro()
 	_test_units_fight()
@@ -145,6 +146,31 @@ func _test_forfeit() -> void:
 	_expect(simulation.forfeit(BattleSim.PLAYER), "the player can forfeit an active match")
 	_expect(simulation.finished and simulation.winner == BattleSim.ENEMY, "forfeit awards the match to the opponent")
 	_expect(not simulation.forfeit(BattleSim.ENEMY), "a finished match cannot be forfeited again")
+
+
+func _test_profile_store() -> void:
+	var path := "user://battle_profile_store_test.json"
+	for suffix in ["", ".tmp", ".bak"]:
+		var absolute := ProjectSettings.globalize_path(path + suffix)
+		if FileAccess.file_exists(path + suffix):
+			DirAccess.remove_absolute(absolute)
+	var saved := {"version": 3, "wins": 4, "sound_enabled": false}
+	_expect(BattleProfileStore.save_profile(path, saved), "profile store writes transactionally")
+	_expect(BattleProfileStore.load_profile(path).wins == 4, "profile store reloads saved data")
+	saved.wins = 5
+	_expect(BattleProfileStore.save_profile(path, saved), "profile store replaces an existing save")
+	_expect(BattleProfileStore.load_profile(path).wins == 5 and not FileAccess.file_exists(path + ".bak"), "successful replacement cleans its backup")
+	var backup := FileAccess.open(path + ".bak", FileAccess.WRITE)
+	backup.store_string(JSON.stringify({"version": 3, "wins": 7}))
+	backup.close()
+	var corrupted := FileAccess.open(path, FileAccess.WRITE)
+	corrupted.store_string("{truncated")
+	corrupted.close()
+	_expect(BattleProfileStore.load_profile(path).wins == 7, "profile store recovers from a valid backup")
+	for suffix in ["", ".tmp", ".bak"]:
+		var absolute := ProjectSettings.globalize_path(path + suffix)
+		if FileAccess.file_exists(path + suffix):
+			DirAccess.remove_absolute(absolute)
 
 
 func _test_progression() -> void:
