@@ -27,6 +27,7 @@ Le développement du premier prototype jouable est en cours.
 - compte à rebours de duel et guide de placement sur les deux voies ;
 - effets sonores procéduraux pour le départ, les cartes, les attaques et les destructions ;
 - préférences locales persistantes pour les sons et le niveau d’IA ;
+- sauvegarde transactionnelle avec récupération automatique depuis une copie de secours ;
 - score par forteresses détruites, prolongation en mort subite et énergie doublée ;
 - pause manuelle, pause automatique en arrière-plan, reprise et abandon ;
 - IA équitable utilisant les mêmes commandes que le joueur ;
