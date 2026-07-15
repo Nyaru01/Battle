@@ -18,7 +18,8 @@ Le développement du premier prototype jouable est en cours.
 
 - menu et trois difficultés d'IA ;
 - arène à deux voies avec tours et noyaux ;
-- quatre cartes : Gardien, Éclaireuse, Colosse et Comète ;
+- deck de huit cartes avec main tournante de quatre cartes et prochaine pioche visible ;
+- huit cartes originales, dont trois nouveaux combattants et le sort de ralentissement Stase ;
 - énergie, déplacement, ciblage, combat, victoire et limite de temps ;
 - IA équitable utilisant les mêmes commandes que le joueur ;
 - sauvegarde locale des victoires et défaites ;

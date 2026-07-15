@@ -10,6 +10,10 @@ const LANE_COUNT := 2
 const TOWER_RANGE := 235.0
 const TOWER_DAMAGE := 52.0
 const TOWER_INTERVAL := 1.0
+const DEFAULT_DECK := [
+	"guardian", "ranger", "colossus", "fireball",
+	"duelist", "alchemist", "bulwark", "frost",
+]
 
 const CARDS := {
 	"guardian": {
@@ -48,6 +52,44 @@ const CARDS := {
 		"type": "spell",
 		"damage": 185.0,
 	},
+	"duelist": {
+		"name": "Duelliste",
+		"cost": 2.0,
+		"type": "unit",
+		"hp": 330.0,
+		"damage": 44.0,
+		"speed": 78.0,
+		"range": 44.0,
+		"interval": 0.65,
+	},
+	"alchemist": {
+		"name": "Alchimiste",
+		"cost": 4.0,
+		"type": "unit",
+		"hp": 390.0,
+		"damage": 74.0,
+		"speed": 42.0,
+		"range": 135.0,
+		"interval": 1.25,
+		"splash": 70.0,
+	},
+	"bulwark": {
+		"name": "Rempart",
+		"cost": 6.0,
+		"type": "unit",
+		"hp": 1550.0,
+		"damage": 70.0,
+		"speed": 24.0,
+		"range": 48.0,
+		"interval": 1.5,
+	},
+	"frost": {
+		"name": "Stase",
+		"cost": 3.0,
+		"type": "spell",
+		"damage": 95.0,
+		"slow_duration": 3.0,
+	},
 }
 
 var rng := RandomNumberGenerator.new()
@@ -60,6 +102,8 @@ var winner := -1
 var next_unit_id := 1
 var events: Array = []
 var tower_attack_timers := [[0.0, 0.0], [0.0, 0.0]]
+var hands: Array = []
+var draw_queues: Array = []
 
 
 func _init(seed_value: int = 1) -> void:
@@ -81,12 +125,16 @@ func reset(seed_value: int = 1) -> void:
 	next_unit_id = 1
 	events.clear()
 	tower_attack_timers = [[0.0, 0.0], [0.0, 0.0]]
+	hands = [DEFAULT_DECK.slice(0, 4), DEFAULT_DECK.slice(0, 4)]
+	draw_queues = [DEFAULT_DECK.slice(4), DEFAULT_DECK.slice(4)]
 
 
 func play_card(side: int, card_id: String, lane: int) -> bool:
 	if finished or side < PLAYER or side > ENEMY or lane < 0 or lane >= LANE_COUNT:
 		return false
 	if not CARDS.has(card_id):
+		return false
+	if card_id not in hands[side]:
 		return false
 	var card: Dictionary = CARDS[card_id]
 	if energy[side] + 0.001 < card.cost:
@@ -96,6 +144,7 @@ func play_card(side: int, card_id: String, lane: int) -> bool:
 		_cast_spell(side, card_id, lane, card)
 	else:
 		_spawn_unit(side, card_id, lane, card)
+	_cycle_card(side, card_id)
 	events.append({"type": "card_played", "side": side, "card": card_id, "lane": lane})
 	return true
 
@@ -120,6 +169,14 @@ func get_card_ids() -> Array[String]:
 	return ids
 
 
+func get_hand(side: int) -> Array:
+	return hands[side].duplicate()
+
+
+func get_next_card(side: int) -> String:
+	return "" if draw_queues[side].is_empty() else String(draw_queues[side][0])
+
+
 func get_total_health(side: int) -> float:
 	return towers[side].core + towers[side].lanes[0] + towers[side].lanes[1]
 
@@ -142,6 +199,8 @@ func _spawn_unit(side: int, card_id: String, lane: int, card: Dictionary) -> voi
 		"speed": card.speed,
 		"range": card.range,
 		"interval": card.interval,
+		"splash": float(card.get("splash", 0.0)),
+		"slow_timer": 0.0,
 		"attack_timer": rng.randf_range(0.0, 0.15),
 	})
 	next_unit_id += 1
@@ -152,6 +211,7 @@ func _cast_spell(side: int, card_id: String, lane: int, card: Dictionary) -> voi
 	for unit in units:
 		if unit.side == target_side and unit.lane == lane:
 			unit.hp -= card.damage
+			unit.slow_timer = maxf(float(unit.slow_timer), float(card.get("slow_duration", 0.0)))
 	var lane_damage: float = card.damage * 0.45
 	if towers[target_side].lanes[lane] > 0.0:
 		towers[target_side].lanes[lane] = maxf(0.0, towers[target_side].lanes[lane] - lane_damage)
@@ -165,10 +225,11 @@ func _update_units(delta: float) -> void:
 		if unit.hp <= 0.0:
 			continue
 		unit.attack_timer = maxf(0.0, unit.attack_timer - delta)
+		unit.slow_timer = maxf(0.0, unit.slow_timer - delta)
 		var target = _closest_enemy_unit(unit)
 		if target != null and absf(target.y - unit.y) <= unit.range:
 			if unit.attack_timer <= 0.0:
-				target.hp -= unit.damage
+				_damage_unit_target(unit, target)
 				unit.attack_timer = unit.interval
 				events.append({"type": "hit", "source": unit.id, "target": target.id})
 			continue
@@ -183,7 +244,26 @@ func _update_units(delta: float) -> void:
 				unit.attack_timer = unit.interval
 			continue
 		var direction := -1.0 if unit.side == PLAYER else 1.0
-		unit.y += direction * unit.speed * delta
+		var speed_multiplier := 0.55 if unit.slow_timer > 0.0 else 1.0
+		unit.y += direction * unit.speed * speed_multiplier * delta
+
+
+func _damage_unit_target(source: Dictionary, target: Dictionary) -> void:
+	target.hp -= source.damage
+	if source.splash <= 0.0:
+		return
+	for candidate in units:
+		if candidate.id == target.id or candidate.side == source.side or candidate.lane != source.lane:
+			continue
+		if absf(float(candidate.y) - float(target.y)) <= source.splash:
+			candidate.hp -= source.damage * 0.55
+
+
+func _cycle_card(side: int, card_id: String) -> void:
+	hands[side].erase(card_id)
+	var drawn_card: String = draw_queues[side].pop_front()
+	hands[side].append(drawn_card)
+	draw_queues[side].append(card_id)
 
 
 func _closest_enemy_unit(source: Dictionary):

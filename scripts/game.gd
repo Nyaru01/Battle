@@ -6,22 +6,32 @@ const DESIGN_SIZE := Vector2(720.0, 1280.0)
 const LANE_X := [210.0, 510.0]
 const ARENA_TEXTURE := preload("res://assets/arena-v2.png")
 const CARD_ART := preload("res://assets/card-art-v2.png")
+const CARD_ART_V4 := preload("res://assets/card-art-v4.png")
 const ICON_TEXTURE := preload("res://assets/icon.png")
 const TOWER_SPRITES := preload("res://assets/tower-sprites-v3.png")
 const UNIT_SPRITES := preload("res://assets/unit-sprites-v3.png")
-const CARD_ORDER := ["guardian", "ranger", "colossus", "fireball"]
+const UNIT_SPRITES_V4 := preload("res://assets/unit-sprites-v4.png")
 const CARD_SHORT := {
 	"guardian": "G",
 	"ranger": "E",
 	"colossus": "C",
 	"fireball": "★",
+	"duelist": "D",
+	"alchemist": "A",
+	"bulwark": "R",
+	"frost": "❄",
 }
 const CARD_QUADRANTS := {
 	"guardian": Vector2i(0, 0),
 	"ranger": Vector2i(1, 0),
 	"colossus": Vector2i(0, 1),
 	"fireball": Vector2i(1, 1),
+	"duelist": Vector2i(0, 0),
+	"alchemist": Vector2i(1, 0),
+	"bulwark": Vector2i(0, 1),
+	"frost": Vector2i(1, 1),
 }
+const V4_CARD_IDS := ["duelist", "alchemist", "bulwark", "frost"]
 const SAVE_PATH := "user://profile.json"
 
 var state := ScreenState.MENU
@@ -71,10 +81,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not pressed or position.y < 115.0 or position.y > 1060.0:
 		return
 	var lane := 0 if position.x < DESIGN_SIZE.x * 0.5 else 1
+	var played_card := selected_card
 	if simulation.play_card(BattleSim.PLAYER, selected_card, lane):
 		selected_card = ""
-		hint_label.text = "Choisis une carte, puis touche une voie"
-		_update_hud()
+		_build_hud()
+		hint_label.text = "%s joué • suivante : %s" % [BattleSim.CARDS[played_card].name, BattleSim.CARDS[simulation.get_next_card(BattleSim.PLAYER)].name]
 		queue_redraw()
 	else:
 		hint_label.text = "Pas assez d'énergie"
@@ -151,6 +162,7 @@ func _draw_unit_avatar(center: Vector2, unit: Dictionary) -> float:
 	var radius := 25.0
 	var source := Rect2(20.0, 100.0, 630.0, 680.0)
 	var size := Vector2(108.0, 116.0)
+	var texture: Texture2D = UNIT_SPRITES
 	if unit.card_id == "colossus":
 		radius = 34.0
 		source = Rect2(1100.0, 80.0, 674.0, 710.0)
@@ -159,11 +171,26 @@ func _draw_unit_avatar(center: Vector2, unit: Dictionary) -> float:
 		radius = 23.0
 		source = Rect2(650.0, 130.0, 480.0, 650.0)
 		size = Vector2(86.0, 116.0)
+	elif unit.card_id == "duelist":
+		radius = 23.0
+		texture = UNIT_SPRITES_V4
+		source = Rect2(35.0, 140.0, 520.0, 670.0)
+		size = Vector2(88.0, 113.0)
+	elif unit.card_id == "alchemist":
+		radius = 25.0
+		texture = UNIT_SPRITES_V4
+		source = Rect2(565.0, 150.0, 515.0, 680.0)
+		size = Vector2(94.0, 124.0)
+	elif unit.card_id == "bulwark":
+		radius = 36.0
+		texture = UNIT_SPRITES_V4
+		source = Rect2(1090.0, 85.0, 570.0, 760.0)
+		size = Vector2(128.0, 154.0)
 	draw_circle(center + Vector2(5.0, 20.0), radius * 0.95, Color(0.02, 0.05, 0.04, 0.38))
 	draw_circle(center + Vector2(0.0, 18.0), radius * 0.72, Color(team, 0.20))
 	draw_arc(center + Vector2(0.0, 18.0), radius * 0.76, 0.0, TAU, 28, team, 3.0)
 	var destination := Rect2(center.x - size.x * 0.5, center.y - size.y * 0.66, size.x, size.y)
-	draw_texture_rect_region(UNIT_SPRITES, destination, source)
+	draw_texture_rect_region(texture, destination, source)
 	return radius
 
 
@@ -200,7 +227,7 @@ func _build_menu() -> void:
 	start.add_theme_font_size_override("font_size", 30)
 	start.pressed.connect(_start_battle)
 	ui_layer.add_child(start)
-	var version := _label("Prototype 0.3 • Hors ligne", Vector2(160.0, 1140.0), Vector2(400.0, 36.0), 18)
+	var version := _label("Prototype 0.4 • Hors ligne", Vector2(160.0, 1140.0), Vector2(400.0, 36.0), 18)
 	version.add_theme_color_override("font_color", Color("71889a"))
 	var record := _label("%d victoires  •  %d défaites" % [profile.wins, profile.losses], Vector2(160.0, 950.0), Vector2(400.0, 40.0), 18)
 	record.add_theme_color_override("font_color", Color("8fa7b8"))
@@ -234,11 +261,12 @@ func _build_hud() -> void:
 	energy_bar.add_theme_stylebox_override("fill", _energy_style(Color("c950ed")))
 	ui_layer.add_child(energy_bar)
 	core_label = _label("", Vector2(20.0, 36.0), Vector2(680.0, 30.0), 17)
-	hint_label = _label("Choisis une carte, puis touche une voie", Vector2(438.0, 1058.0), Vector2(264.0, 40.0), 15)
+	hint_label = _label("Suivante : %s" % BattleSim.CARDS[simulation.get_next_card(BattleSim.PLAYER)].name, Vector2(438.0, 1058.0), Vector2(264.0, 40.0), 15)
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	card_buttons.clear()
-	for index in range(CARD_ORDER.size()):
-		var card_id: String = CARD_ORDER[index]
+	var hand := simulation.get_hand(BattleSim.PLAYER)
+	for index in range(hand.size()):
+		var card_id: String = hand[index]
 		var card: Dictionary = BattleSim.CARDS[card_id]
 		var button := Button.new()
 		button.position = Vector2(12.0 + index * 177.0, 1100.0)
@@ -251,14 +279,7 @@ func _build_hud() -> void:
 		button.pressed.connect(_select_card.bind(card_id))
 		ui_layer.add_child(button)
 		var quadrant: Vector2i = CARD_QUADRANTS[card_id]
-		var atlas := AtlasTexture.new()
-		atlas.atlas = CARD_ART
-		atlas.region = Rect2(
-			quadrant.x * CARD_ART.get_width() * 0.5,
-			quadrant.y * CARD_ART.get_height() * 0.5,
-			CARD_ART.get_width() * 0.5,
-			CARD_ART.get_height() * 0.5
-		)
+		var atlas := _card_texture(card_id, quadrant)
 		var portrait := TextureRect.new()
 		portrait.texture = atlas
 		portrait.position = Vector2(6.0, 6.0)
@@ -318,6 +339,14 @@ func _card_style(card_id: String, highlighted: bool, disabled: bool = false) -> 
 		accent = Color("d6b365")
 	elif card_id == "fireball":
 		accent = Color("ff8a47")
+	elif card_id == "duelist":
+		accent = Color("ef6b67")
+	elif card_id == "alchemist":
+		accent = Color("ffb940")
+	elif card_id == "bulwark":
+		accent = Color("80a66c")
+	elif card_id == "frost":
+		accent = Color("73ddff")
 	style.border_color = Color("ffe17b") if highlighted else accent.darkened(0.18)
 	style.set_border_width_all(4 if highlighted else 2)
 	style.set_corner_radius_all(10)
@@ -325,6 +354,19 @@ func _card_style(card_id: String, highlighted: bool, disabled: bool = false) -> 
 	style.shadow_size = 7
 	style.shadow_offset = Vector2(0.0, 4.0)
 	return style
+
+
+func _card_texture(card_id: String, quadrant: Vector2i) -> AtlasTexture:
+	var atlas := AtlasTexture.new()
+	var sheet: Texture2D = CARD_ART_V4 if card_id in V4_CARD_IDS else CARD_ART
+	atlas.atlas = sheet
+	atlas.region = Rect2(
+		quadrant.x * sheet.get_width() * 0.5,
+		quadrant.y * sheet.get_height() * 0.5,
+		sheet.get_width() * 0.5,
+		sheet.get_height() * 0.5
+	)
+	return atlas
 
 
 func _energy_style(color: Color) -> StyleBoxFlat:

@@ -26,7 +26,7 @@ func update(delta: float, simulation: BattleSim) -> void:
 
 func _take_turn(simulation: BattleSim) -> void:
 	var available: Array[String] = []
-	for card_id in simulation.get_card_ids():
+	for card_id in simulation.get_hand(side):
 		if BattleSim.CARDS[card_id].cost <= simulation.energy[side] + 0.001:
 			available.append(card_id)
 	if available.is_empty():
@@ -36,6 +36,9 @@ func _take_turn(simulation: BattleSim) -> void:
 	var enemy_count := simulation.get_units_in_lane(enemy_side, target_lane).size()
 	if "fireball" in available and enemy_count >= (3 if difficulty == 0 else 2):
 		simulation.play_card(side, "fireball", target_lane)
+		return
+	if "frost" in available and enemy_count >= 2:
+		simulation.play_card(side, "frost", target_lane)
 		return
 	var chosen := _choose_unit(available, simulation, target_lane)
 	if chosen.is_empty():
@@ -52,6 +55,10 @@ func _choose_unit(available: Array[String], simulation: BattleSim, lane: int) ->
 	var threat_count := simulation.get_units_in_lane(1 - side, lane).size()
 	if threat_count >= 2 and "colossus" in candidates:
 		return "colossus"
+	if threat_count >= 2 and "bulwark" in candidates:
+		return "bulwark"
+	if threat_count >= 2 and "alchemist" in candidates:
+		return "alchemist"
 	if threat_count >= 1 and "ranger" in candidates:
 		return "ranger"
 	if "guardian" in candidates:
