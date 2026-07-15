@@ -32,6 +32,7 @@ const CARD_QUADRANTS := {
 	"frost": Vector2i(1, 1),
 }
 const V4_CARD_IDS := ["duelist", "alchemist", "bulwark", "frost"]
+const DIFFICULTY_NAMES := ["INITIATION", "TACTIQUE", "EXPERT"]
 const SAVE_PATH := "user://profile.json"
 
 var state := ScreenState.MENU
@@ -53,6 +54,7 @@ var tutorial_label: Label
 var battle_paused := false
 var pause_layer: CanvasLayer
 var effects: Array[Dictionary] = []
+var battle_intro_time := 0.0
 
 
 func _ready() -> void:
@@ -63,6 +65,10 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	if state != ScreenState.BATTLE or battle_paused:
+		return
+	if battle_intro_time > 0.0:
+		battle_intro_time = maxf(0.0, battle_intro_time - delta)
+		queue_redraw()
 		return
 	simulation.step(delta)
 	if tutorial == null or tutorial.is_complete():
@@ -77,7 +83,7 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if state != ScreenState.BATTLE or battle_paused or selected_card.is_empty():
+	if state != ScreenState.BATTLE or battle_paused or battle_intro_time > 0.0 or selected_card.is_empty():
 		return
 	var pressed := false
 	var position := Vector2.ZERO
@@ -121,9 +127,11 @@ func _draw() -> void:
 		_draw_collection_backdrop()
 		return
 	_draw_arena()
+	_draw_deployment_guide()
 	_draw_objectives()
 	_draw_units()
 	_draw_effects()
+	_draw_battle_intro()
 
 
 func _draw_menu_backdrop() -> void:
@@ -147,6 +155,30 @@ func _draw_arena() -> void:
 	)
 	draw_rect(Rect2(24.0, 82.0, 672.0, 982.0), Color(0.05, 0.12, 0.14, 0.28), false, 4.0)
 	draw_rect(Rect2(42.0, 590.0, 636.0, 430.0), Color(0.2, 0.75, 1.0, 0.025), true)
+
+
+func _draw_deployment_guide() -> void:
+	if state != ScreenState.BATTLE or selected_card.is_empty() or battle_intro_time > 0.0:
+		return
+	var accent := Color("6bd5ff")
+	for lane in range(BattleSim.LANE_COUNT):
+		var area := Rect2(58.0 + lane * 330.0, 610.0, 274.0, 235.0)
+		draw_rect(area, Color(accent, 0.07), true)
+		draw_rect(area, Color(accent, 0.48), false, 3.0)
+		draw_string(ThemeDB.fallback_font, Vector2(area.position.x, 660.0), "VOIE GAUCHE" if lane == 0 else "VOIE DROITE", HORIZONTAL_ALIGNMENT_CENTER, area.size.x, 18, Color(accent, 0.88))
+
+
+func _draw_battle_intro() -> void:
+	if state != ScreenState.BATTLE or battle_intro_time <= 0.0:
+		return
+	var message := "COMBAT !"
+	if battle_intro_time > 0.8:
+		message = str(ceili(battle_intro_time - 0.8))
+	var center := Vector2(360.0, 565.0)
+	var pulse := 1.0 + sin(battle_intro_time * 8.0) * 0.05
+	draw_circle(center, 86.0 * pulse, Color(0.02, 0.06, 0.11, 0.82))
+	draw_arc(center, 86.0 * pulse, 0.0, TAU, 40, Color("ffe07a"), 6.0)
+	draw_string(ThemeDB.fallback_font, Vector2(210.0, 585.0), message, HORIZONTAL_ALIGNMENT_CENTER, 300.0, 50 if message == "COMBAT !" else 72, Color.WHITE)
 
 
 func _draw_objectives() -> void:
@@ -377,7 +409,7 @@ func _build_menu() -> void:
 	collection.add_theme_font_size_override("font_size", 19)
 	collection.pressed.connect(_build_collection)
 	ui_layer.add_child(collection)
-	var version := _label("Prototype 0.12 • Hors ligne", Vector2(160.0, 1190.0), Vector2(400.0, 36.0), 18)
+	var version := _label("Prototype 0.13 • Hors ligne", Vector2(160.0, 1190.0), Vector2(400.0, 36.0), 18)
 	version.add_theme_color_override("font_color", Color("71889a"))
 	var record := _label("%d victoires  •  %d défaites" % [profile.wins, profile.losses], Vector2(160.0, 1080.0), Vector2(400.0, 36.0), 17)
 	record.add_theme_color_override("font_color", Color("8fa7b8"))
@@ -464,6 +496,7 @@ func _card_details(card: Dictionary) -> String:
 func _start_battle() -> void:
 	_clear_pause_overlay()
 	effects.clear()
+	battle_intro_time = 3.8
 	tutorial = null
 	simulation = BattleSim.new(Time.get_ticks_msec())
 	opponent = BattleAI.new(BattleSim.ENEMY, selected_difficulty, Time.get_ticks_msec() + 19)
@@ -477,6 +510,7 @@ func _start_battle() -> void:
 func _start_tutorial() -> void:
 	_clear_pause_overlay()
 	effects.clear()
+	battle_intro_time = 3.8
 	tutorial = BattleTutorial.new()
 	simulation = BattleSim.new(101)
 	simulation.energy[BattleSim.PLAYER] = 10.0
@@ -578,6 +612,7 @@ func _select_card(card_id: String) -> void:
 	else:
 		hint_label.text = "%s sélectionné • touche la voie gauche ou droite" % BattleSim.CARDS[card_id].name
 	_update_hud()
+	queue_redraw()
 
 
 func _update_tutorial_hint() -> void:
@@ -597,7 +632,8 @@ func _update_hud() -> void:
 	time_label.add_theme_color_override("font_color", Color("ffcf68") if simulation.overtime else Color.WHITE)
 	energy_label.text = ("x2  " if simulation.overtime else "") + "%.1f/10" % simulation.energy[BattleSim.PLAYER]
 	energy_bar.value = simulation.energy[BattleSim.PLAYER]
-	core_label.text = "IA %d   ◆ %d — %d ◆   %d TOI" % [int(simulation.towers[BattleSim.ENEMY].core), simulation.crowns[BattleSim.ENEMY], simulation.crowns[BattleSim.PLAYER], int(simulation.towers[BattleSim.PLAYER].core)]
+	var opponent_name := "ENTRAÎNEUR" if tutorial != null else "IA %s" % DIFFICULTY_NAMES[selected_difficulty]
+	core_label.text = "%s %d   ◆ %d — %d ◆   %d TOI" % [opponent_name, int(simulation.towers[BattleSim.ENEMY].core), simulation.crowns[BattleSim.ENEMY], simulation.crowns[BattleSim.PLAYER], int(simulation.towers[BattleSim.PLAYER].core)]
 	for card_id in card_buttons:
 		var button: Button = card_buttons[card_id]
 		button.disabled = BattleSim.CARDS[card_id].cost > simulation.energy[BattleSim.PLAYER] + 0.001
