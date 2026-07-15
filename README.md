@@ -24,7 +24,7 @@ Le développement du premier prototype jouable est en cours.
 - sauvegarde locale des victoires et défaites ;
 - contrôles souris et tactiles ;
 - arène 2,5D originale avec chemins, rivière et ponts ;
-- cartes illustrées et silhouettes distinctes pour les unités ;
+- cartes, combattants et forteresses illustrés avec des actifs originaux ;
 - export APK Android debug.
 
 ## Lancer le projet

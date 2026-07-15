@@ -27,4 +27,20 @@ Ce document suit l'origine des actifs visuels intégrés au projet afin d'évite
 - Contenu : Gardien, Éclaireuse, Colosse et Comète, tous originaux
 - Référence propriétaire utilisée : aucune
 
+## `assets/tower-sprites-v3.png`
+
+- Date : 2026-07-15
+- Origine : génération OpenAI intégrée à Codex, puis détourage local par clé chromatique
+- Usage : tour de voie et forteresse centrale du prototype 0.3
+- Direction : deux bâtiments fantasy 2,5D originaux en pierre bleu-gris et laiton, avec lanceur de cristal et noyau cyan
+- Référence propriétaire utilisée : aucune
+
+## `assets/unit-sprites-v3.png`
+
+- Date : 2026-07-15
+- Origine : génération OpenAI intégrée à Codex, puis détourage local par clé chromatique
+- Usage : combattants Gardien, Éclaireuse et Colosse du prototype 0.3
+- Direction : trois personnages fantasy 2,5D originaux et lisibles en vue mobile
+- Référence propriétaire utilisée : aucune
+
 La capture de référence n'est pas versionnée dans Git et n'est pas distribuée avec le jeu.

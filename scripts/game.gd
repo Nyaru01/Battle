@@ -7,6 +7,8 @@ const LANE_X := [210.0, 510.0]
 const ARENA_TEXTURE := preload("res://assets/arena-v2.png")
 const CARD_ART := preload("res://assets/card-art-v2.png")
 const ICON_TEXTURE := preload("res://assets/icon.png")
+const TOWER_SPRITES := preload("res://assets/tower-sprites-v3.png")
+const UNIT_SPRITES := preload("res://assets/unit-sprites-v3.png")
 const CARD_ORDER := ["guardian", "ranger", "colossus", "fireball"]
 const CARD_SHORT := {
 	"guardian": "G",
@@ -30,6 +32,7 @@ var selected_difficulty := 1
 var ui_layer: CanvasLayer
 var time_label: Label
 var energy_label: Label
+var energy_bar: ProgressBar
 var core_label: Label
 var hint_label: Label
 var card_buttons: Dictionary = {}
@@ -123,65 +126,44 @@ func _draw_units() -> void:
 
 
 func _draw_tower(center: Vector2, team_color: Color, hp: float, maximum: float, is_core: bool) -> void:
-	var width := 92.0 if is_core else 76.0
-	var height := 76.0 if is_core else 66.0
-	var shadow := PackedVector2Array([
-		center + Vector2(-width * 0.52 + 8.0, height * 0.38 + 10.0),
-		center + Vector2(width * 0.52 + 8.0, height * 0.38 + 10.0),
-		center + Vector2(width * 0.40 + 8.0, height * 0.66 + 10.0),
-		center + Vector2(-width * 0.40 + 8.0, height * 0.66 + 10.0),
-	])
-	draw_colored_polygon(shadow, Color(0.02, 0.05, 0.04, 0.38))
-	var base_rect := Rect2(center.x - width * 0.46, center.y - height * 0.18, width * 0.92, height * 0.72)
-	draw_rect(base_rect, Color("48545d") if hp > 0.0 else Color("343a3e"), true)
-	draw_rect(Rect2(base_rect.position + Vector2(5.0, 5.0), base_rect.size - Vector2(10.0, 12.0)), Color("697984") if hp > 0.0 else Color("40474b"), true)
-	var roof := PackedVector2Array([
-		center + Vector2(-width * 0.55, -height * 0.34),
-		center + Vector2(width * 0.55, -height * 0.34),
-		center + Vector2(width * 0.42, height * 0.06),
-		center + Vector2(-width * 0.42, height * 0.06),
-	])
-	draw_colored_polygon(roof, team_color.darkened(0.22) if hp > 0.0 else Color("394044"))
-	draw_polyline(PackedVector2Array([roof[0], roof[1], roof[2], roof[3], roof[0]]), Color(1, 1, 1, 0.48), 2.0)
-	for offset in [-0.36, 0.0, 0.36]:
-		draw_rect(Rect2(center.x + width * offset - 8.0, center.y - height * 0.48, 16.0, 17.0), team_color if hp > 0.0 else Color("41494d"), true)
+	var source_width := TOWER_SPRITES.get_width() * 0.5
+	var source := Rect2(source_width if is_core else 0.0, 0.0, source_width, TOWER_SPRITES.get_height())
+	var size := Vector2(170.0, 150.0) if is_core else Vector2(138.0, 142.0)
+	var destination := Rect2(center.x - size.x * 0.5, center.y - size.y * 0.60, size.x, size.y)
+	draw_circle(center + Vector2(7.0, 27.0), 39.0 if is_core else 31.0, Color(0.02, 0.05, 0.04, 0.35))
+	var tint := Color.WHITE if hp > 0.0 else Color(0.35, 0.36, 0.37, 0.55)
+	draw_texture_rect_region(TOWER_SPRITES, destination, source, tint)
+	var banner_width := 52.0 if is_core else 42.0
+	var banner_y := center.y - (28.0 if is_core else 22.0)
+	draw_rect(Rect2(center.x - banner_width * 0.5, banner_y, banner_width, 18.0), team_color if hp > 0.0 else Color("45494c"), true)
+	draw_colored_polygon(PackedVector2Array([
+		Vector2(center.x - banner_width * 0.5, banner_y + 18.0),
+		Vector2(center.x, banner_y + 27.0),
+		Vector2(center.x + banner_width * 0.5, banner_y + 18.0),
+	]), team_color.darkened(0.12) if hp > 0.0 else Color("45494c"))
 	if is_core and hp > 0.0:
-		var crown := PackedVector2Array([
-			center + Vector2(-20.0, 8.0), center + Vector2(-15.0, -5.0),
-			center + Vector2(-5.0, 3.0), center + Vector2(0.0, -9.0),
-			center + Vector2(7.0, 3.0), center + Vector2(17.0, -5.0),
-			center + Vector2(20.0, 8.0),
-		])
-		draw_colored_polygon(crown, Color("ffd563"))
-	_draw_health_bar(Vector2(center.x - width * 0.52, center.y - height * 0.68), width * 1.04, hp, maximum)
+		draw_string(ThemeDB.fallback_font, Vector2(center.x - 18.0, banner_y + 17.0), "♛", HORIZONTAL_ALIGNMENT_CENTER, 36.0, 19, Color("ffe180"))
+	_draw_health_bar(Vector2(center.x - size.x * 0.31, center.y - size.y * 0.55), size.x * 0.62, hp, maximum)
 
 
 func _draw_unit_avatar(center: Vector2, unit: Dictionary) -> float:
 	var team := Color("57c4ff") if unit.side == BattleSim.PLAYER else Color("ff6173")
-	var facing := -1.0 if unit.side == BattleSim.PLAYER else 1.0
 	var radius := 25.0
+	var source := Rect2(20.0, 100.0, 630.0, 680.0)
+	var size := Vector2(108.0, 116.0)
 	if unit.card_id == "colossus":
 		radius = 34.0
+		source = Rect2(1100.0, 80.0, 674.0, 710.0)
+		size = Vector2(132.0, 139.0)
 	elif unit.card_id == "ranger":
 		radius = 23.0
-	draw_circle(center + Vector2(7.0, radius * 0.64), radius * 0.92, Color(0.02, 0.05, 0.04, 0.32))
-	if unit.card_id == "colossus":
-		draw_rect(Rect2(center - Vector2(27.0, 23.0), Vector2(54.0, 48.0)), Color("727b72"), true)
-		draw_rect(Rect2(center - Vector2(18.0, 30.0), Vector2(36.0, 24.0)), Color("9a895e"), true)
-		draw_circle(center + Vector2(0.0, 5.0), 9.0, Color("67efff"))
-		draw_line(center + Vector2(-27.0, -10.0), center + Vector2(-38.0, 18.0), Color("6a6252"), 10.0)
-		draw_line(center + Vector2(27.0, -10.0), center + Vector2(38.0, 18.0), Color("6a6252"), 10.0)
-	elif unit.card_id == "ranger":
-		draw_colored_polygon(PackedVector2Array([center + Vector2(0.0, -26.0), center + Vector2(-22.0, 23.0), center + Vector2(22.0, 23.0)]), Color("1b8f83"))
-		draw_circle(center + Vector2(0.0, -12.0), 11.0, Color("edc3a3"))
-		draw_arc(center + Vector2(10.0 * facing, 2.0), 25.0, -1.2, 1.2, 16, Color("d6ad55"), 4.0)
-		draw_line(center + Vector2(20.0 * facing, -20.0), center + Vector2(20.0 * facing, 22.0), Color("f4e4b0"), 2.0)
-	else:
-		draw_rect(Rect2(center - Vector2(17.0, 18.0), Vector2(34.0, 40.0)), team.darkened(0.18), true)
-		draw_circle(center + Vector2(0.0, -20.0), 13.0, Color("d6a77f"))
-		draw_circle(center + Vector2(-facing * 16.0, 2.0), 17.0, team)
-		draw_circle(center + Vector2(-facing * 16.0, 2.0), 17.0, Color("f6d16e"), false, 3.0)
-		draw_line(center + Vector2(facing * 13.0, -8.0), center + Vector2(facing * 30.0, -30.0), Color("edf2f4"), 5.0)
+		source = Rect2(650.0, 130.0, 480.0, 650.0)
+		size = Vector2(86.0, 116.0)
+	draw_circle(center + Vector2(5.0, 20.0), radius * 0.95, Color(0.02, 0.05, 0.04, 0.38))
+	draw_circle(center + Vector2(0.0, 18.0), radius * 0.72, Color(team, 0.20))
+	draw_arc(center + Vector2(0.0, 18.0), radius * 0.76, 0.0, TAU, 28, team, 3.0)
+	var destination := Rect2(center.x - size.x * 0.5, center.y - size.y * 0.66, size.x, size.y)
+	draw_texture_rect_region(UNIT_SPRITES, destination, source)
 	return radius
 
 
@@ -218,7 +200,7 @@ func _build_menu() -> void:
 	start.add_theme_font_size_override("font_size", 30)
 	start.pressed.connect(_start_battle)
 	ui_layer.add_child(start)
-	var version := _label("Prototype 0.2 • Hors ligne", Vector2(160.0, 1140.0), Vector2(400.0, 36.0), 18)
+	var version := _label("Prototype 0.3 • Hors ligne", Vector2(160.0, 1140.0), Vector2(400.0, 36.0), 18)
 	version.add_theme_color_override("font_color", Color("71889a"))
 	var record := _label("%d victoires  •  %d défaites" % [profile.wins, profile.losses], Vector2(160.0, 950.0), Vector2(400.0, 40.0), 18)
 	record.add_theme_color_override("font_color", Color("8fa7b8"))
@@ -239,10 +221,20 @@ func _build_hud() -> void:
 	ui_layer = CanvasLayer.new()
 	add_child(ui_layer)
 	time_label = _label("03:00", Vector2(290.0, 0.0), Vector2(140.0, 38.0), 26)
-	energy_label = _label("Énergie 5/10", Vector2(20.0, 1060.0), Vector2(210.0, 42.0), 22)
+	energy_label = _label("Énergie 5/10", Vector2(18.0, 1060.0), Vector2(145.0, 36.0), 18)
 	energy_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	energy_bar = ProgressBar.new()
+	energy_bar.position = Vector2(148.0, 1067.0)
+	energy_bar.size = Vector2(282.0, 24.0)
+	energy_bar.min_value = 0.0
+	energy_bar.max_value = 10.0
+	energy_bar.value = 5.0
+	energy_bar.show_percentage = false
+	energy_bar.add_theme_stylebox_override("background", _energy_style(Color("111925")))
+	energy_bar.add_theme_stylebox_override("fill", _energy_style(Color("c950ed")))
+	ui_layer.add_child(energy_bar)
 	core_label = _label("", Vector2(20.0, 36.0), Vector2(680.0, 30.0), 17)
-	hint_label = _label("Choisis une carte, puis touche une voie", Vector2(210.0, 1060.0), Vector2(490.0, 42.0), 17)
+	hint_label = _label("Choisis une carte, puis touche une voie", Vector2(438.0, 1058.0), Vector2(264.0, 40.0), 15)
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	card_buttons.clear()
 	for index in range(CARD_ORDER.size()):
@@ -308,6 +300,7 @@ func _update_hud() -> void:
 	var seconds := ceili(simulation.time_left)
 	time_label.text = "%02d:%02d" % [seconds / 60, seconds % 60]
 	energy_label.text = "Énergie %.1f/10" % simulation.energy[BattleSim.PLAYER]
+	energy_bar.value = simulation.energy[BattleSim.PLAYER]
 	core_label.text = "IA  %d     •     NOYAU     •     %d  TOI" % [int(simulation.towers[BattleSim.ENEMY].core), int(simulation.towers[BattleSim.PLAYER].core)]
 	for card_id in card_buttons:
 		var button: Button = card_buttons[card_id]
@@ -331,6 +324,15 @@ func _card_style(card_id: String, highlighted: bool, disabled: bool = false) -> 
 	style.shadow_color = Color(0, 0, 0, 0.45)
 	style.shadow_size = 7
 	style.shadow_offset = Vector2(0.0, 4.0)
+	return style
+
+
+func _energy_style(color: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = color
+	style.set_corner_radius_all(12)
+	style.border_color = Color("70278a") if color.get_luminance() > 0.2 else Color("354052")
+	style.set_border_width_all(2)
 	return style
 
 
