@@ -26,6 +26,7 @@ Le développement du premier prototype jouable est en cours.
 - pause manuelle, pause automatique en arrière-plan, reprise et abandon ;
 - IA équitable utilisant les mêmes commandes que le joueur ;
 - sauvegarde locale des victoires et défaites ;
+- progression locale versionnée avec niveau, expérience, éclats et récompenses de match ;
 - contrôles souris et tactiles ;
 - arène 2,5D originale avec chemins, rivière et ponts ;
 - cartes, combattants et forteresses illustrés avec des actifs originaux ;

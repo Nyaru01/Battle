@@ -18,6 +18,7 @@ func _run() -> void:
 	_test_overtime_rules()
 	_test_tutorial_flow()
 	_test_forfeit()
+	_test_progression()
 	_test_units_fight()
 	_test_tower_defends_lane()
 	_test_bot_matches_finish()
@@ -143,6 +144,21 @@ func _test_forfeit() -> void:
 	_expect(simulation.forfeit(BattleSim.PLAYER), "the player can forfeit an active match")
 	_expect(simulation.finished and simulation.winner == BattleSim.ENEMY, "forfeit awards the match to the opponent")
 	_expect(not simulation.forfeit(BattleSim.ENEMY), "a finished match cannot be forfeited again")
+
+
+func _test_progression() -> void:
+	var legacy := {"wins": 3, "losses": 2}
+	var profile := BattleProgression.normalize(legacy)
+	_expect(profile.wins == 3 and profile.level == 1, "legacy profiles migrate with defaults")
+	var tutorial_reward := BattleProgression.complete_tutorial(profile)
+	_expect(tutorial_reward.coins == 15 and profile.tutorial_completed, "tutorial grants its first completion reward")
+	_expect(BattleProgression.complete_tutorial(profile).coins == 0, "tutorial reward cannot be claimed twice")
+	var reward := BattleProgression.apply_match_result(profile, BattleSim.PLAYER, 2)
+	_expect(reward.coins == 31 and reward.xp == 35, "a win grants base and crown rewards")
+	profile.xp = BattleProgression.xp_to_next(profile.level) - 5
+	var level_reward := BattleProgression.apply_match_result(profile, BattleSim.ENEMY, 0)
+	_expect(level_reward.levels == 1 and profile.level == 2, "experience carries into a new level")
+	_expect(profile.xp == 10, "excess experience is preserved after leveling")
 
 
 func _test_units_fight() -> void:

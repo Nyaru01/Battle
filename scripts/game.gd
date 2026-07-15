@@ -46,7 +46,8 @@ var energy_bar: ProgressBar
 var core_label: Label
 var hint_label: Label
 var card_buttons: Dictionary = {}
-var profile := {"wins": 0, "losses": 0, "draws": 0}
+var profile := BattleProgression.default_profile()
+var last_reward: Dictionary = {}
 var tutorial: BattleTutorial
 var tutorial_label: Label
 var battle_paused := false
@@ -94,6 +95,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		if tutorial != null and not tutorial.is_complete():
 			tutorial.deploy_card(played_card, lane)
 			simulation.energy[BattleSim.PLAYER] = 10.0
+			if tutorial.is_complete():
+				last_reward = BattleProgression.complete_tutorial(profile)
+				_save_profile()
 		selected_card = ""
 		_build_hud()
 		if tutorial != null:
@@ -249,10 +253,12 @@ func _build_menu() -> void:
 	training.add_theme_font_size_override("font_size", 20)
 	training.pressed.connect(_start_tutorial)
 	ui_layer.add_child(training)
-	var version := _label("Prototype 0.7 • Hors ligne", Vector2(160.0, 1140.0), Vector2(400.0, 36.0), 18)
+	var version := _label("Prototype 0.8 • Hors ligne", Vector2(160.0, 1140.0), Vector2(400.0, 36.0), 18)
 	version.add_theme_color_override("font_color", Color("71889a"))
 	var record := _label("%d victoires  •  %d défaites" % [profile.wins, profile.losses], Vector2(160.0, 1030.0), Vector2(400.0, 40.0), 18)
 	record.add_theme_color_override("font_color", Color("8fa7b8"))
+	var progression := _label("Niveau %d  •  %d/%d XP  •  ◈ %d" % [profile.level, profile.xp, BattleProgression.xp_to_next(profile.level), profile.coins], Vector2(110.0, 1070.0), Vector2(500.0, 40.0), 18)
+	progression.add_theme_color_override("font_color", Color("f2c96d"))
 	queue_redraw()
 
 
@@ -262,6 +268,7 @@ func _start_battle() -> void:
 	simulation = BattleSim.new(Time.get_ticks_msec())
 	opponent = BattleAI.new(BattleSim.ENEMY, selected_difficulty, Time.get_ticks_msec() + 19)
 	selected_card = ""
+	last_reward = {}
 	state = ScreenState.BATTLE
 	_build_hud()
 	queue_redraw()
@@ -274,6 +281,7 @@ func _start_tutorial() -> void:
 	simulation.energy[BattleSim.PLAYER] = 10.0
 	opponent = BattleAI.new(BattleSim.ENEMY, 0, 202)
 	selected_card = ""
+	last_reward = {}
 	state = ScreenState.BATTLE
 	_build_hud()
 	_update_tutorial_hint()
@@ -454,6 +462,7 @@ func _show_result() -> void:
 			profile.losses += 1
 		else:
 			profile.draws += 1
+		last_reward = BattleProgression.apply_match_result(profile, simulation.winner, simulation.crowns[BattleSim.PLAYER])
 		_save_profile()
 	_clear_ui()
 	ui_layer = CanvasLayer.new()
@@ -471,15 +480,20 @@ func _show_result() -> void:
 	var result := _label(result_text, Vector2(120.0, 450.0), Vector2(480.0, 80.0), 48)
 	result.add_theme_color_override("font_color", Color("76e68b") if simulation.winner == BattleSim.PLAYER else Color("ff7785"))
 	var summary := _label("Score : %d — %d  •  Noyaux : %d — %d" % [simulation.crowns[BattleSim.PLAYER], simulation.crowns[BattleSim.ENEMY], int(simulation.towers[BattleSim.PLAYER].core), int(simulation.towers[BattleSim.ENEMY].core)], Vector2(105.0, 555.0), Vector2(510.0, 45.0), 19)
+	var reward_text := "Entraînement • statistiques inchangées"
+	if tutorial == null:
+		reward_text = "+%d éclats  •  +%d XP  •  Niveau %d" % [last_reward.coins, last_reward.xp, profile.level]
+	var reward := _label(reward_text, Vector2(105.0, 600.0), Vector2(510.0, 36.0), 18)
+	reward.add_theme_color_override("font_color", Color("f2c96d"))
 	var replay := Button.new()
 	replay.text = "REJOUER"
-	replay.position = Vector2(180.0, 650.0)
+	replay.position = Vector2(180.0, 665.0)
 	replay.size = Vector2(360.0, 70.0)
 	replay.pressed.connect(_start_battle)
 	ui_layer.add_child(replay)
 	var menu := Button.new()
 	menu.text = "MENU"
-	menu.position = Vector2(180.0, 735.0)
+	menu.position = Vector2(180.0, 750.0)
 	menu.size = Vector2(360.0, 54.0)
 	menu.pressed.connect(_build_menu)
 	ui_layer.add_child(menu)
@@ -576,8 +590,7 @@ func _load_profile() -> void:
 	var parsed = JSON.parse_string(file.get_as_text())
 	if typeof(parsed) != TYPE_DICTIONARY:
 		return
-	for key in profile.keys():
-		profile[key] = maxi(0, int(parsed.get(key, 0)))
+	profile = BattleProgression.normalize(parsed)
 
 
 func _save_profile() -> void:
