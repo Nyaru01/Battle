@@ -12,11 +12,18 @@ func _capture() -> void:
 	await process_frame
 	_save_viewport("res://builds/menu.png")
 	scene._start_battle()
-	scene.simulation.energy = [10.0, 10.0]
-	scene.simulation.play_card(BattleSim.PLAYER, "guardian", 0)
-	scene.simulation.play_card(BattleSim.PLAYER, "ranger", 1)
-	scene.simulation.play_card(BattleSim.ENEMY, "colossus", 0)
-	scene.simulation.play_card(BattleSim.ENEMY, "ranger", 1)
+	scene.simulation.energy = [100.0, 100.0]
+	for card_id in ["guardian", "ranger", "colossus", "fireball"]:
+		scene.simulation.play_card(BattleSim.PLAYER, card_id, 1)
+		scene.simulation.play_card(BattleSim.ENEMY, card_id, 0)
+	scene.simulation.units.clear()
+	scene.simulation.play_card(BattleSim.PLAYER, "duelist", 0)
+	scene.simulation.play_card(BattleSim.PLAYER, "alchemist", 1)
+	scene.simulation.play_card(BattleSim.PLAYER, "bulwark", 0)
+	scene.simulation.play_card(BattleSim.ENEMY, "duelist", 1)
+	scene.simulation.play_card(BattleSim.ENEMY, "alchemist", 0)
+	scene.simulation.play_card(BattleSim.ENEMY, "bulwark", 1)
+	scene._build_hud()
 	for index in range(4):
 		await process_frame
 	_save_viewport("res://builds/battle.png")

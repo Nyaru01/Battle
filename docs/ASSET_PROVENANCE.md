@@ -43,4 +43,20 @@ Ce document suit l'origine des actifs visuels intégrés au projet afin d'évite
 - Direction : trois personnages fantasy 2,5D originaux et lisibles en vue mobile
 - Référence propriétaire utilisée : aucune
 
+## `assets/card-art-v4.png`
+
+- Date : 2026-07-15
+- Origine : génération OpenAI intégrée à Codex
+- Usage : portraits des cartes Duelliste, Alchimiste, Rempart et Stase du prototype 0.4
+- Direction : quatre illustrations fantasy 3D originales, réparties sur une grille 2 × 2
+- Référence propriétaire utilisée : aucune
+
+## `assets/unit-sprites-v4.png`
+
+- Date : 2026-07-15
+- Origine : génération OpenAI intégrée à Codex, puis détourage local par clé chromatique
+- Usage : combattants Duelliste, Alchimiste et Rempart du prototype 0.4
+- Direction : trois personnages fantasy 2,5D originaux, cadrés pour l'arène mobile
+- Référence propriétaire utilisée : aucune
+
 La capture de référence n'est pas versionnée dans Git et n'est pas distribuée avec le jeu.

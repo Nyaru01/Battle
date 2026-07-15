@@ -12,6 +12,8 @@ func _run() -> void:
 	_test_card_cost_and_validation()
 	_test_energy_regeneration()
 	_test_spell_damage()
+	_test_deck_cycle()
+	_test_frost_slow()
 	_test_units_fight()
 	_test_tower_defends_lane()
 	_test_bot_matches_finish()
@@ -43,6 +45,31 @@ func _test_spell_damage() -> void:
 	_expect(simulation.play_card(BattleSim.PLAYER, "fireball", 1), "spell can be cast")
 	_expect(simulation.units[0].hp < initial_hp, "spell damages units in its lane")
 	_expect(simulation.towers[BattleSim.ENEMY].lanes[1] < 1200.0, "spell damages the lane tower")
+
+
+func _test_deck_cycle() -> void:
+	var simulation := BattleSim.new(15)
+	_expect(simulation.get_hand(BattleSim.PLAYER) == ["guardian", "ranger", "colossus", "fireball"], "battle starts with four cards")
+	_expect(simulation.get_next_card(BattleSim.PLAYER) == "duelist", "next card is exposed")
+	_expect(not simulation.play_card(BattleSim.PLAYER, "duelist", 0), "a card outside the hand is rejected")
+	_expect(simulation.play_card(BattleSim.PLAYER, "guardian", 0), "a hand card can be played")
+	_expect("duelist" in simulation.get_hand(BattleSim.PLAYER), "playing draws the next card")
+	_expect(simulation.get_next_card(BattleSim.PLAYER) == "alchemist", "draw queue advances")
+
+
+func _test_frost_slow() -> void:
+	var simulation := BattleSim.new(16)
+	simulation.energy = [100.0, 10.0]
+	simulation.play_card(BattleSim.ENEMY, "guardian", 0)
+	simulation.play_card(BattleSim.PLAYER, "guardian", 1)
+	simulation.play_card(BattleSim.PLAYER, "ranger", 1)
+	simulation.play_card(BattleSim.PLAYER, "colossus", 1)
+	simulation.play_card(BattleSim.PLAYER, "fireball", 1)
+	_expect("frost" in simulation.get_hand(BattleSim.PLAYER), "frost rotates into the hand")
+	var initial_hp: float = simulation.units[0].hp
+	_expect(simulation.play_card(BattleSim.PLAYER, "frost", 0), "frost can be cast from the hand")
+	_expect(simulation.units[0].hp < initial_hp, "frost damages its lane")
+	_expect(simulation.units[0].slow_timer > 0.0, "frost slows affected units")
 
 
 func _test_units_fight() -> void:
