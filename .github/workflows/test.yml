@@ -30,3 +30,6 @@ jobs:
 
       - name: Run simulation tests
         run: Godot_v4.7.1-stable_linux.x86_64 --headless --path . --script res://tests/run_tests.gd
+
+      - name: Run 100-match balance smoke test
+        run: Godot_v4.7.1-stable_linux.x86_64 --headless --path . --script res://tools/run_balance.gd -- --matches=100
