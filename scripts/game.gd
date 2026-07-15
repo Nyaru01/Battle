@@ -253,7 +253,7 @@ func _build_menu() -> void:
 	training.add_theme_font_size_override("font_size", 20)
 	training.pressed.connect(_start_tutorial)
 	ui_layer.add_child(training)
-	var version := _label("Prototype 0.9 • Hors ligne", Vector2(160.0, 1140.0), Vector2(400.0, 36.0), 18)
+	var version := _label("Prototype 0.10 • Hors ligne", Vector2(160.0, 1140.0), Vector2(400.0, 36.0), 18)
 	version.add_theme_color_override("font_color", Color("71889a"))
 	var record := _label("%d victoires  •  %d défaites" % [profile.wins, profile.losses], Vector2(160.0, 1030.0), Vector2(400.0, 40.0), 18)
 	record.add_theme_color_override("font_color", Color("8fa7b8"))
