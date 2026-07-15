@@ -52,6 +52,7 @@ var tutorial: BattleTutorial
 var tutorial_label: Label
 var battle_paused := false
 var pause_layer: CanvasLayer
+var effects: Array[Dictionary] = []
 
 
 func _ready() -> void:
@@ -66,6 +67,8 @@ func _process(delta: float) -> void:
 	simulation.step(delta)
 	if tutorial == null or tutorial.is_complete():
 		opponent.update(delta, simulation)
+	_consume_battle_events()
+	_update_effects(delta)
 	_update_hud()
 	simulation.events.clear()
 	queue_redraw()
@@ -120,6 +123,7 @@ func _draw() -> void:
 	_draw_arena()
 	_draw_objectives()
 	_draw_units()
+	_draw_effects()
 
 
 func _draw_menu_backdrop() -> void:
@@ -162,6 +166,109 @@ func _draw_units() -> void:
 		var x: float = LANE_X[unit.lane]
 		var radius := _draw_unit_avatar(Vector2(x, unit.y), unit)
 		_draw_health_bar(Vector2(x - radius, unit.y - radius - 12.0), radius * 2.0, unit.hp, unit.max_hp)
+
+
+func _draw_effects() -> void:
+	for effect in effects:
+		var progress := 1.0 - float(effect.ttl) / float(effect.duration)
+		var opacity := clampf(1.0 - progress, 0.0, 1.0)
+		var color: Color = effect.color
+		color.a *= opacity
+		match effect.kind:
+			"deploy":
+				var radius := lerpf(12.0, 58.0, progress)
+				draw_circle(effect.position, radius * 0.55, Color(color, color.a * 0.12))
+				draw_arc(effect.position, radius, 0.0, TAU, 32, color, 5.0)
+			"burst":
+				var radius := lerpf(8.0, float(effect.radius), progress)
+				draw_circle(effect.position, radius, Color(color, color.a * 0.16))
+				draw_arc(effect.position, radius, 0.0, TAU, 28, color, 4.0)
+				for ray in range(8):
+					var direction := Vector2.RIGHT.rotated(float(ray) * TAU / 8.0)
+					draw_line(effect.position + direction * radius * 0.55, effect.position + direction * radius * 1.25, color, 3.0)
+			"beam":
+				var beam_color := Color(color, color.a * (0.65 + sin(progress * PI) * 0.35))
+				draw_line(effect.from, effect.to, Color(beam_color, beam_color.a * 0.25), 9.0)
+				draw_line(effect.from, effect.to, beam_color, 3.0)
+				draw_circle(effect.to, lerpf(5.0, 17.0, progress), Color(beam_color, beam_color.a * 0.45))
+
+
+func _consume_battle_events() -> void:
+	for event in simulation.events:
+		var event_type: String = event.get("type", "")
+		match event_type:
+			"card_played":
+				if BattleSim.CARDS[event.card].type == "unit":
+					var spawn_y := 820.0 if event.side == BattleSim.PLAYER else 310.0
+					_add_effect("deploy", Vector2(LANE_X[event.lane], spawn_y), _team_color(event.side), 0.42)
+			"spell":
+				var target_y := 285.0 if event.side == BattleSim.PLAYER else 855.0
+				var spell_color := Color("ff9d42") if event.card == "fireball" else Color("75e6ff")
+				_add_effect("burst", Vector2(LANE_X[event.lane], target_y), spell_color, 0.55, 92.0)
+			"hit":
+				var source := _find_unit_position(event.source)
+				var target := _find_unit_position(event.target)
+				if source != Vector2.ZERO and target != Vector2.ZERO:
+					_add_beam(source, target, Color("ffe39a"), 0.16)
+			"tower_shot":
+				var target := _find_unit_position(event.target)
+				if target != Vector2.ZERO:
+					var tower_y := 900.0 if event.side == BattleSim.PLAYER else 240.0
+					_add_beam(Vector2(LANE_X[event.lane], tower_y - 35.0), target, _team_color(event.side), 0.22)
+			"tower_hit":
+				_add_objective_burst(event.side, event.lane, false, 34.0)
+			"core_hit":
+				_add_objective_burst(event.side, 0, true, 42.0)
+			"tower_destroyed":
+				_add_objective_burst(event.side, event.lane, false, 105.0)
+			"core_destroyed":
+				_add_objective_burst(event.side, 0, true, 135.0)
+
+
+func _add_objective_burst(side: int, lane: int, is_core: bool, radius: float) -> void:
+	var y: float = (955.0 if side == BattleSim.PLAYER else 205.0) if is_core else (900.0 if side == BattleSim.PLAYER else 240.0)
+	var x: float = 360.0 if is_core else LANE_X[lane]
+	_add_effect("burst", Vector2(x, y), _team_color(1 - side), 0.48 if radius < 100.0 else 0.9, radius)
+
+
+func _add_effect(kind: String, position: Vector2, color: Color, duration: float, radius: float = 55.0) -> void:
+	effects.append({
+		"kind": kind,
+		"position": position,
+		"color": color,
+		"duration": duration,
+		"ttl": duration,
+		"radius": radius,
+	})
+
+
+func _add_beam(from: Vector2, to: Vector2, color: Color, duration: float) -> void:
+	effects.append({
+		"kind": "beam",
+		"from": from,
+		"to": to,
+		"color": color,
+		"duration": duration,
+		"ttl": duration,
+	})
+
+
+func _update_effects(delta: float) -> void:
+	for index in range(effects.size() - 1, -1, -1):
+		effects[index].ttl = float(effects[index].ttl) - delta
+		if effects[index].ttl <= 0.0:
+			effects.remove_at(index)
+
+
+func _find_unit_position(unit_id: int) -> Vector2:
+	for unit in simulation.units:
+		if unit.id == unit_id:
+			return Vector2(LANE_X[unit.lane], unit.y)
+	return Vector2.ZERO
+
+
+func _team_color(side: int) -> Color:
+	return Color("57c4ff") if side == BattleSim.PLAYER else Color("ff6173")
 
 
 func _draw_tower(center: Vector2, team_color: Color, hp: float, maximum: float, is_core: bool) -> void:
@@ -270,7 +377,7 @@ func _build_menu() -> void:
 	collection.add_theme_font_size_override("font_size", 19)
 	collection.pressed.connect(_build_collection)
 	ui_layer.add_child(collection)
-	var version := _label("Prototype 0.11 • Hors ligne", Vector2(160.0, 1190.0), Vector2(400.0, 36.0), 18)
+	var version := _label("Prototype 0.12 • Hors ligne", Vector2(160.0, 1190.0), Vector2(400.0, 36.0), 18)
 	version.add_theme_color_override("font_color", Color("71889a"))
 	var record := _label("%d victoires  •  %d défaites" % [profile.wins, profile.losses], Vector2(160.0, 1080.0), Vector2(400.0, 36.0), 17)
 	record.add_theme_color_override("font_color", Color("8fa7b8"))
@@ -356,6 +463,7 @@ func _card_details(card: Dictionary) -> String:
 
 func _start_battle() -> void:
 	_clear_pause_overlay()
+	effects.clear()
 	tutorial = null
 	simulation = BattleSim.new(Time.get_ticks_msec())
 	opponent = BattleAI.new(BattleSim.ENEMY, selected_difficulty, Time.get_ticks_msec() + 19)
@@ -368,6 +476,7 @@ func _start_battle() -> void:
 
 func _start_tutorial() -> void:
 	_clear_pause_overlay()
+	effects.clear()
 	tutorial = BattleTutorial.new()
 	simulation = BattleSim.new(101)
 	simulation.energy[BattleSim.PLAYER] = 10.0
