@@ -16,6 +16,7 @@ func _run() -> void:
 	_test_frost_slow()
 	_test_crown_scoring()
 	_test_overtime_rules()
+	_test_tutorial_flow()
 	_test_units_fight()
 	_test_tower_defends_lane()
 	_test_bot_matches_finish()
@@ -121,6 +122,18 @@ func _test_overtime_rules() -> void:
 	draw.time_left = 0.05
 	draw.step(0.1)
 	_expect(draw.finished and draw.winner == -1, "equal health after overtime produces a draw")
+
+
+func _test_tutorial_flow() -> void:
+	var tutorial := BattleTutorial.new()
+	_expect(not tutorial.can_select("ranger"), "tutorial rejects the wrong first card")
+	_expect(tutorial.select_card("guardian"), "tutorial accepts Guardian first")
+	_expect(not tutorial.can_deploy("guardian", 1), "tutorial rejects the wrong first lane")
+	_expect(tutorial.deploy_card("guardian", 0), "tutorial accepts Guardian on the left")
+	_expect(tutorial.select_card("ranger"), "tutorial asks for Ranger second")
+	_expect(not tutorial.deploy_card("ranger", 0), "tutorial rejects Ranger on the left")
+	_expect(tutorial.deploy_card("ranger", 1), "tutorial accepts Ranger on the right")
+	_expect(tutorial.is_complete(), "tutorial completes after four guided actions")
 
 
 func _test_units_fight() -> void:

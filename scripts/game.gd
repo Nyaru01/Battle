@@ -47,6 +47,8 @@ var core_label: Label
 var hint_label: Label
 var card_buttons: Dictionary = {}
 var profile := {"wins": 0, "losses": 0, "draws": 0}
+var tutorial: BattleTutorial
+var tutorial_label: Label
 
 
 func _ready() -> void:
@@ -59,7 +61,8 @@ func _process(delta: float) -> void:
 	if state != ScreenState.BATTLE:
 		return
 	simulation.step(delta)
-	opponent.update(delta, simulation)
+	if tutorial == null or tutorial.is_complete():
+		opponent.update(delta, simulation)
 	_update_hud()
 	simulation.events.clear()
 	queue_redraw()
@@ -82,10 +85,19 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	var lane := 0 if position.x < DESIGN_SIZE.x * 0.5 else 1
 	var played_card := selected_card
+	if tutorial != null and not tutorial.is_complete() and not tutorial.can_deploy(played_card, lane):
+		hint_label.text = tutorial.instruction()
+		return
 	if simulation.play_card(BattleSim.PLAYER, selected_card, lane):
+		if tutorial != null and not tutorial.is_complete():
+			tutorial.deploy_card(played_card, lane)
+			simulation.energy[BattleSim.PLAYER] = 10.0
 		selected_card = ""
 		_build_hud()
-		hint_label.text = "%s joué • suivante : %s" % [BattleSim.CARDS[played_card].name, BattleSim.CARDS[simulation.get_next_card(BattleSim.PLAYER)].name]
+		if tutorial != null:
+			_update_tutorial_hint()
+		else:
+			hint_label.text = "%s joué • suivante : %s" % [BattleSim.CARDS[played_card].name, BattleSim.CARDS[simulation.get_next_card(BattleSim.PLAYER)].name]
 		queue_redraw()
 	else:
 		hint_label.text = "Pas assez d'énergie"
@@ -227,19 +239,39 @@ func _build_menu() -> void:
 	start.add_theme_font_size_override("font_size", 30)
 	start.pressed.connect(_start_battle)
 	ui_layer.add_child(start)
-	var version := _label("Prototype 0.5 • Hors ligne", Vector2(160.0, 1140.0), Vector2(400.0, 36.0), 18)
+	var training := Button.new()
+	training.text = "APPRENDRE À JOUER"
+	training.position = Vector2(180.0, 942.0)
+	training.size = Vector2(360.0, 66.0)
+	training.add_theme_font_size_override("font_size", 20)
+	training.pressed.connect(_start_tutorial)
+	ui_layer.add_child(training)
+	var version := _label("Prototype 0.6 • Hors ligne", Vector2(160.0, 1140.0), Vector2(400.0, 36.0), 18)
 	version.add_theme_color_override("font_color", Color("71889a"))
-	var record := _label("%d victoires  •  %d défaites" % [profile.wins, profile.losses], Vector2(160.0, 950.0), Vector2(400.0, 40.0), 18)
+	var record := _label("%d victoires  •  %d défaites" % [profile.wins, profile.losses], Vector2(160.0, 1030.0), Vector2(400.0, 40.0), 18)
 	record.add_theme_color_override("font_color", Color("8fa7b8"))
 	queue_redraw()
 
 
 func _start_battle() -> void:
+	tutorial = null
 	simulation = BattleSim.new(Time.get_ticks_msec())
 	opponent = BattleAI.new(BattleSim.ENEMY, selected_difficulty, Time.get_ticks_msec() + 19)
 	selected_card = ""
 	state = ScreenState.BATTLE
 	_build_hud()
+	queue_redraw()
+
+
+func _start_tutorial() -> void:
+	tutorial = BattleTutorial.new()
+	simulation = BattleSim.new(101)
+	simulation.energy[BattleSim.PLAYER] = 10.0
+	opponent = BattleAI.new(BattleSim.ENEMY, 0, 202)
+	selected_card = ""
+	state = ScreenState.BATTLE
+	_build_hud()
+	_update_tutorial_hint()
 	queue_redraw()
 
 
@@ -263,6 +295,11 @@ func _build_hud() -> void:
 	core_label = _label("", Vector2(20.0, 36.0), Vector2(680.0, 30.0), 17)
 	hint_label = _label("Suivante : %s" % BattleSim.CARDS[simulation.get_next_card(BattleSim.PLAYER)].name, Vector2(438.0, 1058.0), Vector2(264.0, 40.0), 15)
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	if tutorial != null:
+		tutorial_label = _label(tutorial.instruction(), Vector2(45.0, 76.0), Vector2(630.0, 42.0), 16)
+		tutorial_label.add_theme_color_override("font_color", Color("ffe17b"))
+		tutorial_label.add_theme_color_override("font_outline_color", Color("101827"))
+		tutorial_label.add_theme_constant_override("outline_size", 7)
 	card_buttons.clear()
 	var hand := simulation.get_hand(BattleSim.PLAYER)
 	for index in range(hand.size()):
@@ -310,9 +347,25 @@ func _build_hud() -> void:
 
 
 func _select_card(card_id: String) -> void:
+	if tutorial != null and not tutorial.is_complete():
+		if not tutorial.select_card(card_id):
+			hint_label.text = tutorial.instruction()
+			return
 	selected_card = card_id
-	hint_label.text = "%s sélectionné • touche la voie gauche ou droite" % BattleSim.CARDS[card_id].name
+	if tutorial != null:
+		_update_tutorial_hint()
+	else:
+		hint_label.text = "%s sélectionné • touche la voie gauche ou droite" % BattleSim.CARDS[card_id].name
 	_update_hud()
+
+
+func _update_tutorial_hint() -> void:
+	if tutorial == null:
+		return
+	var message := tutorial.instruction()
+	if is_instance_valid(tutorial_label):
+		tutorial_label.text = message
+	hint_label.text = "Suis l’indication jaune"
 
 
 func _update_hud() -> void:
@@ -381,13 +434,14 @@ func _energy_style(color: Color) -> StyleBoxFlat:
 
 func _show_result() -> void:
 	state = ScreenState.RESULT
-	if simulation.winner == BattleSim.PLAYER:
-		profile.wins += 1
-	elif simulation.winner == BattleSim.ENEMY:
-		profile.losses += 1
-	else:
-		profile.draws += 1
-	_save_profile()
+	if tutorial == null:
+		if simulation.winner == BattleSim.PLAYER:
+			profile.wins += 1
+		elif simulation.winner == BattleSim.ENEMY:
+			profile.losses += 1
+		else:
+			profile.draws += 1
+		_save_profile()
 	_clear_ui()
 	ui_layer = CanvasLayer.new()
 	add_child(ui_layer)

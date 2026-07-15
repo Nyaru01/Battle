@@ -11,6 +11,11 @@ func _capture() -> void:
 	await process_frame
 	await process_frame
 	_save_viewport("res://builds/menu.png")
+	scene._start_tutorial()
+	scene._select_card("guardian")
+	for index in range(2):
+		await process_frame
+	_save_viewport("res://builds/tutorial.png")
 	scene._start_battle()
 	scene.simulation.energy = [100.0, 100.0]
 	for card_id in ["guardian", "ranger", "colossus", "fireball"]:
