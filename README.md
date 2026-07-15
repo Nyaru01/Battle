@@ -33,6 +33,7 @@ Le développement du premier prototype jouable est en cours.
 - banc reproductible de 1 000 matchs IA avec contrôle des états et commandes ;
 - sauvegarde locale des victoires et défaites ;
 - progression locale versionnée avec niveau, expérience, éclats et récompenses de match ;
+- écran de résultat avec barre d’XP et mise en avant des niveaux gagnés ;
 - contrôles souris et tactiles ;
 - arène 2,5D originale avec chemins, rivière et ponts ;
 - cartes, combattants et forteresses illustrés avec des actifs originaux ;
