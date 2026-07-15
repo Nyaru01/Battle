@@ -53,10 +53,9 @@ func _capture() -> void:
 		await process_frame
 	_save_viewport("res://builds/pause.png")
 	scene._resume_battle()
-	# Keep automated captures from granting rewards or mutating the local profile.
-	scene.tutorial = BattleTutorial.new()
 	scene.simulation.forfeit(BattleSim.ENEMY)
-	scene._show_result()
+	scene.last_reward = {"coins": 28, "xp": 35, "levels": 1}
+	scene._show_result(false)
 	for index in range(2):
 		await process_frame
 	_save_viewport("res://builds/result.png")

@@ -491,7 +491,7 @@ func _build_menu() -> void:
 	collection.add_theme_font_size_override("font_size", 19)
 	collection.pressed.connect(_build_collection)
 	ui_layer.add_child(collection)
-	var version := _label("Prototype 0.15 • Hors ligne", Vector2(160.0, 1202.0), Vector2(400.0, 36.0), 18)
+	var version := _label("Prototype 0.16 • Hors ligne", Vector2(160.0, 1202.0), Vector2(400.0, 36.0), 18)
 	version.add_theme_color_override("font_color", Color("71889a"))
 	var record := _label("%d victoires  •  %d défaites" % [profile.wins, profile.losses], Vector2(160.0, 1080.0), Vector2(400.0, 36.0), 17)
 	record.add_theme_color_override("font_color", Color("8fa7b8"))
@@ -788,10 +788,10 @@ func _energy_style(color: Color) -> StyleBoxFlat:
 	return style
 
 
-func _show_result() -> void:
+func _show_result(award_progression: bool = true) -> void:
 	_clear_pause_overlay()
 	state = ScreenState.RESULT
-	if tutorial == null:
+	if tutorial == null and award_progression:
 		if simulation.winner == BattleSim.PLAYER:
 			profile.wins += 1
 		elif simulation.winner == BattleSim.ENEMY:
@@ -804,8 +804,8 @@ func _show_result() -> void:
 	ui_layer = CanvasLayer.new()
 	add_child(ui_layer)
 	var panel := ColorRect.new()
-	panel.position = Vector2(80.0, 390.0)
-	panel.size = Vector2(560.0, 420.0)
+	panel.position = Vector2(80.0, 350.0)
+	panel.size = Vector2(560.0, 540.0)
 	panel.color = Color(0.04, 0.08, 0.13, 0.94)
 	ui_layer.add_child(panel)
 	var result_text := "ÉGALITÉ"
@@ -813,23 +813,43 @@ func _show_result() -> void:
 		result_text = "VICTOIRE"
 	elif simulation.winner == BattleSim.ENEMY:
 		result_text = "DÉFAITE"
-	var result := _label(result_text, Vector2(120.0, 450.0), Vector2(480.0, 80.0), 48)
-	result.add_theme_color_override("font_color", Color("76e68b") if simulation.winner == BattleSim.PLAYER else Color("ff7785"))
-	var summary := _label("Score : %d — %d  •  Noyaux : %d — %d" % [simulation.crowns[BattleSim.PLAYER], simulation.crowns[BattleSim.ENEMY], int(simulation.towers[BattleSim.PLAYER].core), int(simulation.towers[BattleSim.ENEMY].core)], Vector2(105.0, 555.0), Vector2(510.0, 45.0), 19)
+	var result_color := Color("76e68b") if simulation.winner == BattleSim.PLAYER else (Color("ffcf68") if simulation.winner == -1 else Color("ff7785"))
+	var result := _label(result_text, Vector2(120.0, 405.0), Vector2(480.0, 80.0), 48)
+	result.add_theme_color_override("font_color", result_color)
+	var summary := _label("Score : %d — %d  •  Noyaux : %d — %d" % [simulation.crowns[BattleSim.PLAYER], simulation.crowns[BattleSim.ENEMY], int(simulation.towers[BattleSim.PLAYER].core), int(simulation.towers[BattleSim.ENEMY].core)], Vector2(105.0, 510.0), Vector2(510.0, 45.0), 19)
 	var reward_text := "Entraînement • statistiques inchangées"
 	if tutorial == null:
-		reward_text = "+%d éclats  •  +%d XP  •  Niveau %d" % [last_reward.coins, last_reward.xp, profile.level]
-	var reward := _label(reward_text, Vector2(105.0, 600.0), Vector2(510.0, 36.0), 18)
+		reward_text = "+%d éclats  •  +%d XP" % [last_reward.coins, last_reward.xp]
+	var reward := _label(reward_text, Vector2(105.0, 560.0), Vector2(510.0, 36.0), 18)
 	reward.add_theme_color_override("font_color", Color("f2c96d"))
+	if tutorial == null:
+		var xp_max := BattleProgression.xp_to_next(profile.level)
+		var level := _label("NIVEAU %d  •  %d/%d XP" % [profile.level, profile.xp, xp_max], Vector2(160.0, 610.0), Vector2(400.0, 32.0), 17)
+		level.add_theme_color_override("font_color", Color("b9d9ec"))
+		var xp_bar := ProgressBar.new()
+		xp_bar.position = Vector2(160.0, 647.0)
+		xp_bar.size = Vector2(400.0, 24.0)
+		xp_bar.max_value = xp_max
+		xp_bar.value = profile.xp
+		xp_bar.show_percentage = false
+		xp_bar.add_theme_stylebox_override("background", _energy_style(Color("111925")))
+		xp_bar.add_theme_stylebox_override("fill", _energy_style(Color("55bfe8")))
+		ui_layer.add_child(xp_bar)
+		var progress_message := "NIVEAU SUPÉRIEUR !" if last_reward.levels > 0 else "%d XP avant le niveau %d" % [xp_max - profile.xp, profile.level + 1]
+		var progress := _label(progress_message, Vector2(150.0, 677.0), Vector2(420.0, 32.0), 17)
+		progress.add_theme_color_override("font_color", Color("ffe17b") if last_reward.levels > 0 else Color("8fa7b8"))
+	else:
+		var training_done := _label("Tutoriel terminé • prêt pour le duel", Vector2(130.0, 625.0), Vector2(460.0, 42.0), 18)
+		training_done.add_theme_color_override("font_color", Color("b9d9ec"))
 	var replay := Button.new()
 	replay.text = "REJOUER"
-	replay.position = Vector2(180.0, 665.0)
+	replay.position = Vector2(180.0, 720.0)
 	replay.size = Vector2(360.0, 70.0)
-	replay.pressed.connect(_start_battle)
+	replay.pressed.connect(_start_tutorial if tutorial != null else _start_battle)
 	ui_layer.add_child(replay)
 	var menu := Button.new()
 	menu.text = "MENU"
-	menu.position = Vector2(180.0, 750.0)
+	menu.position = Vector2(180.0, 805.0)
 	menu.size = Vector2(360.0, 54.0)
 	menu.pressed.connect(_build_menu)
 	ui_layer.add_child(menu)

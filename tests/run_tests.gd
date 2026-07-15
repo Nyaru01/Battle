@@ -177,6 +177,11 @@ func _test_battle_intro() -> void:
 	scene.battle_intro_time = 0.0
 	scene._process(0.1)
 	_expect(scene.simulation.time_left < initial_time, "battle starts after the countdown")
+	var initial_wins: int = scene.profile.wins
+	scene.simulation.forfeit(BattleSim.ENEMY)
+	scene.last_reward = {"coins": 25, "xp": 35, "levels": 0}
+	scene._show_result(false)
+	_expect(scene.profile.wins == initial_wins, "preview result does not mutate progression")
 	scene.free()
 
 
