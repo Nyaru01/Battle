@@ -40,6 +40,7 @@ var simulation: BattleSim
 var opponent: BattleAI
 var selected_card := ""
 var selected_difficulty := 1
+var sound_enabled := true
 var ui_layer: CanvasLayer
 var time_label: Label
 var energy_label: Label
@@ -319,7 +320,7 @@ func _make_sfx(start_frequency: float, end_frequency: float, duration: float, am
 
 
 func _play_sfx(sound_name: String) -> void:
-	if not sfx_bank.has(sound_name) or sfx_players.is_empty():
+	if not sound_enabled or not sfx_bank.has(sound_name) or sfx_players.is_empty():
 		return
 	var player := sfx_players[sfx_player_index]
 	sfx_player_index = (sfx_player_index + 1) % sfx_players.size()
@@ -464,7 +465,10 @@ func _build_menu() -> void:
 	difficulty.add_item("Tactique")
 	difficulty.add_item("Expert")
 	difficulty.select(selected_difficulty)
-	difficulty.item_selected.connect(func(index: int) -> void: selected_difficulty = index)
+	difficulty.item_selected.connect(func(index: int) -> void:
+		selected_difficulty = index
+		_save_profile()
+	)
 	ui_layer.add_child(difficulty)
 	var start := Button.new()
 	start.text = "JOUER"
@@ -487,12 +491,27 @@ func _build_menu() -> void:
 	collection.add_theme_font_size_override("font_size", 19)
 	collection.pressed.connect(_build_collection)
 	ui_layer.add_child(collection)
-	var version := _label("Prototype 0.14 • Hors ligne", Vector2(160.0, 1190.0), Vector2(400.0, 36.0), 18)
+	var version := _label("Prototype 0.15 • Hors ligne", Vector2(160.0, 1202.0), Vector2(400.0, 36.0), 18)
 	version.add_theme_color_override("font_color", Color("71889a"))
 	var record := _label("%d victoires  •  %d défaites" % [profile.wins, profile.losses], Vector2(160.0, 1080.0), Vector2(400.0, 36.0), 17)
 	record.add_theme_color_override("font_color", Color("8fa7b8"))
 	var progression := _label("Niveau %d  •  %d/%d XP  •  ◈ %d" % [profile.level, profile.xp, BattleProgression.xp_to_next(profile.level), profile.coins], Vector2(110.0, 1118.0), Vector2(500.0, 36.0), 17)
 	progression.add_theme_color_override("font_color", Color("f2c96d"))
+	var sound_toggle := CheckButton.new()
+	sound_toggle.text = "SONS ACTIVÉS" if sound_enabled else "SONS COUPÉS"
+	sound_toggle.position = Vector2(245.0, 1150.0)
+	sound_toggle.size = Vector2(230.0, 42.0)
+	sound_toggle.button_pressed = sound_enabled
+	sound_toggle.add_theme_font_size_override("font_size", 16)
+	sound_toggle.toggled.connect(func(enabled: bool) -> void:
+		sound_enabled = enabled
+		sound_toggle.text = "SONS ACTIVÉS" if enabled else "SONS COUPÉS"
+		if not enabled:
+			for player in sfx_players:
+				player.stop()
+		_save_profile()
+	)
+	ui_layer.add_child(sound_toggle)
 	queue_redraw()
 
 
@@ -908,9 +927,14 @@ func _load_profile() -> void:
 	if typeof(parsed) != TYPE_DICTIONARY:
 		return
 	profile = BattleProgression.normalize(parsed)
+	sound_enabled = profile.sound_enabled
+	selected_difficulty = profile.difficulty
 
 
 func _save_profile() -> void:
+	profile.sound_enabled = sound_enabled
+	profile.difficulty = selected_difficulty
+	profile.version = BattleProgression.CURRENT_VERSION
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file != null:
 		file.store_string(JSON.stringify(profile))

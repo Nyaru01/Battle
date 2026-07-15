@@ -1,7 +1,7 @@
 class_name BattleProgression
 extends RefCounted
 
-const CURRENT_VERSION := 2
+const CURRENT_VERSION := 3
 
 
 static func default_profile() -> Dictionary:
@@ -14,6 +14,8 @@ static func default_profile() -> Dictionary:
 		"xp": 0,
 		"level": 1,
 		"tutorial_completed": false,
+		"sound_enabled": true,
+		"difficulty": 1,
 	}
 
 
@@ -23,6 +25,8 @@ static func normalize(raw: Dictionary) -> Dictionary:
 		profile[key] = maxi(0, int(raw.get(key, profile[key])))
 	profile.level = maxi(1, int(raw.get("level", 1)))
 	profile.tutorial_completed = bool(raw.get("tutorial_completed", false))
+	profile.sound_enabled = bool(raw.get("sound_enabled", true))
+	profile.difficulty = clampi(int(raw.get("difficulty", 1)), 0, 2)
 	return profile
 
 
