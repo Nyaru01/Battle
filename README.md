@@ -4,7 +4,7 @@
 
 ## État du projet
 
-Le dépôt contient actuellement le cadrage de production du MVP. Le développement n'a pas encore commencé.
+Le développement du premier prototype jouable est en cours.
 
 - [Plan de développement](docs/PLAN_DEVELOPPEMENT.md)
 - [Décision : mode contre IA en premier](docs/decisions/0001-ai-first.md)
@@ -12,8 +12,39 @@ Le dépôt contient actuellement le cadrage de production du MVP. Le développem
 - Mode prioritaire : duel 1 contre 1 contre une IA, jouable hors ligne
 - Première livraison : APK solo sans compte ni backend obligatoire
 - Étape suivante : multijoueur avec serveur autoritaire
-- Moteur proposé : Unity, version LTS stable au démarrage de la production
+- Moteur : Godot 4.7.1, rendu Compatibility
+
+## Prototype actuel
+
+- menu et trois difficultés d'IA ;
+- arène à deux voies avec tours et noyaux ;
+- quatre cartes : Gardien, Éclaireuse, Colosse et Comète ;
+- énergie, déplacement, ciblage, combat, victoire et limite de temps ;
+- IA équitable utilisant les mêmes commandes que le joueur ;
+- sauvegarde locale des victoires et défaites ;
+- contrôles souris et tactiles ;
+- export APK Android debug.
+
+## Lancer le projet
+
+Avec Godot 4.7.1 ou une version compatible :
+
+```powershell
+godot --path .
+```
+
+Lancer les tests headless :
+
+```powershell
+godot --headless --path . --script res://tests/run_tests.gd
+```
+
+Exporter l'APK après configuration du SDK Android et des modèles d'export :
+
+```powershell
+godot --headless --path . --export-debug "Android Debug" builds/Battle-debug.apk
+```
 
 ## Prochaine décision
 
-Valider le comportement attendu de l'IA, la direction artistique et la composition de l'équipe, puis lancer la phase 0 décrite dans le plan.
+Tester la boucle de combat sur un appareil Android, puis itérer sur l'IA, l'équilibrage et la lisibilité.

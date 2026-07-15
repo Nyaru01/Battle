@@ -1,0 +1,32 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  simulation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Godot 4.7.1
+        shell: bash
+        run: |
+          curl --fail --location --retry 3 \
+            --output godot.zip \
+            https://github.com/godotengine/godot/releases/download/4.7.1-stable/Godot_v4.7.1-stable_linux.x86_64.zip
+          unzip -q godot.zip -d "$RUNNER_TEMP/godot"
+          chmod +x "$RUNNER_TEMP/godot/Godot_v4.7.1-stable_linux.x86_64"
+          echo "$RUNNER_TEMP/godot" >> "$GITHUB_PATH"
+
+      - name: Import project
+        run: Godot_v4.7.1-stable_linux.x86_64 --headless --path . --editor --quit
+
+      - name: Run simulation tests
+        run: Godot_v4.7.1-stable_linux.x86_64 --headless --path . --script res://tests/run_tests.gd
