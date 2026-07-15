@@ -73,7 +73,7 @@ Tout ajout exige une décision explicite et le retrait d'un élément de coût c
 
 ### Socle de simulation
 
-- logique de combat en C# pur, découplée des scènes, animations et entrées Unity ;
+- logique de combat en GDScript pur, découplée des scènes, animations et entrées Godot ;
 - simulation à fréquence fixe avec graines aléatoires reproductibles ;
 - commandes communes : jouer une carte, position cible et compétence ;
 - contrôleurs interchangeables `Humain`, `IA` et, plus tard, `Réseau` ;
@@ -82,16 +82,16 @@ Tout ajout exige une décision explicite et le retrait d'un élément de coût c
 
 ### Client
 
-- Unity, version LTS stable au lancement du projet ;
-- C#, URP et Input System pour Android ;
+- Godot 4.7.1 au démarrage du prototype, version figée par jalon ;
+- GDScript et rendu Compatibility pour Android ;
 - direction 2D ou 3D légère décidée en phase 0 ;
 - ScriptableObjects pour l'édition, avec export vers des données communes versionnées ;
-- tests Unity de la logique et des parcours critiques.
+- tests headless de la logique et des parcours critiques.
 
 ### Backend — MVP 2
 
 - Nakama pour identité, sessions, matchmaking, stockage et matchs autoritaires ;
-- service de match .NET autoritaire réutilisant la bibliothèque de simulation C# ;
+- processus Godot headless autoritaire réutilisant les scripts de simulation ;
 - PostgreSQL pour la persistance ;
 - Docker pour les environnements local, test et production ;
 - administration restreinte pour parties, comptes et configuration.
@@ -112,12 +112,12 @@ La cadence de simulation locale est mesurée dès le MVP 1. La cadence réseau e
 
 ```text
 Battle/
-├── client/                 # Projet Unity
-├── server/                 # Runtime de match et API
-├── shared/                 # Schémas et données de gameplay
-├── deploy/                 # Docker et environnements
+├── assets/                 # Icônes et futurs actifs visuels/sonores
+├── scenes/                 # Scènes Godot
+├── scripts/sim/            # Simulation et IA sans dépendance visuelle
+├── tests/                  # Tests headless et matchs automatisés
 ├── docs/                   # Conception et décisions
-├── tools/                  # Validation et utilitaires
+├── deploy/                 # Backend du MVP 2
 └── .github/workflows/      # Tests et builds Android
 ```
 
@@ -182,7 +182,7 @@ Les durées supposent une petite équipe expérimentée de 3 à 5 personnes. Pou
 
 ### Phase 0 — Cadrage et socle APK (1 semaine)
 
-Livrables : pitch et public cible, mécanique signature, direction visuelle originale, matrice d'appareils Android, budget, registre des risques, export APK et preuve de simulation C# indépendante d'une scène Unity.
+Livrables : pitch et public cible, mécanique signature, direction visuelle originale, matrice d'appareils Android, budget, registre des risques, export APK et preuve de simulation GDScript indépendante d'une scène Godot.
 
 **Sortie :** un APK s'installe sur un appareil cible et une simulation reproductible accepte des commandes humaines ou IA.
 
@@ -226,9 +226,9 @@ Livrables : compte invité, matchmaking, serveur autoritaire, snapshots, latence
 
 ### P0 — Premier APK contre IA
 
-- initialiser le client Unity et le build Android ;
+- initialiser le projet Godot et le build Android ;
 - définir le schéma versionné des cartes ;
-- implémenter la simulation C# à fréquence fixe, isolée de Unity ;
+- implémenter la simulation GDScript à fréquence fixe, isolée des nœuds Godot ;
 - créer énergie, cycle et validation de pose ;
 - créer déplacement, ciblage, combat et victoire ;
 - définir les commandes communes aux contrôleurs humain et IA ;
@@ -260,7 +260,7 @@ Livrables : compte invité, matchmaking, serveur autoritaire, snapshots, latence
 Configuration recommandée :
 
 - responsable produit/game designer : vision, règles, économie, tests et priorités ;
-- développeur Unity : interface, rendu, contrôles et intégration ;
+- développeur Godot : interface, rendu, contrôles et intégration ;
 - développeur gameplay/IA : simulation, comportements, données et tests ;
 - développeur backend en renfort pour le MVP 2 ;
 - artiste technique/généraliste : identité, modèles ou sprites, animation, VFX et optimisation ;
@@ -328,7 +328,7 @@ Avant toute collecte, définir consentement, conservation, accès, suppression e
 
 | Risque | Impact | Réduction du risque |
 |---|---|---|
-| Simulation de combat trop complexe | Retards et bugs | Socle C# testé dès la phase 0, pas de physique non déterministe |
+| Simulation de combat trop complexe | Retards et bugs | Socle GDScript testé dès la phase 0, pas de physique non déterministe |
 | Périmètre trop large | MVP jamais terminé | Hors-périmètre explicite, une mécanique signature, décisions de fin de phase |
 | Coût du contenu | Peu de cartes ou faible qualité | Style léger, kit modulaire, 16 cartes maximum |
 | Déséquilibre | Frustration | Données versionnées, simulations bot et petits ajustements mesurés |
@@ -354,7 +354,7 @@ Avant toute collecte, définir consentement, conservation, accès, suppression e
 2. Confirmer la taille d'équipe, le budget et le calendrier réel.
 3. Choisir cinq à huit appareils Android représentatifs.
 4. Produire le mini-GDD des règles, de l'IA et les wireframes des six écrans.
-5. Réaliser les spikes APK, simulation pure C# et contrôleur IA.
+5. Réaliser les spikes APK, simulation GDScript indépendante et contrôleur IA.
 6. Transformer le backlog P0 en tickets estimés.
 7. Lancer le prototype gris sans actifs définitifs.
 

@@ -12,7 +12,7 @@ Le projet doit obtenir rapidement un APK jouable et permettre de valider les rè
 
 Le MVP 1 sera un jeu hors ligne contre IA. Le multijoueur devient le MVP 2 et ne commence qu'après validation du combat solo sur appareils Android réels.
 
-La logique de combat sera une bibliothèque C# pure, sans dépendance aux scènes ou à la physique Unity. Les contrôleurs humain et IA produiront les mêmes commandes. Le futur service de match .NET réutilisera cette bibliothèque et deviendra autoritaire en ligne.
+La logique de combat sera indépendante des scènes et de la physique du moteur. Les contrôleurs humain et IA produiront les mêmes commandes. Le choix d'implémentation initial C#/Unity est remplacé par Godot/GDScript dans l'ADR 0002 ; le principe d'isolation reste inchangé.
 
 L'IA du MVP 1 suivra quatre règles :
 
@@ -33,7 +33,7 @@ L'IA du MVP 1 suivra quatre règles :
 ### Contraintes
 
 - le classement, les comptes et le matchmaking sont reportés ;
-- la simulation ne doit pas dépendre de composants Unity ;
+- la simulation ne doit pas dépendre de nœuds ou de composants visuels du moteur ;
 - l'interface des commandes doit rester stable et sérialisable ;
 - la migration serveur devra vérifier la parité des résultats avec les mêmes graines et commandes.
 
