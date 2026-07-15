@@ -165,6 +165,8 @@ func _test_progression() -> void:
 func _test_battle_intro() -> void:
 	var scene: Node = load("res://scenes/main.tscn").instantiate()
 	root.add_child(scene)
+	_expect(scene.sfx_bank.size() == 8 and scene.sfx_players.size() == 8, "procedural sound bank is ready")
+	_expect(scene.sfx_bank["fireball"].data.size() > 1000, "procedural sound contains PCM samples")
 	scene._start_battle()
 	var initial_time: float = scene.simulation.time_left
 	scene._process(1.0)

@@ -25,6 +25,7 @@ Le développement du premier prototype jouable est en cours.
 - énergie, déplacement, ciblage, combat, victoire et limite de temps ;
 - effets visuels légers pour les déploiements, tirs, impacts, sorts et destructions ;
 - compte à rebours de duel et guide de placement sur les deux voies ;
+- effets sonores procéduraux pour le départ, les cartes, les attaques et les destructions ;
 - score par forteresses détruites, prolongation en mort subite et énergie doublée ;
 - pause manuelle, pause automatique en arrière-plan, reprise et abandon ;
 - IA équitable utilisant les mêmes commandes que le joueur ;
