@@ -38,6 +38,10 @@ func _capture() -> void:
 	for index in range(4):
 		await process_frame
 	_save_viewport("res://builds/battle.png")
+	scene._pause_battle()
+	for index in range(2):
+		await process_frame
+	_save_viewport("res://builds/pause.png")
 	quit()
 
 

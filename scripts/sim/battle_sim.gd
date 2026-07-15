@@ -154,6 +154,14 @@ func play_card(side: int, card_id: String, lane: int) -> bool:
 	return true
 
 
+func forfeit(side: int) -> bool:
+	if finished or side < PLAYER or side > ENEMY:
+		return false
+	events.append({"type": "forfeit", "side": side})
+	_end_match(1 - side)
+	return true
+
+
 func step(delta: float) -> void:
 	if finished or delta <= 0.0:
 		return

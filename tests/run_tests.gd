@@ -17,6 +17,7 @@ func _run() -> void:
 	_test_crown_scoring()
 	_test_overtime_rules()
 	_test_tutorial_flow()
+	_test_forfeit()
 	_test_units_fight()
 	_test_tower_defends_lane()
 	_test_bot_matches_finish()
@@ -134,6 +135,14 @@ func _test_tutorial_flow() -> void:
 	_expect(not tutorial.deploy_card("ranger", 0), "tutorial rejects Ranger on the left")
 	_expect(tutorial.deploy_card("ranger", 1), "tutorial accepts Ranger on the right")
 	_expect(tutorial.is_complete(), "tutorial completes after four guided actions")
+
+
+func _test_forfeit() -> void:
+	var simulation := BattleSim.new(22)
+	_expect(not simulation.forfeit(3), "an invalid side cannot forfeit")
+	_expect(simulation.forfeit(BattleSim.PLAYER), "the player can forfeit an active match")
+	_expect(simulation.finished and simulation.winner == BattleSim.ENEMY, "forfeit awards the match to the opponent")
+	_expect(not simulation.forfeit(BattleSim.ENEMY), "a finished match cannot be forfeited again")
 
 
 func _test_units_fight() -> void:
