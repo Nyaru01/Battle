@@ -19,6 +19,7 @@ func _run() -> void:
 	_test_tutorial_flow()
 	_test_forfeit()
 	_test_progression()
+	_test_battle_intro()
 	_test_units_fight()
 	_test_tower_defends_lane()
 	_test_bot_matches_finish()
@@ -159,6 +160,19 @@ func _test_progression() -> void:
 	var level_reward := BattleProgression.apply_match_result(profile, BattleSim.ENEMY, 0)
 	_expect(level_reward.levels == 1 and profile.level == 2, "experience carries into a new level")
 	_expect(profile.xp == 10, "excess experience is preserved after leveling")
+
+
+func _test_battle_intro() -> void:
+	var scene: Node = load("res://scenes/main.tscn").instantiate()
+	root.add_child(scene)
+	scene._start_battle()
+	var initial_time: float = scene.simulation.time_left
+	scene._process(1.0)
+	_expect(is_equal_approx(scene.simulation.time_left, initial_time), "battle countdown freezes the simulation")
+	scene.battle_intro_time = 0.0
+	scene._process(0.1)
+	_expect(scene.simulation.time_left < initial_time, "battle starts after the countdown")
+	scene.free()
 
 
 func _test_units_fight() -> void:

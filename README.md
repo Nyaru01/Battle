@@ -24,6 +24,7 @@ Le développement du premier prototype jouable est en cours.
 - huit cartes originales, dont trois nouveaux combattants et le sort de ralentissement Stase ;
 - énergie, déplacement, ciblage, combat, victoire et limite de temps ;
 - effets visuels légers pour les déploiements, tirs, impacts, sorts et destructions ;
+- compte à rebours de duel et guide de placement sur les deux voies ;
 - score par forteresses détruites, prolongation en mort subite et énergie doublée ;
 - pause manuelle, pause automatique en arrière-plan, reprise et abandon ;
 - IA équitable utilisant les mêmes commandes que le joueur ;
