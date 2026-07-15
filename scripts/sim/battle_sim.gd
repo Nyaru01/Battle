@@ -6,6 +6,7 @@ const ENEMY := 1
 const MAX_ENERGY := 10.0
 const ENERGY_PER_SECOND := 1.0
 const MATCH_DURATION := 180.0
+const OVERTIME_DURATION := 60.0
 const LANE_COUNT := 2
 const TOWER_RANGE := 235.0
 const TOWER_DAMAGE := 52.0
@@ -104,6 +105,8 @@ var events: Array = []
 var tower_attack_timers := [[0.0, 0.0], [0.0, 0.0]]
 var hands: Array = []
 var draw_queues: Array = []
+var crowns := [0, 0]
+var overtime := false
 
 
 func _init(seed_value: int = 1) -> void:
@@ -127,6 +130,8 @@ func reset(seed_value: int = 1) -> void:
 	tower_attack_timers = [[0.0, 0.0], [0.0, 0.0]]
 	hands = [DEFAULT_DECK.slice(0, 4), DEFAULT_DECK.slice(0, 4)]
 	draw_queues = [DEFAULT_DECK.slice(4), DEFAULT_DECK.slice(4)]
+	crowns = [0, 0]
+	overtime = false
 
 
 func play_card(side: int, card_id: String, lane: int) -> bool:
@@ -155,7 +160,8 @@ func step(delta: float) -> void:
 	var safe_delta := minf(delta, 0.1)
 	time_left = maxf(0.0, time_left - safe_delta)
 	for side in [PLAYER, ENEMY]:
-		energy[side] = minf(MAX_ENERGY, energy[side] + ENERGY_PER_SECOND * safe_delta)
+		var energy_multiplier := 2.0 if overtime else 1.0
+		energy[side] = minf(MAX_ENERGY, energy[side] + ENERGY_PER_SECOND * energy_multiplier * safe_delta)
 	_update_units(safe_delta)
 	_update_towers(safe_delta)
 	_remove_defeated_units()
@@ -212,11 +218,7 @@ func _cast_spell(side: int, card_id: String, lane: int, card: Dictionary) -> voi
 		if unit.side == target_side and unit.lane == lane:
 			unit.hp -= card.damage
 			unit.slow_timer = maxf(float(unit.slow_timer), float(card.get("slow_duration", 0.0)))
-	var lane_damage: float = card.damage * 0.45
-	if towers[target_side].lanes[lane] > 0.0:
-		towers[target_side].lanes[lane] = maxf(0.0, towers[target_side].lanes[lane] - lane_damage)
-	else:
-		towers[target_side].core = maxf(0.0, towers[target_side].core - lane_damage)
+	_damage_objective(target_side, lane, card.damage * 0.45)
 	events.append({"type": "spell", "side": side, "card": card_id, "lane": lane})
 
 
@@ -308,11 +310,25 @@ func _closest_unit_to_position(target_side: int, lane: int, position_y: float, m
 
 func _damage_objective(target_side: int, lane: int, damage: float) -> void:
 	if towers[target_side].lanes[lane] > 0.0:
+		var previous_hp: float = towers[target_side].lanes[lane]
 		towers[target_side].lanes[lane] = maxf(0.0, towers[target_side].lanes[lane] - damage)
 		events.append({"type": "tower_hit", "side": target_side, "lane": lane})
+		if previous_hp > 0.0 and towers[target_side].lanes[lane] <= 0.0:
+			_award_crown(1 - target_side, target_side, lane)
 	else:
+		var previous_core_hp: float = towers[target_side].core
 		towers[target_side].core = maxf(0.0, towers[target_side].core - damage)
 		events.append({"type": "core_hit", "side": target_side})
+		if previous_core_hp > 0.0 and towers[target_side].core <= 0.0:
+			crowns[1 - target_side] = 3
+			events.append({"type": "core_destroyed", "side": target_side, "attacker": 1 - target_side})
+
+
+func _award_crown(attacker: int, target_side: int, lane: int) -> void:
+	crowns[attacker] += 1
+	events.append({"type": "tower_destroyed", "side": target_side, "lane": lane, "attacker": attacker})
+	if overtime:
+		_end_match(attacker)
 
 
 func _remove_defeated_units() -> void:
@@ -328,9 +344,17 @@ func _check_end() -> void:
 	elif towers[ENEMY].core <= 0.0:
 		_end_match(PLAYER)
 	elif time_left <= 0.0:
-		var player_health := get_total_health(PLAYER)
-		var enemy_health := get_total_health(ENEMY)
-		_end_match(PLAYER if player_health > enemy_health else ENEMY if enemy_health > player_health else -1)
+		if not overtime:
+			if crowns[PLAYER] != crowns[ENEMY]:
+				_end_match(PLAYER if crowns[PLAYER] > crowns[ENEMY] else ENEMY)
+			else:
+				overtime = true
+				time_left = OVERTIME_DURATION
+				events.append({"type": "overtime_started"})
+		else:
+			var player_health := get_total_health(PLAYER)
+			var enemy_health := get_total_health(ENEMY)
+			_end_match(PLAYER if player_health > enemy_health else ENEMY if enemy_health > player_health else -1)
 
 
 func _end_match(result: int) -> void:

@@ -227,7 +227,7 @@ func _build_menu() -> void:
 	start.add_theme_font_size_override("font_size", 30)
 	start.pressed.connect(_start_battle)
 	ui_layer.add_child(start)
-	var version := _label("Prototype 0.4 • Hors ligne", Vector2(160.0, 1140.0), Vector2(400.0, 36.0), 18)
+	var version := _label("Prototype 0.5 • Hors ligne", Vector2(160.0, 1140.0), Vector2(400.0, 36.0), 18)
 	version.add_theme_color_override("font_color", Color("71889a"))
 	var record := _label("%d victoires  •  %d défaites" % [profile.wins, profile.losses], Vector2(160.0, 950.0), Vector2(400.0, 40.0), 18)
 	record.add_theme_color_override("font_color", Color("8fa7b8"))
@@ -247,7 +247,7 @@ func _build_hud() -> void:
 	_clear_ui()
 	ui_layer = CanvasLayer.new()
 	add_child(ui_layer)
-	time_label = _label("03:00", Vector2(290.0, 0.0), Vector2(140.0, 38.0), 26)
+	time_label = _label("03:00", Vector2(210.0, 0.0), Vector2(300.0, 38.0), 26)
 	energy_label = _label("Énergie 5/10", Vector2(18.0, 1060.0), Vector2(145.0, 36.0), 18)
 	energy_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	energy_bar = ProgressBar.new()
@@ -319,10 +319,11 @@ func _update_hud() -> void:
 	if state != ScreenState.BATTLE:
 		return
 	var seconds := ceili(simulation.time_left)
-	time_label.text = "%02d:%02d" % [seconds / 60, seconds % 60]
-	energy_label.text = "Énergie %.1f/10" % simulation.energy[BattleSim.PLAYER]
+	time_label.text = ("MORT SUBITE  " if simulation.overtime else "") + "%02d:%02d" % [seconds / 60, seconds % 60]
+	time_label.add_theme_color_override("font_color", Color("ffcf68") if simulation.overtime else Color.WHITE)
+	energy_label.text = ("x2  " if simulation.overtime else "") + "%.1f/10" % simulation.energy[BattleSim.PLAYER]
 	energy_bar.value = simulation.energy[BattleSim.PLAYER]
-	core_label.text = "IA  %d     •     NOYAU     •     %d  TOI" % [int(simulation.towers[BattleSim.ENEMY].core), int(simulation.towers[BattleSim.PLAYER].core)]
+	core_label.text = "IA %d   ◆ %d — %d ◆   %d TOI" % [int(simulation.towers[BattleSim.ENEMY].core), simulation.crowns[BattleSim.ENEMY], simulation.crowns[BattleSim.PLAYER], int(simulation.towers[BattleSim.PLAYER].core)]
 	for card_id in card_buttons:
 		var button: Button = card_buttons[card_id]
 		button.disabled = BattleSim.CARDS[card_id].cost > simulation.energy[BattleSim.PLAYER] + 0.001
@@ -402,7 +403,7 @@ func _show_result() -> void:
 		result_text = "DÉFAITE"
 	var result := _label(result_text, Vector2(120.0, 450.0), Vector2(480.0, 80.0), 48)
 	result.add_theme_color_override("font_color", Color("76e68b") if simulation.winner == BattleSim.PLAYER else Color("ff7785"))
-	var summary := _label("Noyau : %d  •  IA : %d" % [int(simulation.towers[BattleSim.PLAYER].core), int(simulation.towers[BattleSim.ENEMY].core)], Vector2(120.0, 555.0), Vector2(480.0, 45.0), 20)
+	var summary := _label("Score : %d — %d  •  Noyaux : %d — %d" % [simulation.crowns[BattleSim.PLAYER], simulation.crowns[BattleSim.ENEMY], int(simulation.towers[BattleSim.PLAYER].core), int(simulation.towers[BattleSim.ENEMY].core)], Vector2(105.0, 555.0), Vector2(510.0, 45.0), 19)
 	var replay := Button.new()
 	replay.text = "REJOUER"
 	replay.position = Vector2(180.0, 650.0)
