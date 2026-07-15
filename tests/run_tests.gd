@@ -198,6 +198,8 @@ func _test_bot_matches_finish() -> void:
 				break
 		_expect(simulation.finished, "bot match %d finishes" % match_index)
 		_expect(simulation.winner >= -1 and simulation.winner <= 1, "bot match %d has a valid result" % match_index)
+		_expect(player_bot.invalid_actions == 0, "player bot %d only submits valid actions" % match_index)
+		_expect(enemy_bot.invalid_actions == 0, "enemy bot %d only submits valid actions" % match_index)
 
 
 func _expect(condition: bool, message: String) -> void:

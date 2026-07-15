@@ -224,7 +224,7 @@ func _cast_spell(side: int, card_id: String, lane: int, card: Dictionary) -> voi
 	var target_side: int = 1 - side
 	for unit in units:
 		if unit.side == target_side and unit.lane == lane:
-			unit.hp -= card.damage
+			unit.hp = maxf(0.0, unit.hp - card.damage)
 			unit.slow_timer = maxf(float(unit.slow_timer), float(card.get("slow_duration", 0.0)))
 	_damage_objective(target_side, lane, card.damage * 0.45)
 	events.append({"type": "spell", "side": side, "card": card_id, "lane": lane})
@@ -259,14 +259,14 @@ func _update_units(delta: float) -> void:
 
 
 func _damage_unit_target(source: Dictionary, target: Dictionary) -> void:
-	target.hp -= source.damage
+	target.hp = maxf(0.0, target.hp - source.damage)
 	if source.splash <= 0.0:
 		return
 	for candidate in units:
 		if candidate.id == target.id or candidate.side == source.side or candidate.lane != source.lane:
 			continue
 		if absf(float(candidate.y) - float(target.y)) <= source.splash:
-			candidate.hp -= source.damage * 0.55
+			candidate.hp = maxf(0.0, candidate.hp - source.damage * 0.55)
 
 
 func _cycle_card(side: int, card_id: String) -> void:
@@ -298,7 +298,7 @@ func _update_towers(delta: float) -> void:
 				continue
 			var target = _closest_unit_to_position(1 - side, lane, tower_y, TOWER_RANGE)
 			if target != null:
-				target.hp -= TOWER_DAMAGE
+				target.hp = maxf(0.0, target.hp - TOWER_DAMAGE)
 				tower_attack_timers[side][lane] = TOWER_INTERVAL
 				events.append({"type": "tower_shot", "side": side, "lane": lane, "target": target.id})
 
@@ -366,6 +366,7 @@ func _check_end() -> void:
 
 
 func _end_match(result: int) -> void:
+	_remove_defeated_units()
 	finished = true
 	winner = result
 	events.append({"type": "match_end", "winner": result})
