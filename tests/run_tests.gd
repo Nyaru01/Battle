@@ -177,9 +177,9 @@ func _test_progression() -> void:
 	var legacy := {"wins": 3, "losses": 2}
 	var profile := BattleProgression.normalize(legacy)
 	_expect(profile.wins == 3 and profile.level == 1, "legacy profiles migrate with defaults")
-	_expect(profile.sound_enabled and profile.difficulty == 1, "legacy profiles receive default settings")
-	var settings := BattleProgression.normalize({"sound_enabled": false, "difficulty": 9})
-	_expect(not settings.sound_enabled and settings.difficulty == 2, "local settings are normalized safely")
+	_expect(profile.sound_enabled and profile.haptics_enabled and profile.difficulty == 1, "legacy profiles receive default settings")
+	var settings := BattleProgression.normalize({"sound_enabled": false, "haptics_enabled": false, "difficulty": 9})
+	_expect(not settings.sound_enabled and not settings.haptics_enabled and settings.difficulty == 2, "local settings are normalized safely")
 	var tutorial_reward := BattleProgression.complete_tutorial(profile)
 	_expect(tutorial_reward.coins == 15 and profile.tutorial_completed, "tutorial grants its first completion reward")
 	_expect(BattleProgression.complete_tutorial(profile).coins == 0, "tutorial reward cannot be claimed twice")
