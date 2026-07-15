@@ -32,6 +32,7 @@ Le développement du premier prototype jouable est en cours.
 - arène 2,5D originale avec chemins, rivière et ponts ;
 - cartes, combattants et forteresses illustrés avec des actifs originaux ;
 - export APK Android debug.
+- distributions universelle (armv7 + arm64) et arm64 allégée.
 
 ## Lancer le projet
 
@@ -51,6 +52,12 @@ Exporter l'APK après configuration du SDK Android et des modèles d'export :
 
 ```powershell
 godot --headless --path . --export-debug "Android Debug" builds/Battle-debug.apk
+```
+
+Exporter uniquement pour les appareils arm64 modernes :
+
+```powershell
+godot --headless --path . --export-debug "Android Arm64 Debug" builds/Battle-arm64-debug.apk
 ```
 
 ## Prochaine décision
