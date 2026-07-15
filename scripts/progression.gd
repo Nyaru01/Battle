@@ -1,7 +1,7 @@
 class_name BattleProgression
 extends RefCounted
 
-const CURRENT_VERSION := 3
+const CURRENT_VERSION := 4
 
 
 static func default_profile() -> Dictionary:
@@ -16,6 +16,7 @@ static func default_profile() -> Dictionary:
 		"tutorial_completed": false,
 		"sound_enabled": true,
 		"difficulty": 1,
+		"haptics_enabled": true,
 	}
 
 
@@ -27,6 +28,7 @@ static func normalize(raw: Dictionary) -> Dictionary:
 	profile.tutorial_completed = bool(raw.get("tutorial_completed", false))
 	profile.sound_enabled = bool(raw.get("sound_enabled", true))
 	profile.difficulty = clampi(int(raw.get("difficulty", 1)), 0, 2)
+	profile.haptics_enabled = bool(raw.get("haptics_enabled", true))
 	return profile
 
 

@@ -41,6 +41,7 @@ var opponent: BattleAI
 var selected_card := ""
 var selected_difficulty := 1
 var sound_enabled := true
+var haptics_enabled := true
 var ui_layer: CanvasLayer
 var time_label: Label
 var energy_label: Label
@@ -112,6 +113,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		hint_label.text = tutorial.instruction()
 		return
 	if simulation.play_card(BattleSim.PLAYER, selected_card, lane):
+		_haptic(32, 0.35)
 		if tutorial != null and not tutorial.is_complete():
 			tutorial.deploy_card(played_card, lane)
 			simulation.energy[BattleSim.PLAYER] = 10.0
@@ -127,6 +129,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		queue_redraw()
 	else:
 		hint_label.text = "Pas assez d'énergie"
+		_haptic(70, 0.22)
 
 
 func _draw() -> void:
@@ -269,9 +272,11 @@ func _consume_battle_events() -> void:
 			"tower_destroyed":
 				_add_objective_burst(event.side, event.lane, false, 105.0)
 				_play_sfx("destroyed")
+				_haptic(100, 0.62)
 			"core_destroyed":
 				_add_objective_burst(event.side, 0, true, 135.0)
 				_play_sfx("destroyed")
+				_haptic(180, 0.78)
 
 
 func _setup_audio() -> void:
@@ -334,6 +339,11 @@ func _play_hit_sfx() -> void:
 		return
 	last_hit_sound_msec = now
 	_play_sfx("hit")
+
+
+func _haptic(duration_ms: int, amplitude: float) -> void:
+	if haptics_enabled:
+		Input.vibrate_handheld(duration_ms, amplitude)
 
 
 func _add_objective_burst(side: int, lane: int, is_core: bool, radius: float) -> void:
@@ -491,27 +501,39 @@ func _build_menu() -> void:
 	collection.add_theme_font_size_override("font_size", 19)
 	collection.pressed.connect(_build_collection)
 	ui_layer.add_child(collection)
-	var version := _label("Prototype 0.17 • Hors ligne", Vector2(160.0, 1202.0), Vector2(400.0, 36.0), 18)
+	var version := _label("Prototype 0.18 • Hors ligne", Vector2(160.0, 1202.0), Vector2(400.0, 36.0), 18)
 	version.add_theme_color_override("font_color", Color("71889a"))
 	var record := _label("%d victoires  •  %d défaites" % [profile.wins, profile.losses], Vector2(160.0, 1080.0), Vector2(400.0, 36.0), 17)
 	record.add_theme_color_override("font_color", Color("8fa7b8"))
 	var progression := _label("Niveau %d  •  %d/%d XP  •  ◈ %d" % [profile.level, profile.xp, BattleProgression.xp_to_next(profile.level), profile.coins], Vector2(110.0, 1118.0), Vector2(500.0, 36.0), 17)
 	progression.add_theme_color_override("font_color", Color("f2c96d"))
 	var sound_toggle := CheckButton.new()
-	sound_toggle.text = "SONS ACTIVÉS" if sound_enabled else "SONS COUPÉS"
-	sound_toggle.position = Vector2(245.0, 1150.0)
+	sound_toggle.text = "SONS"
+	sound_toggle.position = Vector2(105.0, 1150.0)
 	sound_toggle.size = Vector2(230.0, 42.0)
 	sound_toggle.button_pressed = sound_enabled
 	sound_toggle.add_theme_font_size_override("font_size", 16)
 	sound_toggle.toggled.connect(func(enabled: bool) -> void:
 		sound_enabled = enabled
-		sound_toggle.text = "SONS ACTIVÉS" if enabled else "SONS COUPÉS"
 		if not enabled:
 			for player in sfx_players:
 				player.stop()
 		_save_profile()
 	)
 	ui_layer.add_child(sound_toggle)
+	var haptics_toggle := CheckButton.new()
+	haptics_toggle.text = "VIBRATIONS"
+	haptics_toggle.position = Vector2(365.0, 1150.0)
+	haptics_toggle.size = Vector2(250.0, 42.0)
+	haptics_toggle.button_pressed = haptics_enabled
+	haptics_toggle.add_theme_font_size_override("font_size", 16)
+	haptics_toggle.toggled.connect(func(enabled: bool) -> void:
+		haptics_enabled = enabled
+		if enabled:
+			_haptic(30, 0.3)
+		_save_profile()
+	)
+	ui_layer.add_child(haptics_toggle)
 	queue_redraw()
 
 
@@ -706,6 +728,7 @@ func _select_card(card_id: String) -> void:
 			hint_label.text = tutorial.instruction()
 			return
 	selected_card = card_id
+	_haptic(18, 0.24)
 	if tutorial != null:
 		_update_tutorial_hint()
 	else:
@@ -800,6 +823,8 @@ func _show_result(award_progression: bool = true) -> void:
 			profile.draws += 1
 		last_reward = BattleProgression.apply_match_result(profile, simulation.winner, simulation.crowns[BattleSim.PLAYER])
 		_save_profile()
+		if last_reward.levels > 0:
+			_haptic(180, 0.72)
 	_clear_ui()
 	ui_layer = CanvasLayer.new()
 	add_child(ui_layer)
@@ -944,10 +969,12 @@ func _load_profile() -> void:
 	profile = BattleProgression.normalize(parsed)
 	sound_enabled = profile.sound_enabled
 	selected_difficulty = profile.difficulty
+	haptics_enabled = profile.haptics_enabled
 
 
 func _save_profile() -> void:
 	profile.sound_enabled = sound_enabled
 	profile.difficulty = selected_difficulty
+	profile.haptics_enabled = haptics_enabled
 	profile.version = BattleProgression.CURRENT_VERSION
 	BattleProfileStore.save_profile(SAVE_PATH, profile)
