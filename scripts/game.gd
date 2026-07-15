@@ -49,6 +49,8 @@ var card_buttons: Dictionary = {}
 var profile := {"wins": 0, "losses": 0, "draws": 0}
 var tutorial: BattleTutorial
 var tutorial_label: Label
+var battle_paused := false
+var pause_layer: CanvasLayer
 
 
 func _ready() -> void:
@@ -58,7 +60,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	if state != ScreenState.BATTLE:
+	if state != ScreenState.BATTLE or battle_paused:
 		return
 	simulation.step(delta)
 	if tutorial == null or tutorial.is_complete():
@@ -71,7 +73,7 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if state != ScreenState.BATTLE or selected_card.is_empty():
+	if state != ScreenState.BATTLE or battle_paused or selected_card.is_empty():
 		return
 	var pressed := false
 	var position := Vector2.ZERO
@@ -213,6 +215,7 @@ func _draw_health_bar(position: Vector2, width: float, value: float, maximum: fl
 
 
 func _build_menu() -> void:
+	_clear_pause_overlay()
 	_clear_ui()
 	state = ScreenState.MENU
 	ui_layer = CanvasLayer.new()
@@ -246,7 +249,7 @@ func _build_menu() -> void:
 	training.add_theme_font_size_override("font_size", 20)
 	training.pressed.connect(_start_tutorial)
 	ui_layer.add_child(training)
-	var version := _label("Prototype 0.6 • Hors ligne", Vector2(160.0, 1140.0), Vector2(400.0, 36.0), 18)
+	var version := _label("Prototype 0.7 • Hors ligne", Vector2(160.0, 1140.0), Vector2(400.0, 36.0), 18)
 	version.add_theme_color_override("font_color", Color("71889a"))
 	var record := _label("%d victoires  •  %d défaites" % [profile.wins, profile.losses], Vector2(160.0, 1030.0), Vector2(400.0, 40.0), 18)
 	record.add_theme_color_override("font_color", Color("8fa7b8"))
@@ -254,6 +257,7 @@ func _build_menu() -> void:
 
 
 func _start_battle() -> void:
+	_clear_pause_overlay()
 	tutorial = null
 	simulation = BattleSim.new(Time.get_ticks_msec())
 	opponent = BattleAI.new(BattleSim.ENEMY, selected_difficulty, Time.get_ticks_msec() + 19)
@@ -264,6 +268,7 @@ func _start_battle() -> void:
 
 
 func _start_tutorial() -> void:
+	_clear_pause_overlay()
 	tutorial = BattleTutorial.new()
 	simulation = BattleSim.new(101)
 	simulation.energy[BattleSim.PLAYER] = 10.0
@@ -280,6 +285,13 @@ func _build_hud() -> void:
 	ui_layer = CanvasLayer.new()
 	add_child(ui_layer)
 	time_label = _label("03:00", Vector2(210.0, 0.0), Vector2(300.0, 38.0), 26)
+	var pause_button := Button.new()
+	pause_button.text = "Ⅱ"
+	pause_button.position = Vector2(650.0, 4.0)
+	pause_button.size = Vector2(58.0, 46.0)
+	pause_button.add_theme_font_size_override("font_size", 22)
+	pause_button.pressed.connect(_pause_battle)
+	ui_layer.add_child(pause_button)
 	energy_label = _label("Énergie 5/10", Vector2(18.0, 1060.0), Vector2(145.0, 36.0), 18)
 	energy_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	energy_bar = ProgressBar.new()
@@ -433,6 +445,7 @@ func _energy_style(color: Color) -> StyleBoxFlat:
 
 
 func _show_result() -> void:
+	_clear_pause_overlay()
 	state = ScreenState.RESULT
 	if tutorial == null:
 		if simulation.winner == BattleSim.PLAYER:
@@ -471,6 +484,70 @@ func _show_result() -> void:
 	menu.pressed.connect(_build_menu)
 	ui_layer.add_child(menu)
 	queue_redraw()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and state == ScreenState.BATTLE and not battle_paused:
+		call_deferred("_pause_battle")
+
+
+func _pause_battle() -> void:
+	if state != ScreenState.BATTLE or battle_paused:
+		return
+	battle_paused = true
+	pause_layer = CanvasLayer.new()
+	pause_layer.layer = 20
+	add_child(pause_layer)
+	var shade := ColorRect.new()
+	shade.position = Vector2.ZERO
+	shade.size = DESIGN_SIZE
+	shade.color = Color(0.02, 0.04, 0.08, 0.82)
+	pause_layer.add_child(shade)
+	var panel := ColorRect.new()
+	panel.position = Vector2(90.0, 390.0)
+	panel.size = Vector2(540.0, 420.0)
+	panel.color = Color("111c2b")
+	pause_layer.add_child(panel)
+	var title := Label.new()
+	title.text = "PARTIE EN PAUSE"
+	title.position = Vector2(120.0, 435.0)
+	title.size = Vector2(480.0, 72.0)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 34)
+	title.add_theme_color_override("font_color", Color("ffe17b"))
+	pause_layer.add_child(title)
+	var resume := Button.new()
+	resume.text = "REPRENDRE"
+	resume.position = Vector2(180.0, 550.0)
+	resume.size = Vector2(360.0, 76.0)
+	resume.add_theme_font_size_override("font_size", 23)
+	resume.pressed.connect(_resume_battle)
+	pause_layer.add_child(resume)
+	var abandon := Button.new()
+	abandon.text = "ABANDONNER"
+	abandon.position = Vector2(180.0, 650.0)
+	abandon.size = Vector2(360.0, 62.0)
+	abandon.add_theme_font_size_override("font_size", 19)
+	abandon.pressed.connect(_abandon_battle)
+	pause_layer.add_child(abandon)
+
+
+func _resume_battle() -> void:
+	_clear_pause_overlay()
+
+
+func _abandon_battle() -> void:
+	if simulation == null or not simulation.forfeit(BattleSim.PLAYER):
+		return
+	_clear_pause_overlay()
+	_show_result()
+
+
+func _clear_pause_overlay() -> void:
+	battle_paused = false
+	if is_instance_valid(pause_layer):
+		pause_layer.queue_free()
+	pause_layer = null
 
 
 func _label(text_value: String, position_value: Vector2, size_value: Vector2, font_size: int) -> Label:
