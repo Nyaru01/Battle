@@ -55,9 +55,15 @@ var battle_paused := false
 var pause_layer: CanvasLayer
 var effects: Array[Dictionary] = []
 var battle_intro_time := 0.0
+var last_intro_count := 4
+var sfx_bank: Dictionary = {}
+var sfx_players: Array[AudioStreamPlayer] = []
+var sfx_player_index := 0
+var last_hit_sound_msec := 0
 
 
 func _ready() -> void:
+	_setup_audio()
 	_load_profile()
 	_build_menu()
 	queue_redraw()
@@ -68,6 +74,10 @@ func _process(delta: float) -> void:
 		return
 	if battle_intro_time > 0.0:
 		battle_intro_time = maxf(0.0, battle_intro_time - delta)
+		var intro_count := ceili(maxf(0.0, battle_intro_time - 0.8))
+		if intro_count != last_intro_count:
+			_play_sfx("countdown" if intro_count > 0 else "battle_start")
+			last_intro_count = intro_count
 		queue_redraw()
 		return
 	simulation.step(delta)
@@ -233,28 +243,96 @@ func _consume_battle_events() -> void:
 				if BattleSim.CARDS[event.card].type == "unit":
 					var spawn_y := 820.0 if event.side == BattleSim.PLAYER else 310.0
 					_add_effect("deploy", Vector2(LANE_X[event.lane], spawn_y), _team_color(event.side), 0.42)
+					_play_sfx("deploy")
 			"spell":
 				var target_y := 285.0 if event.side == BattleSim.PLAYER else 855.0
 				var spell_color := Color("ff9d42") if event.card == "fireball" else Color("75e6ff")
 				_add_effect("burst", Vector2(LANE_X[event.lane], target_y), spell_color, 0.55, 92.0)
+				_play_sfx("fireball" if event.card == "fireball" else "frost")
 			"hit":
 				var source := _find_unit_position(event.source)
 				var target := _find_unit_position(event.target)
 				if source != Vector2.ZERO and target != Vector2.ZERO:
 					_add_beam(source, target, Color("ffe39a"), 0.16)
+					_play_hit_sfx()
 			"tower_shot":
 				var target := _find_unit_position(event.target)
 				if target != Vector2.ZERO:
 					var tower_y := 900.0 if event.side == BattleSim.PLAYER else 240.0
 					_add_beam(Vector2(LANE_X[event.lane], tower_y - 35.0), target, _team_color(event.side), 0.22)
+					_play_sfx("tower_shot")
 			"tower_hit":
 				_add_objective_burst(event.side, event.lane, false, 34.0)
 			"core_hit":
 				_add_objective_burst(event.side, 0, true, 42.0)
 			"tower_destroyed":
 				_add_objective_burst(event.side, event.lane, false, 105.0)
+				_play_sfx("destroyed")
 			"core_destroyed":
 				_add_objective_burst(event.side, 0, true, 135.0)
+				_play_sfx("destroyed")
+
+
+func _setup_audio() -> void:
+	sfx_bank = {
+		"countdown": _make_sfx(520.0, 430.0, 0.11, 0.34, 0.0),
+		"battle_start": _make_sfx(420.0, 920.0, 0.28, 0.42, 0.0),
+		"deploy": _make_sfx(190.0, 80.0, 0.18, 0.48, 0.05),
+		"hit": _make_sfx(580.0, 230.0, 0.08, 0.28, 0.18),
+		"tower_shot": _make_sfx(820.0, 390.0, 0.12, 0.32, 0.0),
+		"fireball": _make_sfx(170.0, 48.0, 0.34, 0.60, 0.42),
+		"frost": _make_sfx(920.0, 1520.0, 0.36, 0.30, 0.06),
+		"destroyed": _make_sfx(105.0, 32.0, 0.58, 0.68, 0.36),
+	}
+	for index in range(8):
+		var player := AudioStreamPlayer.new()
+		player.volume_db = -8.0
+		add_child(player)
+		sfx_players.append(player)
+
+
+func _make_sfx(start_frequency: float, end_frequency: float, duration: float, amplitude: float, noise_mix: float) -> AudioStreamWAV:
+	var mix_rate := 22050
+	var sample_count := int(duration * mix_rate)
+	var data := PackedByteArray()
+	data.resize(sample_count * 2)
+	var phase := 0.0
+	var noise_state := 1733
+	for index in range(sample_count):
+		var progress := float(index) / float(sample_count)
+		var frequency := lerpf(start_frequency, end_frequency, progress)
+		phase += TAU * frequency / float(mix_rate)
+		noise_state = int(posmod(noise_state * 48271, 2147483647))
+		var noise := float(noise_state) / 1073741823.5 - 1.0
+		var wave := lerpf(sin(phase), noise, noise_mix)
+		var attack := minf(progress / 0.018, 1.0)
+		var envelope := attack * pow(1.0 - progress, 2.0)
+		var sample := int(clampf(wave * envelope * amplitude, -1.0, 1.0) * 32767.0)
+		data[index * 2] = sample & 0xff
+		data[index * 2 + 1] = (sample >> 8) & 0xff
+	var stream := AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = mix_rate
+	stream.stereo = false
+	stream.data = data
+	return stream
+
+
+func _play_sfx(sound_name: String) -> void:
+	if not sfx_bank.has(sound_name) or sfx_players.is_empty():
+		return
+	var player := sfx_players[sfx_player_index]
+	sfx_player_index = (sfx_player_index + 1) % sfx_players.size()
+	player.stream = sfx_bank[sound_name]
+	player.play()
+
+
+func _play_hit_sfx() -> void:
+	var now := Time.get_ticks_msec()
+	if now - last_hit_sound_msec < 65:
+		return
+	last_hit_sound_msec = now
+	_play_sfx("hit")
 
 
 func _add_objective_burst(side: int, lane: int, is_core: bool, radius: float) -> void:
@@ -409,7 +487,7 @@ func _build_menu() -> void:
 	collection.add_theme_font_size_override("font_size", 19)
 	collection.pressed.connect(_build_collection)
 	ui_layer.add_child(collection)
-	var version := _label("Prototype 0.13 • Hors ligne", Vector2(160.0, 1190.0), Vector2(400.0, 36.0), 18)
+	var version := _label("Prototype 0.14 • Hors ligne", Vector2(160.0, 1190.0), Vector2(400.0, 36.0), 18)
 	version.add_theme_color_override("font_color", Color("71889a"))
 	var record := _label("%d victoires  •  %d défaites" % [profile.wins, profile.losses], Vector2(160.0, 1080.0), Vector2(400.0, 36.0), 17)
 	record.add_theme_color_override("font_color", Color("8fa7b8"))
@@ -497,6 +575,7 @@ func _start_battle() -> void:
 	_clear_pause_overlay()
 	effects.clear()
 	battle_intro_time = 3.8
+	last_intro_count = 4
 	tutorial = null
 	simulation = BattleSim.new(Time.get_ticks_msec())
 	opponent = BattleAI.new(BattleSim.ENEMY, selected_difficulty, Time.get_ticks_msec() + 19)
@@ -511,6 +590,7 @@ func _start_tutorial() -> void:
 	_clear_pause_overlay()
 	effects.clear()
 	battle_intro_time = 3.8
+	last_intro_count = 4
 	tutorial = BattleTutorial.new()
 	simulation = BattleSim.new(101)
 	simulation.energy[BattleSim.PLAYER] = 10.0
