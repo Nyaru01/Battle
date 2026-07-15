@@ -23,6 +23,12 @@ func _capture() -> void:
 	scene.simulation.play_card(BattleSim.ENEMY, "duelist", 1)
 	scene.simulation.play_card(BattleSim.ENEMY, "alchemist", 0)
 	scene.simulation.play_card(BattleSim.ENEMY, "bulwark", 1)
+	scene.simulation.towers[BattleSim.ENEMY].lanes[0] = 1.0
+	scene.simulation._damage_objective(BattleSim.ENEMY, 0, 5.0)
+	scene.simulation.towers[BattleSim.PLAYER].lanes[1] = 1.0
+	scene.simulation._damage_objective(BattleSim.PLAYER, 1, 5.0)
+	scene.simulation.overtime = true
+	scene.simulation.time_left = 45.0
 	scene._build_hud()
 	for index in range(4):
 		await process_frame

@@ -14,6 +14,8 @@ func _run() -> void:
 	_test_spell_damage()
 	_test_deck_cycle()
 	_test_frost_slow()
+	_test_crown_scoring()
+	_test_overtime_rules()
 	_test_units_fight()
 	_test_tower_defends_lane()
 	_test_bot_matches_finish()
@@ -72,6 +74,55 @@ func _test_frost_slow() -> void:
 	_expect(simulation.units[0].slow_timer > 0.0, "frost slows affected units")
 
 
+func _test_crown_scoring() -> void:
+	var simulation := BattleSim.new(17)
+	simulation.towers[BattleSim.ENEMY].lanes[0] = 20.0
+	simulation._damage_objective(BattleSim.ENEMY, 0, 25.0)
+	_expect(simulation.crowns[BattleSim.PLAYER] == 1, "destroying a lane tower awards one crown")
+	simulation._damage_objective(BattleSim.ENEMY, 0, 25.0)
+	_expect(simulation.crowns[BattleSim.PLAYER] == 1, "a destroyed tower cannot award another crown")
+	simulation.towers[BattleSim.ENEMY].core = 10.0
+	simulation._damage_objective(BattleSim.ENEMY, 0, 20.0)
+	_expect(simulation.crowns[BattleSim.PLAYER] == 3, "destroying the core sets a three-crown victory")
+	simulation.step(0.1)
+	_expect(simulation.finished and simulation.winner == BattleSim.PLAYER, "core destruction ends the match")
+
+
+func _test_overtime_rules() -> void:
+	var simulation := BattleSim.new(18)
+	simulation.energy = [0.0, 0.0]
+	simulation.time_left = 0.05
+	simulation.step(0.1)
+	_expect(simulation.overtime, "a tied regulation enters overtime")
+	_expect(not simulation.finished, "overtime keeps the match active")
+	_expect(is_equal_approx(simulation.time_left, BattleSim.OVERTIME_DURATION), "overtime receives its full duration")
+	for index in range(10):
+		simulation.step(0.1)
+	_expect(absf(simulation.energy[BattleSim.PLAYER] - 2.1) < 0.02, "energy regenerates twice as fast in overtime")
+	simulation.towers[BattleSim.ENEMY].lanes[0] = 1.0
+	simulation._damage_objective(BattleSim.ENEMY, 0, 5.0)
+	_expect(simulation.finished and simulation.winner == BattleSim.PLAYER, "the next crown wins overtime")
+
+	var crown_lead := BattleSim.new(19)
+	crown_lead.crowns = [1, 0]
+	crown_lead.time_left = 0.05
+	crown_lead.step(0.1)
+	_expect(crown_lead.finished and crown_lead.winner == BattleSim.PLAYER, "a crown lead wins at regulation time")
+
+	var tiebreak := BattleSim.new(20)
+	tiebreak.overtime = true
+	tiebreak.time_left = 0.05
+	tiebreak.towers[BattleSim.ENEMY].lanes[0] = 1000.0
+	tiebreak.step(0.1)
+	_expect(tiebreak.finished and tiebreak.winner == BattleSim.PLAYER, "remaining health breaks an overtime tie")
+
+	var draw := BattleSim.new(21)
+	draw.overtime = true
+	draw.time_left = 0.05
+	draw.step(0.1)
+	_expect(draw.finished and draw.winner == -1, "equal health after overtime produces a draw")
+
+
 func _test_units_fight() -> void:
 	var simulation := BattleSim.new(13)
 	simulation.energy = [10.0, 10.0]
@@ -101,7 +152,7 @@ func _test_bot_matches_finish() -> void:
 		var simulation := BattleSim.new(1000 + match_index)
 		var player_bot := BattleAI.new(BattleSim.PLAYER, 2, 2000 + match_index)
 		var enemy_bot := BattleAI.new(BattleSim.ENEMY, 2, 3000 + match_index)
-		for tick in range(2000):
+		for tick in range(2500):
 			player_bot.update(0.1, simulation)
 			enemy_bot.update(0.1, simulation)
 			simulation.step(0.1)
