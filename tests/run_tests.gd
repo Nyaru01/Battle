@@ -259,6 +259,11 @@ func _test_battle_intro() -> void:
 	scene.battle_intro_time = 0.0
 	scene._process(0.1)
 	_expect(scene.simulation.time_left < initial_time, "battle starts after the countdown")
+	scene._select_card("guardian")
+	scene._select_card("guardian")
+	_expect(scene.selected_card.is_empty(), "tapping the selected card again cancels targeting")
+	scene._select_card("fireball")
+	_expect("vise une zone ennemie" in scene.hint_label.text, "spell selection explains enemy targeting")
 	var initial_wins: int = scene.profile.wins
 	scene.simulation.forfeit(BattleSim.ENEMY)
 	scene.last_reward = {"coins": 25, "xp": 35, "levels": 0}

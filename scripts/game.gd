@@ -177,12 +177,21 @@ func _draw_arena() -> void:
 func _draw_deployment_guide() -> void:
 	if state != ScreenState.BATTLE or selected_card.is_empty() or battle_intro_time > 0.0:
 		return
-	var accent := Color("6bd5ff")
+	var is_spell: bool = BattleSim.CARDS[selected_card].type == "spell"
+	var accent := Color("ff9a52") if selected_card == "fireball" else (Color("78e8ff") if is_spell else Color("6bd5ff"))
 	for lane in range(BattleSim.LANE_COUNT):
-		var area := Rect2(58.0 + lane * 330.0, 610.0, 274.0, 235.0)
+		var area := Rect2(58.0 + lane * 330.0, 120.0 if is_spell else 610.0, 274.0, 400.0 if is_spell else 235.0)
 		draw_rect(area, Color(accent, 0.07), true)
 		draw_rect(area, Color(accent, 0.48), false, 3.0)
-		draw_string(ThemeDB.fallback_font, Vector2(area.position.x, 660.0), "VOIE GAUCHE" if lane == 0 else "VOIE DROITE", HORIZONTAL_ALIGNMENT_CENTER, area.size.x, 18, Color(accent, 0.88))
+		if is_spell:
+			var target := Vector2(LANE_X[lane], 285.0)
+			draw_circle(target, 62.0, Color(accent, 0.10))
+			draw_arc(target, 62.0, 0.0, TAU, 32, accent, 4.0)
+			draw_line(target - Vector2(22.0, 0.0), target + Vector2(22.0, 0.0), accent, 3.0)
+			draw_line(target - Vector2(0.0, 22.0), target + Vector2(0.0, 22.0), accent, 3.0)
+			draw_string(ThemeDB.fallback_font, Vector2(area.position.x, 490.0), "CIBLE GAUCHE" if lane == 0 else "CIBLE DROITE", HORIZONTAL_ALIGNMENT_CENTER, area.size.x, 18, Color(accent, 0.92))
+		else:
+			draw_string(ThemeDB.fallback_font, Vector2(area.position.x, 660.0), "VOIE GAUCHE" if lane == 0 else "VOIE DROITE", HORIZONTAL_ALIGNMENT_CENTER, area.size.x, 18, Color(accent, 0.88))
 
 
 func _draw_battle_intro() -> void:
@@ -527,7 +536,7 @@ func _build_menu() -> void:
 	collection.add_theme_font_size_override("font_size", 19)
 	collection.pressed.connect(_build_collection)
 	ui_layer.add_child(collection)
-	var version := _label("Prototype 0.22 • Hors ligne", Vector2(160.0, 1202.0), Vector2(400.0, 36.0), 18)
+	var version := _label("Prototype 0.23 • Hors ligne", Vector2(160.0, 1202.0), Vector2(400.0, 36.0), 18)
 	version.add_theme_color_override("font_color", Color("71889a"))
 	var record := _label("%d victoires  •  %d défaites" % [profile.wins, profile.losses], Vector2(160.0, 1080.0), Vector2(400.0, 36.0), 17)
 	record.add_theme_color_override("font_color", Color("8fa7b8"))
@@ -771,6 +780,13 @@ func _build_hud() -> void:
 
 
 func _select_card(card_id: String) -> void:
+	if selected_card == card_id and (tutorial == null or tutorial.is_complete()):
+		selected_card = ""
+		hint_label.text = "Sélection annulée • choisis une carte"
+		_haptic(18, 0.18)
+		_update_hud()
+		queue_redraw()
+		return
 	if tutorial != null and not tutorial.is_complete():
 		if not tutorial.select_card(card_id):
 			hint_label.text = tutorial.instruction()
@@ -780,7 +796,7 @@ func _select_card(card_id: String) -> void:
 	if tutorial != null:
 		_update_tutorial_hint()
 	else:
-		hint_label.text = "%s sélectionné • touche la voie gauche ou droite" % BattleSim.CARDS[card_id].name
+		hint_label.text = "%s sélectionné • %s" % [BattleSim.CARDS[card_id].name, "vise une zone ennemie" if BattleSim.CARDS[card_id].type == "spell" else "touche la voie gauche ou droite"]
 	_update_hud()
 	queue_redraw()
 
