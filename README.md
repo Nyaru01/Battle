@@ -22,6 +22,7 @@ Le développement du premier prototype jouable est en cours.
 - arène à deux voies avec tours et noyaux ;
 - deck de huit cartes avec main tournante de quatre cartes et prochaine pioche visible ;
 - huit cartes originales, dont trois nouveaux combattants et le sort de ralentissement Stase ;
+- carte d’escouade Lames jumelles déployant deux combattants indépendants ;
 - énergie, déplacement, ciblage, combat, victoire et limite de temps ;
 - effets visuels légers pour les déploiements, tirs, impacts, sorts et destructions ;
 - compte à rebours de duel et guide de placement sur les deux voies ;
