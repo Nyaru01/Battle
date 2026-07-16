@@ -28,7 +28,11 @@ try {
         "assets/scripts/sim/ai_controller.gdc",
         "assets/scripts/sim/battle_sim.gdc",
         "assets/scripts/ui/arena_theme.gdc",
+        "assets/scripts/ui/card_art_control.gdc",
+        "assets/scripts/ui/lobby_diorama.gdc",
         "assets/scripts/visual/battle_world_2d.gdc",
+        "assets/scripts/visual/unit_rig_definition.gdc",
+        "assets/scripts/visual/unit_view_2d.gdc",
         "lib/arm64-v8a/libgodot_android.so"
     )
     if ($Variant -eq "universal") {
@@ -44,18 +48,17 @@ try {
     }
 
     $textureNames = @(
-        "arena-v2.png",
-        "card-art-v2.png",
-        "card-art-v4.png",
-        "icon.png",
-        "tower-sprites-v3.png",
-        "unit-sprites-v3.png",
-        "unit-sprites-v4.png",
-        "icon-battle.png",
-        "icon-collection.png",
-        "icon-crown.png",
-        "icon-energy.png",
-        "icon-shard.png"
+        "arena-royale-v040.png",
+        "tower-parts-v040.png",
+        "guardian-rig-v040.png",
+        "ranger-rig-v040.png",
+        "colossus-rig-v040.png",
+        "duelist-rig-v040.png",
+        "alchemist-rig-v040.png",
+        "bulwark-rig-v040.png",
+        "spell-art-v040.png",
+        "ui-icons-v040.png",
+        "app-icon-v040.png"
     )
     $missingTextures = @()
     foreach ($textureName in $textureNames) {
@@ -69,7 +72,7 @@ try {
         throw "Textures compilées absentes : $($missingTextures -join ', ')"
     }
 
-    $fontNames = @("LilitaOne-Regular.ttf", "Nunito-Variable.ttf")
+    $fontNames = @("Baloo2-Variable.ttf", "Nunito-Variable.ttf")
     $missingFonts = @()
     foreach ($fontName in $fontNames) {
         $pattern = "assets/.godot/imported/$fontName-*.fontdata"
@@ -84,9 +87,13 @@ try {
     if ($Variant -eq "arm64" -and $entries.ContainsKey("lib/armeabi-v7a/libgodot_android.so")) {
         throw "L'APK ARM64 contient par erreur la bibliothèque ARMv7."
     }
+    $apkSize = (Get-Item -LiteralPath $resolved).Length
+    if ($apkSize -gt 95MB) {
+        throw "APK trop volumineux : $([Math]::Round($apkSize / 1MB, 1)) Mo (budget : 95 Mo)."
+    }
 
     Write-Host "APK vérifié : $resolved"
-    Write-Host "Scripts d'exécution : 8/8 | Textures : 12/12 | Polices : 2/2 | Variante : $Variant"
+    Write-Host "Scripts d'exécution : 12/12 | Textures : 11/11 | Polices : 2/2 | Variante : $Variant | Taille : $([Math]::Round($apkSize / 1MB, 1)) Mo"
 }
 finally {
     $archive.Dispose()

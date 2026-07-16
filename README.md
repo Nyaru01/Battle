@@ -1,21 +1,19 @@
 # Battle
 
-Jeu mobile original de stratégie en arène, en temps réel, jouable hors ligne contre une IA. Le vertical slice 0.32 propose une direction 2,5D premium, responsive et immédiatement lisible sur mobile.
+Jeu mobile original de stratégie en arène, en temps réel et jouable hors ligne contre une IA. La v0.40 est une refonte visuelle complète pensée pour le portrait Android : arène fantasy lumineuse, accueil vivant, cartes premium et combattants réellement articulés.
 
-## Prototype 0.32
+## Vertical slice 0.40
 
-- arène 2,5D illustrée à deux voies, rivière, ponts et six objectifs ;
-- mise à l’échelle sans étirement, adaptée aux téléphones longs et tablettes portrait ;
-- combattants, tours, cartes et icônes originaux au rendu fantasy cohérent ;
-- déplacements interpolés, attaques, impacts, sorts, projectiles et morts animés ;
-- projectiles simulés avec temps de trajet et dégâts uniquement à l’impact ;
-- huit cartes, main tournante de quatre cartes, énergie et progression locale ;
-- trois difficultés d’IA et tutoriel hors ligne ;
-- interface fantasy premium pour l’accueil, la collection, la bataille, le ciblage, la pause et le résultat ;
-- rendu Vulkan Mobile, export Android Arm64 et mode immersif ;
-- 208 assertions automatisées et campagne reproductible de 1 000 combats IA.
+- six combattants construits avec huit parties indépendantes, animés au repos, en marche, en attaque, à l’impact, au déploiement et à la défaite ;
+- arène verticale illustrée, tours modulaires, eau animée, projectiles, sorts, impacts et secousses de caméra ;
+- pose tactile au choix : sélectionner puis toucher l’arène, ou glisser directement une carte avec prévisualisation valide/interdite ;
+- huit cartes, main tournante de quatre cartes, énergie, progression locale et collection améliorable ;
+- trois difficultés d’IA, tutoriel, pause, résultat et sauvegarde hors ligne ;
+- interface responsive testée en 540×960, 720×1280 et 800×1280 ;
+- rendu Vulkan Mobile, export Android Arm64 immersif ;
+- 248 assertions automatisées et campagne reproductible de 1 000 combats IA.
 
-Tous les personnages, illustrations et éléments d’interface sont originaux. Les polices Lilita One et Nunito sont distribuées sous SIL Open Font License. Le projet n’embarque aucun actif de Clash Royale.
+Tous les personnages, bâtiments, illustrations et éléments d’interface sont originaux. Baloo 2 et Nunito sont distribuées sous SIL Open Font License. Aucun actif de Clash Royale n’est embarqué.
 
 ## Lancer et tester
 
@@ -32,9 +30,9 @@ godot --headless --path . --export-debug "Android Arm64 Debug" "Android/Battle-l
 powershell -ExecutionPolicy Bypass -File tools/verify_apk.ps1 -ApkPath "Android/Battle-latest.apk" -Variant arm64
 ```
 
-L’APK courant est toujours disponible sous [Android/Battle-latest.apk](Android/Battle-latest.apk). Chaque nouvel export remplace ce fichier afin qu’il reste facile à trouver depuis la racine du dépôt.
+L’APK courant se trouve toujours dans [Android/Battle-latest.apk](Android/Battle-latest.apk). Chaque export remplace ce fichier stable afin qu’il reste immédiatement visible depuis la racine du dépôt.
 
-Configuration de l’APK : API 24 minimum imposée par le modèle Godot standard, API cible 36, `arm64-v8a`, orientation portrait et rendu Vulkan Mobile. Android 10 ou plus récent est recommandé.
+Configuration : API 24 minimum, API cible 36, `arm64-v8a`, portrait, mode immersif et Vulkan Mobile. Android 10 ou plus récent est recommandé.
 
 ## Documentation
 

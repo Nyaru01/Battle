@@ -1,19 +1,19 @@
 class_name ArenaTheme
 extends RefCounted
 
-const HEADING_FONT: Font = preload("res://assets/fonts/LilitaOne-Regular.ttf")
+const HEADING_FONT: Font = preload("res://assets/fonts/Baloo2-Variable.ttf")
 const BODY_FONT: Font = preload("res://assets/fonts/Nunito-Variable.ttf")
 
-const NAVY := Color("081522")
-const NAVY_RAISED := Color("102b42")
-const NAVY_LIGHT := Color("194862")
-const BLUE := Color("167ec5")
-const CYAN := Color("56d7ff")
-const GOLD := Color("f2bd42")
-const GOLD_LIGHT := Color("ffe38a")
-const RED := Color("d9475c")
-const GREEN := Color("55d985")
-const MAGENTA := Color("c84fe1")
+const NAVY := Color("071529")
+const NAVY_RAISED := Color("122f52")
+const NAVY_LIGHT := Color("235b83")
+const BLUE := Color("1789e8")
+const CYAN := Color("58e5ff")
+const GOLD := Color("f4aa28")
+const GOLD_LIGHT := Color("ffe68b")
+const RED := Color("e8475f")
+const GREEN := Color("58df82")
+const MAGENTA := Color("a94ee8")
 const TEXT := Color("f7fbff")
 const TEXT_MUTED := Color("b9d0db")
 
@@ -31,7 +31,7 @@ static func panel(background: Color, border: Color, radius := 16, border_width :
 	style.border_color = border
 	style.set_border_width_all(border_width)
 	style.set_corner_radius_all(radius)
-	style.shadow_color = Color(0.0, 0.0, 0.0, 0.46)
+	style.shadow_color = Color(0.0, 0.0, 0.0, 0.54)
 	style.shadow_size = shadow
 	style.shadow_offset = Vector2(0.0, 4.0)
 	style.anti_aliasing = true
@@ -49,19 +49,19 @@ static func inset_panel(background := NAVY_RAISED, border := NAVY_LIGHT, radius 
 
 static func button_colors(kind: String) -> Array[Color]:
 	match kind:
-		"primary": return [Color("087cbd"), CYAN, Color("075a89")]
-		"gold": return [Color("a66d12"), GOLD_LIGHT, Color("714408")]
-		"danger": return [Color("9d3045"), Color("ff8495"), Color("661d30")]
-		_: return [NAVY_RAISED, Color("4e86a0"), Color("091b2a")]
+		"primary": return [Color("087fd3"), Color("8cf0ff"), Color("075793")]
+		"gold": return [Color("cb7c13"), Color("fff0a5"), Color("8a490b")]
+		"danger": return [Color("b52d47"), Color("ff92a1"), Color("71172c")]
+		_: return [NAVY_RAISED, Color("6aa9d2"), Color("091b35")]
 
 
 static func apply_button(button: BaseButton, kind: String, font_size: int) -> void:
 	var colors := button_colors(kind)
-	button.add_theme_stylebox_override("normal", panel(colors[0], colors[1], 14, 3, 6))
-	button.add_theme_stylebox_override("hover", panel(colors[0].lightened(0.08), colors[1].lightened(0.10), 14, 3, 8))
-	button.add_theme_stylebox_override("pressed", panel(colors[0].darkened(0.13), colors[2], 14, 4, 3))
-	button.add_theme_stylebox_override("focus", panel(colors[0], GOLD_LIGHT, 14, 4, 8))
-	button.add_theme_stylebox_override("disabled", panel(Color("26343d"), Color("465965"), 14, 2, 3))
+	button.add_theme_stylebox_override("normal", panel(colors[0], colors[1], 16, 4, 7))
+	button.add_theme_stylebox_override("hover", panel(colors[0].lightened(0.08), colors[1].lightened(0.10), 16, 4, 9))
+	button.add_theme_stylebox_override("pressed", panel(colors[0].darkened(0.13), colors[2], 16, 4, 3))
+	button.add_theme_stylebox_override("focus", panel(colors[0], GOLD_LIGHT, 16, 5, 9))
+	button.add_theme_stylebox_override("disabled", panel(Color("26343d"), Color("465965"), 16, 2, 3))
 	button.add_theme_font_override("font", HEADING_FONT)
 	button.add_theme_font_size_override("font_size", font_size)
 	button.add_theme_color_override("font_color", TEXT)

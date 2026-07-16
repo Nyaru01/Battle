@@ -1,6 +1,6 @@
 # Rapport de simulation IA
 
-Dernière campagne : 2026-07-16 — vertical slice 0.32.0-alpha
+Dernière campagne : 2026-07-16 — règles inchangées dans le vertical slice 0.40.0-alpha
 
 ```powershell
 godot --headless --path . --script res://tools/run_balance.gd -- --matches=1000

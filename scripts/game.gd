@@ -1,23 +1,19 @@
 extends Node
 
 const BattleWorldScript := preload("res://scripts/visual/battle_world_2d.gd")
-const CARD_ART := preload("res://assets/card-art-v2.png")
-const CARD_ART_V4 := preload("res://assets/card-art-v4.png")
-const ICON_TEXTURE := preload("res://assets/icon.png")
-const ICON_BATTLE := preload("res://assets/ui/icon-battle.png")
-const ICON_COLLECTION := preload("res://assets/ui/icon-collection.png")
-const ICON_CROWN := preload("res://assets/ui/icon-crown.png")
-const ICON_ENERGY := preload("res://assets/ui/icon-energy.png")
-const ICON_SHARD := preload("res://assets/ui/icon-shard.png")
+const APP_ICON := preload("res://assets/v040/ui/app-icon-v040.png")
+const UI_ICON_ATLAS := preload("res://assets/v040/ui/ui-icons-v040.png")
+const SPELL_ART := preload("res://assets/v040/ui/spell-art-v040.png")
 const SAVE_PATH := "user://profile.json"
 const DIFFICULTY_NAMES := ["INITIATION", "TACTIQUE", "EXPERT"]
-const CARD_QUADRANTS := {
-	"guardian": Vector2i(0, 0), "ranger": Vector2i(1, 0),
-	"colossus": Vector2i(0, 1), "fireball": Vector2i(1, 1),
-	"duelist": Vector2i(0, 0), "alchemist": Vector2i(1, 0),
-	"bulwark": Vector2i(0, 1), "frost": Vector2i(1, 1),
-}
-const V4_CARD_IDS := ["duelist", "alchemist", "bulwark", "frost"]
+const ICON_BATTLE_INDEX := 0
+const ICON_COLLECTION_INDEX := 1
+const ICON_CROWN_INDEX := 2
+const ICON_SHARD_INDEX := 3
+const ICON_ENERGY_INDEX := 4
+const ICON_HOME_INDEX := 5
+const ICON_SETTINGS_INDEX := 6
+const ICON_SOUND_INDEX := 7
 
 enum ScreenState { MENU, COLLECTION, BATTLE, RESULT }
 
@@ -50,11 +46,15 @@ var tutorial_label: Label
 var intro_label: Label
 var next_card_preview: PanelContainer
 var next_card_label: Label
-var next_card_art: TextureRect
+var next_card_art: CardArtControl
 var card_buttons: Dictionary = {}
 var arena_container: Control
 var battle_world: BattleWorld2D
 var hovered_lane := -1
+var drag_card_id := ""
+var drag_candidate_start := Vector2.ZERO
+var drag_active := false
+var suppress_card_tap := false
 
 var sfx_bank: Dictionary = {}
 var sfx_players: Array[AudioStreamPlayer] = []
@@ -108,65 +108,79 @@ func _build_menu() -> void:
 	ui_layer = CanvasLayer.new()
 	add_child(ui_layer)
 	ui_root = _screen_root(ArenaTheme.NAVY)
-
-	var hero := TextureRect.new()
-	hero.texture = ICON_TEXTURE
-	hero.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	hero.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	hero.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	hero.anchor_left = 0.12
-	hero.anchor_right = 0.88
-	hero.anchor_bottom = 0.55
-	hero.offset_left = 0.0
-	hero.offset_right = 0.0
-	hero.offset_top = 18.0
-	hero.offset_bottom = 0.0
-	hero.modulate = Color(1.0, 1.0, 1.0, 0.96)
-	hero.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	ui_root.add_child(hero)
-
-	var fade_texture := GradientTexture2D.new()
-	var fade_gradient := Gradient.new()
-	fade_gradient.colors = PackedColorArray([Color(0.03, 0.08, 0.14, 0.02), ArenaTheme.NAVY])
-	fade_texture.gradient = fade_gradient
-	fade_texture.fill_from = Vector2(0.5, 0.0)
-	fade_texture.fill_to = Vector2(0.5, 1.0)
-	var fade := TextureRect.new()
-	fade.texture = fade_texture
-	fade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	ui_root.add_child(fade)
-
 	var safe := _safe_margin()
 	ui_root.add_child(safe)
 	var layout := VBoxContainer.new()
-	layout.alignment = BoxContainer.ALIGNMENT_BEGIN
-	layout.add_theme_constant_override("separation", 8)
+	layout.add_theme_constant_override("separation", 10)
 	safe.add_child(layout)
 
-	var hero_spacer := Control.new()
-	hero_spacer.custom_minimum_size.y = 210
-	hero_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	layout.add_child(hero_spacer)
-	var title := _title_label("BATTLE", 52, ArenaTheme.CYAN)
-	layout.add_child(title)
-	var subtitle := _title_label("CHRONIQUES DE L’ARÈNE", 17, ArenaTheme.TEXT_MUTED)
-	layout.add_child(subtitle)
+	var top_bar := HBoxContainer.new()
+	top_bar.custom_minimum_size.y = 60
+	top_bar.add_theme_constant_override("separation", 10)
+	layout.add_child(top_bar)
+	var crest := TextureRect.new()
+	crest.texture = APP_ICON
+	crest.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	crest.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	crest.custom_minimum_size = Vector2(58, 58)
+	top_bar.add_child(crest)
+	var brand := VBoxContainer.new()
+	brand.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	brand.add_theme_constant_override("separation", -6)
+	top_bar.add_child(brand)
+	var title := _title_label("BATTLE", 36, ArenaTheme.CYAN)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	brand.add_child(title)
+	var subtitle := _title_label("ARÈNE ROYALE", 14, ArenaTheme.GOLD_LIGHT)
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	brand.add_child(subtitle)
+	var wallet := PanelContainer.new()
+	wallet.add_theme_stylebox_override("panel", ArenaTheme.inset_panel(Color("142d4d"), Color("5b8db8"), 18))
+	var wallet_row := HBoxContainer.new()
+	wallet_row.add_theme_constant_override("separation", 4)
+	wallet.add_child(wallet_row)
+	var shard := TextureRect.new()
+	shard.texture = _ui_icon(ICON_SHARD_INDEX)
+	shard.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	shard.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	shard.custom_minimum_size = Vector2(28, 28)
+	wallet_row.add_child(shard)
+	wallet_row.add_child(_title_label(str(profile.coins), 20, ArenaTheme.GOLD_LIGHT))
+	top_bar.add_child(wallet)
 
-	var profile_panel := PanelContainer.new()
-	profile_panel.add_theme_stylebox_override("panel", ArenaTheme.inset_panel(Color("102f47"), Color("4e9abb"), 16))
-	profile_panel.custom_minimum_size = Vector2(0, 68)
-	var profile_row := HBoxContainer.new()
-	profile_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	profile_row.add_theme_constant_override("separation", 24)
-	profile_panel.add_child(profile_row)
-	profile_row.add_child(_stat_label("NIVEAU", str(profile.level), ArenaTheme.CYAN))
-	profile_row.add_child(_stat_label("VICTOIRES", str(profile.wins), ArenaTheme.GREEN))
-	profile_row.add_child(_stat_label("ÉCLATS", str(profile.coins), ArenaTheme.GOLD_LIGHT))
-	layout.add_child(profile_panel)
+	var diorama_panel := PanelContainer.new()
+	diorama_panel.custom_minimum_size.y = 310
+	diorama_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	diorama_panel.clip_contents = true
+	diorama_panel.add_theme_stylebox_override("panel", ArenaTheme.panel(Color("12334b"), Color("65cef1"), 24, 4, 10))
+	layout.add_child(diorama_panel)
+	var diorama_stack := Control.new()
+	diorama_stack.custom_minimum_size.y = 310
+	diorama_panel.add_child(diorama_stack)
+	var diorama := LobbyDiorama.new()
+	diorama.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	diorama_stack.add_child(diorama)
+	var arena_banner := Label.new()
+	arena_banner.text = "DOMINE L’ARÈNE"
+	arena_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	arena_banner.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	arena_banner.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	arena_banner.offset_left = 18
+	arena_banner.offset_right = -18
+	arena_banner.offset_top = 14
+	arena_banner.offset_bottom = 62
+	arena_banner.add_theme_stylebox_override("normal", ArenaTheme.panel(Color(0.03, 0.12, 0.22, 0.80), ArenaTheme.GOLD_LIGHT, 18, 3, 6))
+	ArenaTheme.apply_heading(arena_banner, 24, Color.WHITE)
+	diorama_stack.add_child(arena_banner)
 
-	var mode := _title_label("DUEL CONTRE IA", 22, ArenaTheme.GOLD_LIGHT)
-	layout.add_child(mode)
+	var mode_row := HBoxContainer.new()
+	mode_row.add_theme_constant_override("separation", 10)
+	layout.add_child(mode_row)
+	var mode := _title_label("DUEL CONTRE IA", 19, ArenaTheme.GOLD_LIGHT)
+	mode.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mode.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	mode_row.add_child(mode)
+	mode_row.add_child(_title_label("NIV. %d  •  %d V" % [profile.level, profile.wins], 14, ArenaTheme.TEXT_MUTED))
 	var difficulty := HBoxContainer.new()
 	difficulty.add_theme_constant_override("separation", 8)
 	layout.add_child(difficulty)
@@ -175,18 +189,18 @@ func _build_menu() -> void:
 		choice.text = DIFFICULTY_NAMES[index]
 		choice.toggle_mode = true
 		choice.button_pressed = selected_difficulty == index
-		choice.custom_minimum_size = Vector2(0, 48)
+		choice.custom_minimum_size = Vector2(0, 46)
 		choice.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_apply_button_theme(choice, "gold" if selected_difficulty == index else "secondary", 14)
 		choice.pressed.connect(_select_difficulty.bind(index))
 		difficulty.add_child(choice)
 
 	var start := Button.new()
-	start.text = "COMBAT IA"
-	start.icon = ICON_BATTLE
+	start.text = "LANCER LE COMBAT"
+	start.icon = _ui_icon(ICON_BATTLE_INDEX)
 	start.expand_icon = true
 	start.add_theme_constant_override("icon_max_width", 42)
-	start.custom_minimum_size = Vector2(0, 72)
+	start.custom_minimum_size = Vector2(0, 74)
 	_apply_button_theme(start, "primary", 28)
 	start.pressed.connect(_start_battle)
 	layout.add_child(start)
@@ -194,7 +208,7 @@ func _build_menu() -> void:
 	secondary.add_theme_constant_override("separation", 10)
 	layout.add_child(secondary)
 	var training := Button.new()
-	training.text = "APPRENDRE"
+	training.text = "ENTRAÎNEMENT"
 	training.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	training.custom_minimum_size.y = 50
 	_apply_button_theme(training, "secondary", 16)
@@ -202,7 +216,7 @@ func _build_menu() -> void:
 	secondary.add_child(training)
 	var collection := Button.new()
 	collection.text = "COLLECTION"
-	collection.icon = ICON_COLLECTION
+	collection.icon = _ui_icon(ICON_COLLECTION_INDEX)
 	collection.expand_icon = true
 	collection.add_theme_constant_override("icon_max_width", 28)
 	collection.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -213,7 +227,7 @@ func _build_menu() -> void:
 
 	var settings := HBoxContainer.new()
 	settings.alignment = BoxContainer.ALIGNMENT_CENTER
-	settings.add_theme_constant_override("separation", 22)
+	settings.add_theme_constant_override("separation", 18)
 	layout.add_child(settings)
 	var sound_toggle := CheckButton.new()
 	sound_toggle.text = "SONS"
@@ -225,7 +239,7 @@ func _build_menu() -> void:
 	haptics_toggle.button_pressed = haptics_enabled
 	haptics_toggle.toggled.connect(_toggle_haptics)
 	settings.add_child(haptics_toggle)
-	var version := _title_label("v0.32 • ARÈNE 2,5D • HORS LIGNE", 12, Color("7599aa"))
+	var version := _title_label("v0.40 • PERSONNAGES ANIMÉS • HORS LIGNE", 12, Color("82a9c2"))
 	layout.add_child(version)
 
 
@@ -257,7 +271,7 @@ func _build_collection() -> void:
 	currency.alignment = BoxContainer.ALIGNMENT_CENTER
 	currency.custom_minimum_size.x = 112
 	var shard := TextureRect.new()
-	shard.texture = ICON_SHARD
+	shard.texture = _ui_icon(ICON_SHARD_INDEX)
 	shard.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	shard.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	shard.custom_minimum_size = Vector2(30, 30)
@@ -286,7 +300,7 @@ func _collection_card(card_id: String) -> Control:
 	var card: Dictionary = BattleSim.scaled_card(BattleSim.CARDS[card_id], level)
 	var panel := PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.custom_minimum_size = Vector2(0, 270)
+	panel.custom_minimum_size = Vector2(0, 292)
 	panel.add_theme_stylebox_override("panel", _card_panel_style(card_id, false, false))
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 10)
@@ -297,11 +311,9 @@ func _collection_card(card_id: String) -> Control:
 	var layout := VBoxContainer.new()
 	layout.add_theme_constant_override("separation", 6)
 	margin.add_child(layout)
-	var art := TextureRect.new()
-	art.texture = _card_texture(card_id)
-	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	art.custom_minimum_size.y = 112
+	var art := CardArtControl.new()
+	art.set_card(card_id)
+	art.custom_minimum_size.y = 132
 	layout.add_child(art)
 	var name := _title_label(String(card.name), 20, ArenaTheme.TEXT)
 	layout.add_child(name)
@@ -412,7 +424,7 @@ func _build_battle_header() -> Control:
 	enemy_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	enemy.add_child(enemy_name)
 	var crown := TextureRect.new()
-	crown.texture = ICON_CROWN
+	crown.texture = _ui_icon(ICON_CROWN_INDEX)
 	crown.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	crown.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	crown.custom_minimum_size = Vector2(28, 28)
@@ -460,17 +472,14 @@ func _build_battle_footer() -> Control:
 	var next_layout := VBoxContainer.new()
 	next_layout.add_theme_constant_override("separation", 0)
 	next_card_preview.add_child(next_layout)
-	next_card_art = TextureRect.new()
-	next_card_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	next_card_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	next_card_art.custom_minimum_size.y = 26
-	next_card_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	next_card_art = CardArtControl.new()
+	next_card_art.custom_minimum_size.y = 30
 	next_layout.add_child(next_card_art)
 	next_card_label = _title_label("APRÈS", 9, ArenaTheme.TEXT_MUTED)
 	next_layout.add_child(next_card_label)
 	energy_row.add_child(next_card_preview)
 	var energy_icon := TextureRect.new()
-	energy_icon.texture = ICON_ENERGY
+	energy_icon.texture = _ui_icon(ICON_ENERGY_INDEX)
 	energy_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	energy_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	energy_icon.custom_minimum_size = Vector2(28, 28)
@@ -509,17 +518,15 @@ func _battle_card_button(card_id: String) -> Button:
 	button.add_theme_stylebox_override("pressed", _card_panel_style(card_id, true, false))
 	button.add_theme_stylebox_override("disabled", _card_panel_style(card_id, false, true))
 	button.pressed.connect(_select_card.bind(card_id))
+	button.gui_input.connect(_on_card_button_input.bind(card_id, button))
 	var layout := VBoxContainer.new()
 	layout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 4)
 	layout.add_theme_constant_override("separation", 1)
 	layout.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(layout)
-	var art := TextureRect.new()
-	art.texture = _card_texture(card_id)
-	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	var art := CardArtControl.new()
+	art.set_card(card_id)
 	art.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layout.add_child(art)
 	var caption := _title_label(String(card.name), 11, Color.WHITE)
 	caption.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -538,17 +545,83 @@ func _battle_card_button(card_id: String) -> Button:
 	return button
 
 
+func _input(event: InputEvent) -> void:
+	if state != ScreenState.BATTLE or drag_card_id.is_empty() or not is_instance_valid(battle_world):
+		return
+	var viewport_position := Vector2.ZERO
+	var is_motion := false
+	var is_release := false
+	if event is InputEventScreenDrag:
+		viewport_position = event.position
+		is_motion = true
+	elif event is InputEventMouseMotion and event.button_mask & MOUSE_BUTTON_MASK_LEFT:
+		viewport_position = event.position
+		is_motion = true
+	elif event is InputEventScreenTouch and not event.pressed:
+		viewport_position = event.position
+		is_release = true
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
+		viewport_position = event.position
+		is_release = true
+	else:
+		return
+	if is_motion and not drag_active and viewport_position.distance_to(drag_candidate_start) >= 14.0:
+		if selected_card != drag_card_id:
+			_select_card(drag_card_id)
+		if selected_card != drag_card_id:
+			drag_card_id = ""
+			return
+		drag_active = true
+		battle_world.begin_deploy_preview(drag_card_id)
+	if drag_active:
+		var local_position := battle_world.get_global_transform_with_canvas().affine_inverse() * viewport_position
+		battle_world.update_deploy_preview(local_position)
+		var sim_position := battle_world.to_sim_position(local_position)
+		if not is_inf(sim_position.x):
+			hovered_lane = battle_world.lane_at(sim_position)
+			battle_world.set_targeting(String(BattleSim.CARDS[drag_card_id].type), hovered_lane)
+		if is_release:
+			_try_deploy(drag_card_id, local_position)
+			battle_world.end_deploy_preview()
+			suppress_card_tap = true
+			call_deferred("_clear_tap_suppression")
+	if is_release:
+		drag_card_id = ""
+		drag_active = false
+
+
+func _on_card_button_input(event: InputEvent, card_id: String, button: Button) -> void:
+	if battle_paused or battle_intro_time > 0.0 or button.disabled:
+		return
+	var pressed := false
+	var local_position := Vector2.ZERO
+	if event is InputEventScreenTouch:
+		pressed = event.pressed
+		local_position = event.position
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		pressed = event.pressed
+		local_position = event.position
+	if pressed:
+		drag_card_id = card_id
+		drag_candidate_start = button.get_global_transform_with_canvas() * local_position
+		drag_active = false
+
+
+func _clear_tap_suppression() -> void:
+	suppress_card_tap = false
+
+
 func _on_arena_input(event: InputEvent) -> void:
-	if selected_card.is_empty() or battle_paused or battle_intro_time > 0.0:
+	if selected_card.is_empty() or battle_paused or battle_intro_time > 0.0 or drag_active:
 		return
 	var local_position := Vector2.ZERO
-	var released := false
+	var pressed := false
 	if event is InputEventScreenTouch:
 		local_position = event.position
-		released = event.pressed
+		pressed = event.pressed
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		local_position = event.position
-		released = event.pressed
+		pressed = event.pressed
 	elif event is InputEventScreenDrag or event is InputEventMouseMotion:
 		local_position = event.position
 	else:
@@ -558,34 +631,46 @@ func _on_arena_input(event: InputEvent) -> void:
 		return
 	hovered_lane = battle_world.lane_at(sim_position)
 	battle_world.set_targeting(String(BattleSim.CARDS[selected_card].type), hovered_lane)
-	if not released:
-		return
-	var is_unit := String(BattleSim.CARDS[selected_card].type) == "unit"
+	if pressed:
+		_try_deploy(selected_card, local_position)
+
+
+func _try_deploy(card_id: String, local_position: Vector2) -> bool:
+	if card_id.is_empty() or simulation == null or simulation.finished or battle_paused or battle_intro_time > 0.0:
+		return false
+	var sim_position := battle_world.to_sim_position(local_position)
+	if is_inf(sim_position.x):
+		return false
+	hovered_lane = battle_world.lane_at(sim_position)
+	var is_unit := String(BattleSim.CARDS[card_id].type) == "unit"
 	var valid_half := battle_world.is_player_half(sim_position) if is_unit else not battle_world.is_player_half(sim_position)
 	if not valid_half:
 		hint_label.text = "Zone interdite : vise la moitié %s" % ("alliée" if is_unit else "ennemie")
 		_haptic(55, 0.25)
-		return
-	if tutorial != null and not tutorial.can_deploy(selected_card, hovered_lane):
+		return false
+	if tutorial != null and not tutorial.can_deploy(card_id, hovered_lane):
 		hint_label.text = tutorial.instruction()
 		_haptic(55, 0.25)
-		return
-	var played_card := selected_card
-	if simulation.play_card(BattleSim.PLAYER, played_card, hovered_lane):
+		return false
+	if simulation.play_card(BattleSim.PLAYER, card_id, hovered_lane):
 		if tutorial != null:
-			tutorial.deploy_card(played_card, hovered_lane)
+			tutorial.deploy_card(card_id, hovered_lane)
 		selected_card = ""
 		hovered_lane = -1
 		battle_world.set_targeting("")
+		battle_world.end_deploy_preview()
 		_rebuild_hand()
 		_play_sfx("deploy")
 		_haptic(38, 0.38)
-	else:
-		hint_label.text = "Pas assez d’énergie"
-		_haptic(60, 0.28)
+		return true
+	hint_label.text = "Pas assez d’énergie"
+	_haptic(60, 0.28)
+	return false
 
 
 func _select_card(card_id: String) -> void:
+	if suppress_card_tap:
+		return
 	if simulation == null or simulation.finished:
 		return
 	if selected_card == card_id:
@@ -622,6 +707,8 @@ func _consume_battle_events() -> void:
 	while event_cursor < simulation.events.size():
 		var event: Dictionary = simulation.events[event_cursor]
 		event_cursor += 1
+		if battle_world:
+			battle_world.present_event(event)
 		match String(event.type):
 			"card_played":
 				_play_sfx("deploy")
@@ -634,15 +721,11 @@ func _consume_battle_events() -> void:
 				_play_sfx("core_shot")
 			"projectile_impact":
 				_play_hit_sfx()
-				if battle_world:
-					battle_world.show_impact(event.projectile, true)
-			"projectile_dissipated":
-				if battle_world:
-					battle_world.show_impact(event.projectile, false)
 			"spell":
 				_play_sfx(String(event.card))
-				if battle_world:
-					battle_world.show_spell(String(event.card), int(event.side), int(event.lane))
+			"objective_hit":
+				if not bool(event.get("ranged", false)):
+					_play_hit_sfx()
 			"tower_destroyed", "core_destroyed":
 				_play_sfx("destroyed")
 				_haptic(120, 0.68)
@@ -664,7 +747,7 @@ func _update_hud() -> void:
 	]
 	var next_id := simulation.get_next_card(BattleSim.PLAYER)
 	next_card_preview.set_meta("card_id", next_id)
-	next_card_art.texture = _card_texture(next_id)
+	next_card_art.set_card(next_id)
 	next_card_label.text = "APRÈS • %s" % String(BattleSim.CARDS[next_id].name)
 	for card_id in card_buttons:
 		var button: Button = card_buttons[card_id]
@@ -737,7 +820,7 @@ func _show_result(award_progression: bool = true) -> void:
 	layout.add_theme_constant_override("separation", 14)
 	margin.add_child(layout)
 	var crown := TextureRect.new()
-	crown.texture = ICON_CROWN
+	crown.texture = _ui_icon(ICON_CROWN_INDEX)
 	crown.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	crown.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	crown.custom_minimum_size = Vector2(0, 82)
@@ -753,7 +836,7 @@ func _show_result(award_progression: bool = true) -> void:
 	layout.add_child(_title_label("NIVEAU %d  •  %d/%d XP" % [profile.level, profile.xp, BattleProgression.xp_to_next(profile.level)], 14, ArenaTheme.TEXT_MUTED))
 	var replay := Button.new()
 	replay.text = "REJOUER"
-	replay.icon = ICON_BATTLE
+	replay.icon = _ui_icon(ICON_BATTLE_INDEX)
 	replay.expand_icon = true
 	replay.add_theme_constant_override("icon_max_width", 34)
 	replay.custom_minimum_size = Vector2(350, 66)
@@ -799,7 +882,7 @@ func _pause_battle() -> void:
 	layout.add_theme_constant_override("separation", 22)
 	margin.add_child(layout)
 	var crown := TextureRect.new()
-	crown.texture = ICON_CROWN
+	crown.texture = _ui_icon(ICON_CROWN_INDEX)
 	crown.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	crown.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	crown.custom_minimum_size.y = 72
@@ -884,9 +967,18 @@ func _screen_root(color: Color) -> Control:
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.theme = ArenaTheme.root_theme()
 	ui_layer.add_child(root)
-	var background := ColorRect.new()
-	background.color = color
+	var gradient := Gradient.new()
+	gradient.colors = PackedColorArray([color.lightened(0.13), color, color.darkened(0.18)])
+	gradient.offsets = PackedFloat32Array([0.0, 0.58, 1.0])
+	var gradient_texture := GradientTexture2D.new()
+	gradient_texture.gradient = gradient
+	gradient_texture.fill_from = Vector2(0.12, 0.0)
+	gradient_texture.fill_to = Vector2(0.88, 1.0)
+	var background := TextureRect.new()
+	background.texture = gradient_texture
+	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(background)
 	return root
 
@@ -941,17 +1033,25 @@ func _card_panel_style(card_id: String, selected: bool, disabled: bool) -> Style
 	return ArenaTheme.card_style(card_id, selected, disabled)
 
 
-func _card_texture(card_id: String) -> AtlasTexture:
-	var sheet: Texture2D = CARD_ART_V4 if card_id in V4_CARD_IDS else CARD_ART
-	var quadrant: Vector2i = CARD_QUADRANTS[card_id]
+func _ui_icon(index: int) -> AtlasTexture:
+	var columns := 4
+	var cell_size := Vector2(UI_ICON_ATLAS.get_width() / columns, UI_ICON_ATLAS.get_height() / 2)
 	var atlas := AtlasTexture.new()
-	atlas.atlas = sheet
-	atlas.region = Rect2(
-		quadrant.x * sheet.get_width() * 0.5,
-		quadrant.y * sheet.get_height() * 0.5,
-		sheet.get_width() * 0.5,
-		sheet.get_height() * 0.5
-	)
+	atlas.atlas = UI_ICON_ATLAS
+	atlas.region = Rect2(Vector2(index % columns, index / columns) * cell_size, cell_size)
+	return atlas
+
+
+func _card_texture(card_id: String) -> AtlasTexture:
+	var atlas := AtlasTexture.new()
+	if card_id in ["fireball", "frost"]:
+		var cell_size := Vector2(SPELL_ART.get_width() * 0.5, SPELL_ART.get_height())
+		atlas.atlas = SPELL_ART
+		atlas.region = Rect2(Vector2(0.0 if card_id == "fireball" else cell_size.x, 0.0), cell_size)
+		return atlas
+	var definition := UnitRigDefinition.for_card(card_id)
+	atlas.atlas = definition.atlas
+	atlas.region = definition.cell_region(0, 1)
 	return atlas
 
 
@@ -965,6 +1065,9 @@ func _clear_ui() -> void:
 	intro_label = null
 	next_card_art = null
 	card_buttons.clear()
+	drag_card_id = ""
+	drag_active = false
+	suppress_card_tap = false
 
 
 func _load_profile() -> void:

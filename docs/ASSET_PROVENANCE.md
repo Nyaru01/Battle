@@ -1,87 +1,34 @@
 # Provenance des actifs visuels
 
-Ce document suit l'origine des actifs visuels intégrés au projet afin d'éviter l'introduction accidentelle de contenus propriétaires tiers.
+Ce registre documente les actifs distribués dans la v0.40. Toutes les illustrations ont été créées avec la génération d’images OpenAI intégrée à Codex le 16 juillet 2026. Aucun actif, logo, personnage ou fichier propriétaire tiers n’a été utilisé.
 
-## `assets/icon.png`
+## Rigs articulés
 
-- Date : 2026-07-15
-- Origine : génération OpenAI intégrée à Codex
-- Usage : icône Android et écran d'accueil
-- Direction : deux forteresses originales cyan et rouge séparées par une énergie lumineuse
-- Référence propriétaire utilisée : aucune
+Fichiers : `assets/v040/rigs/*-rig-v040.png` pour Gardien, Éclaireuse, Colosse, Lames jumelles, Alchimiste et Rempart.
 
-## `assets/arena-v2.png`
+Résumé des prompts : six combattants fantasy originaux, volumes de jouets 3D peints, silhouette très lisible sur mobile et palette propre à chaque carte. Chaque atlas suit une grille stricte 4×4 : torse, tête, bras, jambes, arme et accessoire vus de face puis de dos, sur fond chromatique uniforme. Les images ont ensuite été détourées localement et assemblées en huit sprites articulés par `unit_view_2d.gd`.
 
-- Date : 2026-07-15
-- Origine : génération OpenAI intégrée à Codex
-- Usage : fond de l'arène du prototype 0.2
-- Direction : arène verticale 2,5D originale, deux voies, rivière turquoise, deux ponts, chemins et six plateformes vides
-- Référence : une capture de jeu fournie par le propriétaire du dépôt, utilisée uniquement pour comprendre la composition générale et la lisibilité attendue
-- Contraintes de génération : aucun personnage, tour, texte, logo, interface ou actif reconnaissable du jeu de référence
+## Arène et tours
 
-## `assets/card-art-v2.png`
+Fichiers : `assets/v040/environment/arena-royale-v040.png` et `tower-parts-v040.png`.
 
-- Date : 2026-07-15
-- Origine : génération OpenAI intégrée à Codex
-- Usage : portraits des quatre cartes du prototype 0.2
-- Contenu : Gardien, Éclaireuse, Colosse et Comète, tous originaux
-- Référence propriétaire utilisée : aucune
+Résumé des prompts : arène verticale fantasy royale originale, symétrique, deux voies, rivière turquoise, deux ponts, végétation abondante et six fondations vides ; atlas séparé de tours en pierre, or et cristal cyan, états normal, tir et destruction. Aucun personnage, texte ou logo dans le décor source.
 
-## `assets/tower-sprites-v3.png`
+## Sorts et interface
 
-- Date : 2026-07-15
-- Origine : génération OpenAI intégrée à Codex, puis détourage local par clé chromatique
-- Usage : tour de voie et forteresse centrale du prototype 0.3
-- Direction : deux bâtiments fantasy 2,5D originaux en pierre bleu-gris et laiton, avec lanceur de cristal et noyau cyan
-- Référence propriétaire utilisée : aucune
+Fichiers : `assets/v040/ui/spell-art-v040.png`, `ui-icons-v040.png` et `app-icon-v040.png`.
 
-## `assets/unit-sprites-v3.png`
+Résumé des prompts : Comète et Stase sous forme d’illustrations énergétiques opposées ; huit pictogrammes fantasy sans texte sur grille 4×2 ; emblème d’application original bleu, cyan et or, lisible à petite taille. Les atlas nécessitant de la transparence ont été détourés localement par clé chromatique.
 
-- Date : 2026-07-15
-- Origine : génération OpenAI intégrée à Codex, puis détourage local par clé chromatique
-- Usage : combattants Gardien, Éclaireuse et Colosse du prototype 0.3
-- Direction : trois personnages fantasy 2,5D originaux et lisibles en vue mobile
-- Référence propriétaire utilisée : aucune
+## Typographies
 
-## `assets/card-art-v4.png`
+- `Baloo2-Variable.ttf` : titres et boutons ronds à fort impact ;
+- `Nunito-Variable.ttf` : texte courant lisible sur mobile ;
+- origine : dépôts officiels Google Fonts ;
+- licence : SIL Open Font License 1.1, conservée dans `assets/fonts/OFL-Baloo2.txt` et `OFL-Nunito.txt`.
 
-- Date : 2026-07-15
-- Origine : génération OpenAI intégrée à Codex
-- Usage : portraits des cartes Duelliste, Alchimiste, Rempart et Stase du prototype 0.4
-- Direction : quatre illustrations fantasy 3D originales, réparties sur une grille 2 × 2
-- Référence propriétaire utilisée : aucune
+## Rendu et animation
 
-## `assets/unit-sprites-v4.png`
+Le rendu final est original et écrit en GDScript : composition d’arène, interpolation, rigs découpés, poses de marche et d’attaque par profil, déploiement, dégâts, mort, eau, tours, projectiles, sorts, ciblage et prévisualisation de pose. La v0.40 ne distribue plus les anciens atlases 0.32.
 
-- Date : 2026-07-15
-- Origine : génération OpenAI intégrée à Codex, puis détourage local par clé chromatique
-- Usage : combattants Duelliste, Alchimiste et Rempart du prototype 0.4
-- Direction : trois personnages fantasy 2,5D originaux, cadrés pour l'arène mobile
-- Référence propriétaire utilisée : aucune
-
-La capture de référence n'est pas versionnée dans Git et n'est pas distribuée avec le jeu.
-
-## Icônes d'interface 0.32
-
-- Date : 2026-07-16
-- Origine : génération OpenAI intégrée à Codex, puis détourage local par clé chromatique
-- Usage : couronne, éclats, combat, collection et énergie dans l'interface 0.32
-- Direction : cinq pictogrammes fantasy originaux, peints en 3D, palette or, cyan et bleu nuit, sans texte ni logo
-- Fichiers : `assets/ui/icon-crown.png`, `icon-shard.png`, `icon-battle.png`, `icon-collection.png` et `icon-energy.png`
-- Référence propriétaire utilisée : aucune
-
-## Typographies 0.32
-
-- Date : 2026-07-16
-- Origine : Google Fonts, téléchargées depuis les dépôts officiels `google/fonts`
-- Fichiers : `LilitaOne-Regular.ttf` et `Nunito-Variable.ttf`
-- Licence : SIL Open Font License 1.1, copies conservées dans `assets/fonts/OFL-LilitaOne.txt` et `assets/fonts/OFL-Nunito.txt`
-- Usage : titres à fort impact et texte courant lisible sur mobile
-
-## Rendu 2,5D 0.32
-
-- Date : 2026-07-16
-- Origine : renderer original écrit en GDScript dans `battle_world_2d.gd`
-- Usage : composition de l'arène, tours, unités, projectiles, effets, barres de vie et ciblage
-- Contenu : réemploi des illustrations originales listées ci-dessus, avec ombres, interpolation, impacts et surimpressions générés par le moteur
-- Référence propriétaire utilisée : aucune ressource, texture, modèle ou animation tiers
+La capture de référence fournie pendant la conception n’est ni versionnée ni distribuée avec le jeu ; elle a servi uniquement à qualifier le niveau de lisibilité et de finition attendu.

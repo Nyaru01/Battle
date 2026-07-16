@@ -1,8 +1,8 @@
 # Plan de développement — Battle
 
-Version : 0.32
+Version : 0.40
 
-Statut : vertical slice 2,5D premium implémenté ; extension et validation sur appareil en cours
+Statut : refonte visuelle animée implémentée ; validation tactile et thermique sur appareils physiques en cours
 
 Plateforme initiale : Android (APK)
 
@@ -198,11 +198,11 @@ Livrables : système d'utilité, trois difficultés, personnalités, decks IA, t
 
 **Sortie :** l'APK est jouable hors ligne de bout en bout, les difficultés sont perceptibles et aucune partie automatisée ne se bloque.
 
-### Phase 3 — Vertical slice solo (terminée en 0.32)
+### Phase 3 — Vertical slice solo (terminée en 0.40)
 
 Livrables : une arène représentative, huit cartes avec son et effets, écrans principaux, progression locale, première passe d'accessibilité et profilage sur appareils bas, moyen et haut de gamme.
 
-**Sortie :** arène 2,5D, roster animé, tirs à temps de trajet réel, interface premium responsive, APK Arm64 et campagne de 1 000 matchs livrés. La validation tactile et thermique sur appareil physique reste requise.
+**Sortie :** arène 2D fantasy, six rigs articulés, tirs à temps de trajet réel, interface premium responsive, glisser-déposer tactile, APK Arm64 et campagne de 1 000 matchs livrés. La validation tactile et thermique sur appareil physique reste requise.
 
 ### Phase 4 — Contenu et alpha APK solo (3 semaines)
 

@@ -25,6 +25,7 @@ func _run() -> void:
 	_test_profile_store()
 	_test_android_export_configuration()
 	_test_visual_system()
+	_test_v040_rigs()
 	_test_progression()
 	_test_battle_intro()
 	_test_units_fight()
@@ -232,29 +233,59 @@ func _test_android_export_configuration() -> void:
 	_expect(config.count("export_files=PackedStringArray()") == 2, "Android presets do not rely on a selective scene list")
 	_expect(config.count("exclude_filter=\"Android/*,builds/*,tests/*,tools/*\"") == 2, "Android presets exclude the downloadable APK and non-runtime project resources")
 	_expect(config.count("export_path=\"Android/Battle-latest.apk\"") == 2, "both Android presets refresh the easy-to-find root APK")
+	_expect(config.count("version/code=40") == 2 and config.count("version/name=\"0.40.0-alpha\"") == 2, "both Android presets expose the v0.40 package version")
 	var project := FileAccess.get_file_as_string("res://project.godot")
 	_expect("size/mode=3" in project and "stretch/aspect=\"expand\"" in project, "mobile canvas fills the screen without non-uniform stretching")
 	_expect(project.count("renderer/rendering_method=\"mobile\"") == 1, "battle uses the Vulkan-oriented mobile renderer")
 	_expect("window_width_override" not in project and "window_height_override" not in project, "desktop window overrides cannot letterbox Android")
+	_expect("assets/v040/ui/app-icon-v040.png" in project, "the v0.40 crest is the packaged application icon")
 
 
 func _test_visual_system() -> void:
-	_expect(ResourceLoader.exists("res://assets/fonts/LilitaOne-Regular.ttf"), "premium heading font is packaged")
+	_expect(ResourceLoader.exists("res://assets/fonts/Baloo2-Variable.ttf"), "rounded premium heading font is packaged")
 	_expect(ResourceLoader.exists("res://assets/fonts/Nunito-Variable.ttf"), "readable body font is packaged")
-	_expect(ResourceLoader.exists("res://assets/ui/icon-battle.png") and ResourceLoader.exists("res://assets/ui/icon-energy.png"), "original UI icon set is packaged")
+	_expect(ResourceLoader.exists("res://assets/v040/ui/ui-icons-v040.png") and ResourceLoader.exists("res://assets/v040/ui/spell-art-v040.png"), "original v0.40 UI and spell atlases are packaged")
+	_expect(ResourceLoader.exists("res://assets/v040/environment/arena-royale-v040.png") and ResourceLoader.exists("res://assets/v040/environment/tower-parts-v040.png"), "original v0.40 arena and tower atlases are packaged")
 	var world := BattleWorld2D.new()
 	world.size = Vector2(540.0, 700.0)
 	root.add_child(world)
 	world._update_arena_rect()
-	_expect(absf(world.arena_rect.size.x / world.arena_rect.size.y - 0.70) < 0.001, "2.5D arena preserves its aspect ratio")
+	_expect(absf(world.arena_rect.size.x / world.arena_rect.size.y - 2.0 / 3.0) < 0.001, "portrait arena preserves its authored aspect ratio")
 	var enemy_left := world.to_sim_position(world.arena_rect.position + world.arena_rect.size * Vector2(0.25, 0.25))
 	var player_right := world.to_sim_position(world.arena_rect.position + world.arena_rect.size * Vector2(0.75, 0.75))
 	_expect(world.lane_at(enemy_left) == 0 and world.lane_at(player_right) == 1, "responsive arena mapping preserves both lanes")
 	_expect(not world.is_player_half(enemy_left) and world.is_player_half(player_right), "responsive arena mapping preserves deployment territories")
 	_expect(is_inf(world.to_sim_position(Vector2(-20.0, -20.0)).x), "touches outside the arena are ignored")
 	world.set_targeting("unit", 1)
-	_expect(world.targeting_type == "unit" and world.targeting_lane == 1, "targeting state reaches the 2.5D renderer")
+	_expect(world.targeting_type == "unit" and world.targeting_lane == 1, "targeting state reaches the animated renderer")
+	world.begin_deploy_preview("guardian")
+	world.update_deploy_preview(world.arena_rect.position + world.arena_rect.size * Vector2(0.25, 0.75))
+	_expect(world.preview_valid and world.preview_lane == 0, "unit drag preview accepts the allied half")
+	world.begin_deploy_preview("fireball")
+	world.update_deploy_preview(world.arena_rect.position + world.arena_rect.size * Vector2(0.75, 0.25))
+	_expect(world.preview_valid and world.preview_lane == 1, "spell drag preview accepts the enemy half")
+	world.end_deploy_preview()
+	_expect(world.preview_card.is_empty(), "drag preview clears cleanly after release")
 	world.free()
+
+
+func _test_v040_rigs() -> void:
+	for card_id in ["guardian", "ranger", "colossus", "duelist", "alchemist", "bulwark"]:
+		var definition := UnitRigDefinition.for_card(card_id)
+		_expect(definition.card_id == card_id and definition.atlas != null, "%s has a dedicated articulated atlas" % card_id)
+		_expect(definition.cell_region(3, 3).end.x <= definition.atlas.get_width() and definition.cell_region(3, 3).end.y <= definition.atlas.get_height(), "%s rig exposes a valid 4x4 part grid" % card_id)
+		var view := UnitView2D.new()
+		view.configure(400 + assertions, card_id, BattleSim.PLAYER)
+		root.add_child(view)
+		_expect(view.sprites.size() == 8, "%s assembles eight independently animated body parts" % card_id)
+		view.sync_state({"hp": 80.0, "max_hp": 100.0, "moving": true, "walk_phase": 1.4, "attack_pulse": 0.2})
+		view._process(0.1)
+		_expect(view.moving and view.attack_timer > 0.0, "%s reacts to movement and attack state" % card_id)
+		view.play_hit()
+		view.play_death()
+		view._process(0.7)
+		_expect(view.is_finished(), "%s completes its authored defeat animation" % card_id)
+		view.free()
 
 
 func _test_progression() -> void:
@@ -317,6 +348,25 @@ func _test_battle_intro() -> void:
 	_expect(not scene._deployment_error("fireball", Vector2(210.0, 800.0)).is_empty(), "spell targeting rejects the allied half")
 	_expect(scene._deployment_error("fireball", Vector2(210.0, 300.0)).is_empty(), "spell targeting accepts the enemy half")
 	_expect(scene.next_card_preview.get_meta("card_id") == scene.simulation.get_next_card(BattleSim.PLAYER), "HUD renders the next card preview")
+	var guardian_button: Button = scene.card_buttons.guardian
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.pressed = true
+	press.position = guardian_button.size * 0.5
+	scene._on_card_button_input(press, "guardian", guardian_button)
+	var motion := InputEventMouseMotion.new()
+	motion.button_mask = MOUSE_BUTTON_MASK_LEFT
+	motion.position = scene.drag_candidate_start + Vector2(30.0, -40.0)
+	scene._input(motion)
+	_expect(scene.drag_active and scene.battle_world.preview_card == "guardian", "dragging a card creates its animated arena preview")
+	var allied_local: Vector2 = scene.battle_world.arena_rect.position + scene.battle_world.arena_rect.size * Vector2(0.25, 0.75)
+	var release := InputEventMouseButton.new()
+	release.button_index = MOUSE_BUTTON_LEFT
+	release.pressed = false
+	release.position = scene.battle_world.get_global_transform_with_canvas() * allied_local
+	scene._input(release)
+	_expect(scene.simulation.units.size() == 1 and scene.simulation.units[0].card_id == "guardian", "drag release deploys the selected card on the valid lane")
+	_expect(not scene.drag_active and scene.battle_world.preview_card.is_empty(), "drag state clears after deployment")
 	var initial_wins: int = scene.profile.wins
 	scene.simulation.forfeit(BattleSim.ENEMY)
 	scene.last_reward = {"coins": 25, "xp": 35, "levels": 0}
@@ -389,6 +439,7 @@ func _test_motion_and_projectile_events() -> void:
 	objective.step(0.1)
 	var objective_hits := objective.events.filter(func(event: Dictionary) -> bool: return event.type == "objective_hit")
 	_expect(objective_hits.size() == 1 and bool(objective_hits[0].ranged), "ranged attacks against towers remain visible")
+	_expect(objective_hits[0].has("source") and objective_hits[0].card == "ranger", "objective events identify the rig that must animate")
 
 
 func _test_tower_defends_lane() -> void:

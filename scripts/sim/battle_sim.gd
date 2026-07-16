@@ -335,6 +335,8 @@ func _update_units(delta: float) -> void:
 				unit.attack_pulse = 0.22
 				events.append({
 					"type": "objective_hit",
+					"source": unit.id,
+					"card": unit.card_id,
 					"side": unit.side,
 					"lane": unit.lane,
 					"ranged": ranged,
@@ -608,7 +610,15 @@ func _award_crown(attacker: int, target_side: int, lane: int) -> void:
 func _remove_defeated_units() -> void:
 	for index in range(units.size() - 1, -1, -1):
 		if units[index].hp <= 0.0:
-			events.append({"type": "unit_defeated", "id": units[index].id})
+			var defeated: Dictionary = units[index]
+			events.append({
+				"type": "unit_defeated",
+				"id": defeated.id,
+				"card": defeated.card_id,
+				"side": defeated.side,
+				"lane": defeated.lane,
+				"position": Vector2(210.0 if defeated.lane == 0 else 510.0, defeated.y),
+			})
 			units.remove_at(index)
 
 
