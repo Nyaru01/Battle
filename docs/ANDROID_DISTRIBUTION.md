@@ -1,16 +1,16 @@
-# Distribution Android
+# Distribution Android 0.31
 
-Le prototype produit deux APK signés avec la clé de développement locale :
+Le vertical slice produit un APK de développement Arm64 :
 
-- `Battle-0.11.0-universal-debug.apk` : armv7 et arm64, compatibilité maximale ;
-- `Battle-0.11.0-arm64-debug.apk` : arm64 uniquement, taille réduite pour les appareils modernes.
+- `builds/android/Battle-v0.31-alpha-arm64-debug.apk` ;
+- identifiant `com.nyaru01.battle` ;
+- `versionCode 31`, `versionName 0.31.0-alpha` ;
+- API 24 minimum, API cible 36 ; Android 10 ou plus récent recommandé ;
+- architecture `arm64-v8a` uniquement ;
+- orientation portrait, mode immersif et rendu Vulkan Mobile.
 
-Les deux paquets utilisent l'identifiant `com.nyaru01.battle`, `versionCode 11`, `versionName 0.11.0` et un SDK minimal Android 7.0 (API 24).
+L’affichage utilise des conteneurs responsives et `stretch/aspect="expand"`. La zone 3D conserve toujours ses proportions : les écrans plus longs ou plus larges révèlent davantage de fond autour de l’arène, sans étirement non uniforme.
 
-L'export inclut toutes les ressources reconnues par Godot afin d'embarquer les scripts globaux chargés via `class_name` ainsi que leurs textures. Les captures, outils de balance et tests headless sont explicitement exclus de l'application.
+Après export, `tools/verify_apk.ps1` vérifie la scène principale, les huit scripts d’exécution, les textures compilées et la présence exclusive de la bibliothèque Arm64.
 
-Après chaque export, `tools/verify_apk.ps1` contrôle que la scène principale, les six scripts d'exécution et les bibliothèques natives attendues sont réellement présents dans l'archive APK. Ce contrôle évite qu'un export sélectif produise une application installable mais incapable d'initialiser sa première scène.
-
-Le projet utilise le mode plein écran avec étirement du canevas sur toute la surface Android. Les dimensions de fenêtre de test desktop ne doivent pas être ajoutées à `project.godot`, car elles provoquent un letterboxing sur les écrans mobiles allongés.
-
-Ces APK sont des builds de développement. Une future publication en boutique devra utiliser une clé de production protégée et un Android App Bundle arm64.
+L’APK est signé avec la clé de développement locale. Une publication en boutique nécessitera une clé de production protégée et un Android App Bundle signé.

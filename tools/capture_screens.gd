@@ -6,105 +6,50 @@ func _init() -> void:
 
 
 func _capture() -> void:
-	if not OS.has_feature("mobile"):
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
-		DisplayServer.window_set_size(Vector2i(540, 960))
-		await process_frame
+	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+	DisplayServer.window_set_size(Vector2i(540, 960))
 	var scene: Node = load("res://scenes/main.tscn").instantiate()
 	root.add_child(scene)
-	await process_frame
-	await process_frame
-	_save_viewport("res://builds/menu.png")
+	await _frames(4)
+	_save_viewport("res://builds/screens/menu-540x960.png")
 	scene._build_collection()
-	for index in range(2):
-		await process_frame
-	_save_viewport("res://builds/collection.png")
-	scene._build_menu()
-	scene._start_tutorial()
-	scene.battle_intro_time = 0.0
-	scene._select_card("guardian")
-	for index in range(2):
-		await process_frame
-	_save_viewport("res://builds/tutorial.png")
-	scene._start_battle(false)
-	for index in range(2):
-		await process_frame
-	_save_viewport("res://builds/intro.png")
-	scene.battle_intro_time = 0.0
-	scene.simulation.energy = [0.0, 0.0]
-	scene.simulation.time_left = 60.05
-	scene._process(0.1)
-	for index in range(2):
-		await process_frame
-	_save_viewport("res://builds/double-energy.png")
+	await _frames(4)
+	_save_viewport("res://builds/screens/collection-540x960.png")
+	scene.tutorial = null
 	scene._start_battle(false)
 	scene.battle_intro_time = 0.0
 	scene.simulation.energy = [100.0, 100.0]
+	scene.simulation.play_card(BattleSim.PLAYER, "guardian", 0)
+	scene.simulation.play_card(BattleSim.PLAYER, "ranger", 1)
+	scene.simulation.play_card(BattleSim.ENEMY, "guardian", 1)
+	scene.simulation.play_card(BattleSim.ENEMY, "ranger", 0)
+	for unit in scene.simulation.units:
+		unit.y = 680.0 if unit.side == BattleSim.PLAYER else 470.0
+	await _frames(12)
+	_save_viewport("res://builds/screens/battle-540x960.png")
 	scene._select_card("fireball")
-	for index in range(2):
-		await process_frame
-	_save_viewport("res://builds/targeting.png")
-	scene.selected_card = ""
-	scene.simulation.play_card(BattleSim.ENEMY, "guardian", 0)
-	scene.simulation.units[0].y = 505.0
-	scene.simulation.units[0].slow_timer = BattleSim.CARDS.frost.slow_duration * 0.72
-	for index in range(2):
-		await process_frame
-	_save_viewport("res://builds/status.png")
-	scene._start_battle(false)
-	scene.battle_intro_time = 0.0
-	scene.simulation.energy = [100.0, 100.0]
-	scene.simulation.play_card(BattleSim.PLAYER, "ranger", 0)
-	scene.simulation.play_card(BattleSim.ENEMY, "guardian", 0)
-	scene.simulation.units[0].y = 620.0
-	scene.simulation.units[1].y = 510.0
-	scene.simulation.units[0].attack_timer = 0.0
-	scene.simulation.units[1].attack_timer = 10.0
-	scene.simulation.step(0.1)
-	scene._consume_battle_events()
-	scene.simulation.events.clear()
-	for index in range(2):
-		await process_frame
-	_save_viewport("res://builds/projectiles.png")
-	scene._start_battle(false)
-	scene.battle_intro_time = 0.0
-	scene.simulation.energy = [100.0, 100.0]
-	for card_id in ["guardian", "ranger", "colossus", "fireball"]:
-		scene.simulation.play_card(BattleSim.PLAYER, card_id, 1)
-		scene.simulation.play_card(BattleSim.ENEMY, card_id, 0)
-	scene.simulation.units.clear()
-	scene.simulation.play_card(BattleSim.PLAYER, "duelist", 0)
-	scene.simulation.play_card(BattleSim.PLAYER, "alchemist", 1)
-	scene.simulation.play_card(BattleSim.PLAYER, "bulwark", 0)
-	scene.simulation.play_card(BattleSim.ENEMY, "duelist", 1)
-	scene.simulation.play_card(BattleSim.ENEMY, "alchemist", 0)
-	scene.simulation.play_card(BattleSim.ENEMY, "bulwark", 1)
-	scene.simulation.play_card(BattleSim.PLAYER, "frost", 1)
-	scene.simulation.towers[BattleSim.ENEMY].lanes[0] = 1.0
-	scene.simulation._damage_objective(BattleSim.ENEMY, 0, 5.0)
-	scene.simulation.towers[BattleSim.PLAYER].lanes[1] = 1.0
-	scene.simulation._damage_objective(BattleSim.PLAYER, 1, 5.0)
-	scene.simulation.overtime = true
-	scene.simulation.time_left = 45.0
-	scene._build_hud()
-	for index in range(4):
-		await process_frame
-	_save_viewport("res://builds/battle.png")
+	await _frames(4)
+	_save_viewport("res://builds/screens/targeting-540x960.png")
 	scene._pause_battle()
-	for index in range(2):
-		await process_frame
-	_save_viewport("res://builds/pause.png")
+	await _frames(3)
+	_save_viewport("res://builds/screens/pause-540x960.png")
 	scene._resume_battle()
-	scene.simulation.forfeit(BattleSim.ENEMY)
-	scene.last_reward = {"coins": 28, "xp": 35, "levels": 1}
-	scene._show_result(false)
-	for index in range(2):
-		await process_frame
-	_save_viewport("res://builds/result.png")
+	DisplayServer.window_set_size(Vector2i(720, 1280))
+	await _frames(6)
+	_save_viewport("res://builds/screens/battle-720x1280.png")
+	DisplayServer.window_set_size(Vector2i(800, 1280))
+	await _frames(6)
+	_save_viewport("res://builds/screens/battle-tablet-800x1280.png")
 	quit()
 
 
+func _frames(count: int) -> void:
+	for index in range(count):
+		await process_frame
+
+
 func _save_viewport(path: String) -> void:
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(path.get_base_dir()))
 	var image := root.get_texture().get_image()
 	var error := image.save_png(path)
 	if error != OK:

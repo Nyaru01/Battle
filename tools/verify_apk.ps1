@@ -27,6 +27,8 @@ try {
         "assets/scripts/tutorial_flow.gdc",
         "assets/scripts/sim/ai_controller.gdc",
         "assets/scripts/sim/battle_sim.gdc",
+        "assets/scripts/visual/battle_world_3d.gdc",
+        "assets/scripts/visual/unit_view_3d.gdc",
         "lib/arm64-v8a/libgodot_android.so"
     )
     if ($Variant -eq "universal") {
@@ -66,7 +68,7 @@ try {
     }
 
     Write-Host "APK vérifié : $resolved"
-    Write-Host "Scripts d'exécution : 6/6 | Textures : 7/7 | Variante : $Variant"
+    Write-Host "Scripts d'exécution : 8/8 | Textures : 7/7 | Variante : $Variant"
 }
 finally {
     $archive.Dispose()
