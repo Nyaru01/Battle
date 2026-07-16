@@ -45,6 +45,7 @@ Le développement du premier prototype jouable est en cours.
 - écran de résultat avec barre d’XP et mise en avant des niveaux gagnés ;
 - contrôles souris et tactiles ;
 - guides distincts de déploiement des unités et de ciblage des sorts ;
+- validation tactile des territoires allié et ennemi selon le type de carte ;
 - arène 2,5D originale avec chemins, rivière et ponts ;
 - cartes, combattants et forteresses illustrés avec des actifs originaux ;
 - export APK Android debug.
