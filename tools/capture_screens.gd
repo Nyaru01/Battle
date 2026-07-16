@@ -22,7 +22,7 @@ func _capture() -> void:
 	for index in range(2):
 		await process_frame
 	_save_viewport("res://builds/tutorial.png")
-	scene._start_battle()
+	scene._start_battle(false)
 	for index in range(2):
 		await process_frame
 	_save_viewport("res://builds/intro.png")
@@ -33,7 +33,7 @@ func _capture() -> void:
 	for index in range(2):
 		await process_frame
 	_save_viewport("res://builds/double-energy.png")
-	scene._start_battle()
+	scene._start_battle(false)
 	scene.battle_intro_time = 0.0
 	scene.simulation.energy = [100.0, 100.0]
 	scene._select_card("fireball")
@@ -47,7 +47,7 @@ func _capture() -> void:
 	for index in range(2):
 		await process_frame
 	_save_viewport("res://builds/status.png")
-	scene._start_battle()
+	scene._start_battle(false)
 	scene.battle_intro_time = 0.0
 	scene.simulation.energy = [100.0, 100.0]
 	for card_id in ["guardian", "ranger", "colossus", "fireball"]:

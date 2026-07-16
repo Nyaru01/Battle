@@ -118,12 +118,12 @@ var double_energy := false
 var card_levels: Array = [{}, {}]
 
 
-func _init(seed_value: int = 1, player_card_levels: Dictionary = {}, enemy_card_levels: Dictionary = {}) -> void:
+func _init(seed_value: int = 1, player_card_levels: Dictionary = {}, enemy_card_levels: Dictionary = {}, randomize_opening: bool = false) -> void:
 	rng.seed = seed_value
-	reset(seed_value, player_card_levels, enemy_card_levels)
+	reset(seed_value, player_card_levels, enemy_card_levels, randomize_opening)
 
 
-func reset(seed_value: int = 1, player_card_levels: Dictionary = {}, enemy_card_levels: Dictionary = {}) -> void:
+func reset(seed_value: int = 1, player_card_levels: Dictionary = {}, enemy_card_levels: Dictionary = {}, randomize_opening: bool = false) -> void:
 	rng.seed = seed_value
 	units.clear()
 	energy = [5.0, 5.0]
@@ -138,12 +138,23 @@ func reset(seed_value: int = 1, player_card_levels: Dictionary = {}, enemy_card_
 	events.clear()
 	tower_attack_timers = [[0.0, 0.0], [0.0, 0.0]]
 	core_attack_timers = [0.0, 0.0]
-	hands = [DEFAULT_DECK.slice(0, 4), DEFAULT_DECK.slice(0, 4)]
-	draw_queues = [DEFAULT_DECK.slice(4), DEFAULT_DECK.slice(4)]
+	var opening_deck := DEFAULT_DECK.duplicate()
+	if randomize_opening:
+		_shuffle_deck(opening_deck)
+	hands = [opening_deck.slice(0, 4), opening_deck.slice(0, 4)]
+	draw_queues = [opening_deck.slice(4), opening_deck.slice(4)]
 	crowns = [0, 0]
 	overtime = false
 	double_energy = false
 	card_levels = [player_card_levels.duplicate(true), enemy_card_levels.duplicate(true)]
+
+
+func _shuffle_deck(deck: Array) -> void:
+	for index in range(deck.size() - 1, 0, -1):
+		var swap_index := rng.randi_range(0, index)
+		var card = deck[index]
+		deck[index] = deck[swap_index]
+		deck[swap_index] = card
 
 
 func play_card(side: int, card_id: String, lane: int) -> bool:

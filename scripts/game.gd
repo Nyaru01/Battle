@@ -574,7 +574,7 @@ func _build_menu() -> void:
 	collection.add_theme_font_size_override("font_size", 19)
 	collection.pressed.connect(_build_collection)
 	ui_layer.add_child(collection)
-	var version := _label("Prototype 0.27 • Hors ligne", Vector2(160.0, 1202.0), Vector2(400.0, 36.0), 18)
+	var version := _label("Prototype 0.28 • Hors ligne", Vector2(160.0, 1202.0), Vector2(400.0, 36.0), 18)
 	version.add_theme_color_override("font_color", Color("71889a"))
 	var record := _label("%d victoires  •  %d défaites" % [profile.wins, profile.losses], Vector2(160.0, 1080.0), Vector2(400.0, 36.0), 17)
 	record.add_theme_color_override("font_color", Color("8fa7b8"))
@@ -703,7 +703,7 @@ func _card_details(card: Dictionary) -> String:
 	return "%d PV\n%d dégâts • portée %d" % [int(card.hp), int(card.damage), int(card.range)]
 
 
-func _start_battle() -> void:
+func _start_battle(randomize_opening: bool = true) -> void:
 	_clear_pause_overlay()
 	effects.clear()
 	battle_intro_time = 3.8
@@ -711,7 +711,7 @@ func _start_battle() -> void:
 	announcement_ttl = 0.0
 	tutorial = null
 	var enemy_levels := BattleProgression.opponent_card_levels(profile.card_levels, selected_difficulty)
-	simulation = BattleSim.new(Time.get_ticks_msec(), profile.card_levels, enemy_levels)
+	simulation = BattleSim.new(Time.get_ticks_msec(), profile.card_levels, enemy_levels, randomize_opening)
 	opponent = BattleAI.new(BattleSim.ENEMY, selected_difficulty, Time.get_ticks_msec() + 19)
 	selected_card = ""
 	last_reward = {}

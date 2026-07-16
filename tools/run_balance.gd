@@ -16,7 +16,7 @@ func _run() -> void:
 	var total_duration := 0.0
 	for match_index in range(match_count):
 		var difficulty := match_index % 3
-		var simulation := BattleSim.new(10000 + match_index)
+		var simulation := BattleSim.new(10000 + match_index, {}, {}, true)
 		var player_bot := BattleAI.new(BattleSim.PLAYER, difficulty, 20000 + match_index)
 		var enemy_bot := BattleAI.new(BattleSim.ENEMY, difficulty, 30000 + match_index)
 		for tick in range(2500):
