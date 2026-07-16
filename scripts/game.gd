@@ -112,6 +112,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	var lane := 0 if position.x < DESIGN_SIZE.x * 0.5 else 1
 	var played_card := selected_card
+	var deployment_error := _deployment_error(played_card, position)
+	if not deployment_error.is_empty():
+		hint_label.text = deployment_error
+		_haptic(45, 0.18)
+		return
 	if tutorial != null and not tutorial.is_complete() and not tutorial.can_deploy(played_card, lane):
 		hint_label.text = tutorial.instruction()
 		return
@@ -133,6 +138,15 @@ func _unhandled_input(event: InputEvent) -> void:
 	else:
 		hint_label.text = "Pas assez d'énergie"
 		_haptic(70, 0.22)
+
+
+func _deployment_error(card_id: String, position: Vector2) -> String:
+	var is_spell: bool = BattleSim.CARDS[card_id].type == "spell"
+	if is_spell and position.y > 540.0:
+		return "Vise la moitié ennemie de l’arène"
+	if not is_spell and position.y < 570.0:
+		return "Déploie les unités dans ta moitié"
+	return ""
 
 
 func _draw() -> void:
@@ -181,7 +195,7 @@ func _draw_deployment_guide() -> void:
 	var is_spell: bool = BattleSim.CARDS[selected_card].type == "spell"
 	var accent := Color("ff9a52") if selected_card == "fireball" else (Color("78e8ff") if is_spell else Color("6bd5ff"))
 	for lane in range(BattleSim.LANE_COUNT):
-		var area := Rect2(58.0 + lane * 330.0, 120.0 if is_spell else 610.0, 274.0, 400.0 if is_spell else 235.0)
+		var area := Rect2(58.0 + lane * 330.0, 120.0 if is_spell else 570.0, 274.0, 400.0 if is_spell else 480.0)
 		draw_rect(area, Color(accent, 0.07), true)
 		draw_rect(area, Color(accent, 0.48), false, 3.0)
 		if is_spell:
@@ -192,7 +206,7 @@ func _draw_deployment_guide() -> void:
 			draw_line(target - Vector2(0.0, 22.0), target + Vector2(0.0, 22.0), accent, 3.0)
 			draw_string(ThemeDB.fallback_font, Vector2(area.position.x, 490.0), "CIBLE GAUCHE" if lane == 0 else "CIBLE DROITE", HORIZONTAL_ALIGNMENT_CENTER, area.size.x, 18, Color(accent, 0.92))
 		else:
-			draw_string(ThemeDB.fallback_font, Vector2(area.position.x, 660.0), "VOIE GAUCHE" if lane == 0 else "VOIE DROITE", HORIZONTAL_ALIGNMENT_CENTER, area.size.x, 18, Color(accent, 0.88))
+			draw_string(ThemeDB.fallback_font, Vector2(area.position.x, 610.0), "VOIE GAUCHE" if lane == 0 else "VOIE DROITE", HORIZONTAL_ALIGNMENT_CENTER, area.size.x, 18, Color(accent, 0.88))
 
 
 func _draw_battle_intro() -> void:
@@ -560,7 +574,7 @@ func _build_menu() -> void:
 	collection.add_theme_font_size_override("font_size", 19)
 	collection.pressed.connect(_build_collection)
 	ui_layer.add_child(collection)
-	var version := _label("Prototype 0.26 • Hors ligne", Vector2(160.0, 1202.0), Vector2(400.0, 36.0), 18)
+	var version := _label("Prototype 0.27 • Hors ligne", Vector2(160.0, 1202.0), Vector2(400.0, 36.0), 18)
 	version.add_theme_color_override("font_color", Color("71889a"))
 	var record := _label("%d victoires  •  %d défaites" % [profile.wins, profile.losses], Vector2(160.0, 1080.0), Vector2(400.0, 36.0), 17)
 	record.add_theme_color_override("font_color", Color("8fa7b8"))

@@ -265,6 +265,10 @@ func _test_battle_intro() -> void:
 	_expect(scene.selected_card.is_empty(), "tapping the selected card again cancels targeting")
 	scene._select_card("fireball")
 	_expect("vise une zone ennemie" in scene.hint_label.text, "spell selection explains enemy targeting")
+	_expect(not scene._deployment_error("guardian", Vector2(210.0, 300.0)).is_empty(), "unit targeting rejects the enemy half")
+	_expect(scene._deployment_error("guardian", Vector2(210.0, 800.0)).is_empty(), "unit targeting accepts the allied half")
+	_expect(not scene._deployment_error("fireball", Vector2(210.0, 800.0)).is_empty(), "spell targeting rejects the allied half")
+	_expect(scene._deployment_error("fireball", Vector2(210.0, 300.0)).is_empty(), "spell targeting accepts the enemy half")
 	_expect(scene.next_card_preview.get_meta("card_id") == scene.simulation.get_next_card(BattleSim.PLAYER), "HUD renders the next card preview")
 	var initial_wins: int = scene.profile.wins
 	scene.simulation.forfeit(BattleSim.ENEMY)
