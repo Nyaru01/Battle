@@ -93,12 +93,13 @@ func _test_squad_card() -> void:
 
 
 func _test_card_level_scaling() -> void:
-	var simulation := BattleSim.new(25, {"guardian": 3})
+	var simulation := BattleSim.new(25, {"guardian": 3}, {"guardian": 2})
 	_expect(simulation.play_card(BattleSim.PLAYER, "guardian", 0), "upgraded player card can be played")
 	_expect(simulation.play_card(BattleSim.ENEMY, "guardian", 1), "baseline enemy card can be played")
 	var expected_hp: float = BattleSim.CARDS.guardian.hp * BattleSim.level_multiplier(3)
 	_expect(is_equal_approx(simulation.units[0].hp, expected_hp), "card level scales player unit health")
-	_expect(is_equal_approx(simulation.units[1].hp, BattleSim.CARDS.guardian.hp), "enemy remains at its configured card level")
+	var expected_enemy_hp: float = BattleSim.CARDS.guardian.hp * BattleSim.level_multiplier(2)
+	_expect(is_equal_approx(simulation.units[1].hp, expected_enemy_hp), "enemy uses its independently configured card level")
 
 
 func _test_frost_slow() -> void:
@@ -226,6 +227,15 @@ func _test_progression() -> void:
 	_expect(not BattleProgression.upgrade_card(upgrade_profile, "guardian"), "upgrade is rejected without enough coins")
 	var capped := BattleProgression.normalize({"card_levels": {"guardian": 99}})
 	_expect(capped.card_levels.guardian == BattleProgression.MAX_CARD_LEVEL, "stored card levels are capped safely")
+	var player_levels: Dictionary = BattleProgression.default_profile().card_levels
+	player_levels.guardian = 5
+	var initiation := BattleProgression.opponent_card_levels(player_levels, 0)
+	var tactical := BattleProgression.opponent_card_levels(player_levels, 1)
+	var expert := BattleProgression.opponent_card_levels(player_levels, 2)
+	_expect(initiation.guardian == 1, "initiation keeps baseline enemy cards")
+	_expect(tactical.guardian == 4, "tactical AI trails the player by one card level")
+	_expect(expert.guardian == 5, "expert AI matches player card levels")
+	_expect(BattleProgression.average_card_level(player_levels) == 2, "average card level is rounded for the HUD")
 	var tutorial_reward := BattleProgression.complete_tutorial(profile)
 	_expect(tutorial_reward.coins == 15 and profile.tutorial_completed, "tutorial grants its first completion reward")
 	_expect(BattleProgression.complete_tutorial(profile).coins == 0, "tutorial reward cannot be claimed twice")

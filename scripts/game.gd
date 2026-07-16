@@ -497,9 +497,9 @@ func _build_menu() -> void:
 	var difficulty := OptionButton.new()
 	difficulty.position = Vector2(180.0, 745.0)
 	difficulty.size = Vector2(360.0, 64.0)
-	difficulty.add_item("Initiation")
-	difficulty.add_item("Tactique")
-	difficulty.add_item("Expert")
+	difficulty.add_item("Initiation • cartes niveau 1")
+	difficulty.add_item("Tactique • un niveau de retard")
+	difficulty.add_item("Expert • niveaux identiques")
 	difficulty.select(selected_difficulty)
 	difficulty.item_selected.connect(func(index: int) -> void:
 		selected_difficulty = index
@@ -527,7 +527,7 @@ func _build_menu() -> void:
 	collection.add_theme_font_size_override("font_size", 19)
 	collection.pressed.connect(_build_collection)
 	ui_layer.add_child(collection)
-	var version := _label("Prototype 0.21 • Hors ligne", Vector2(160.0, 1202.0), Vector2(400.0, 36.0), 18)
+	var version := _label("Prototype 0.22 • Hors ligne", Vector2(160.0, 1202.0), Vector2(400.0, 36.0), 18)
 	version.add_theme_color_override("font_color", Color("71889a"))
 	var record := _label("%d victoires  •  %d défaites" % [profile.wins, profile.losses], Vector2(160.0, 1080.0), Vector2(400.0, 36.0), 17)
 	record.add_theme_color_override("font_color", Color("8fa7b8"))
@@ -663,7 +663,8 @@ func _start_battle() -> void:
 	last_intro_count = 4
 	announcement_ttl = 0.0
 	tutorial = null
-	simulation = BattleSim.new(Time.get_ticks_msec(), profile.card_levels)
+	var enemy_levels := BattleProgression.opponent_card_levels(profile.card_levels, selected_difficulty)
+	simulation = BattleSim.new(Time.get_ticks_msec(), profile.card_levels, enemy_levels)
 	opponent = BattleAI.new(BattleSim.ENEMY, selected_difficulty, Time.get_ticks_msec() + 19)
 	selected_card = ""
 	last_reward = {}
@@ -756,7 +757,8 @@ func _build_hud() -> void:
 		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		button.add_child(name_label)
 		var cost_label := Label.new()
-		cost_label.text = "●  %d" % int(card.cost)
+		var card_level := int(simulation.card_levels[BattleSim.PLAYER].get(card_id, 1))
+		cost_label.text = "Niv.%d  •  ● %d" % [card_level, int(card.cost)]
 		cost_label.position = Vector2(4.0, 124.0)
 		cost_label.size = Vector2(157.0, 24.0)
 		cost_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -801,7 +803,8 @@ func _update_hud() -> void:
 	var energy_prefix := "x3  " if simulation.overtime else ("x2  " if simulation.double_energy else "")
 	energy_label.text = energy_prefix + "%.1f/10" % simulation.energy[BattleSim.PLAYER]
 	energy_bar.value = simulation.energy[BattleSim.PLAYER]
-	var opponent_name := "ENTRAÎNEUR" if tutorial != null else "IA %s" % DIFFICULTY_NAMES[selected_difficulty]
+	var enemy_level := BattleProgression.average_card_level(simulation.card_levels[BattleSim.ENEMY])
+	var opponent_name := "ENTRAÎNEUR" if tutorial != null else "IA %s NIV.%d" % [DIFFICULTY_NAMES[selected_difficulty], enemy_level]
 	core_label.text = "%s %d   ◆ %d — %d ◆   %d TOI" % [opponent_name, int(simulation.towers[BattleSim.ENEMY].core), simulation.crowns[BattleSim.ENEMY], simulation.crowns[BattleSim.PLAYER], int(simulation.towers[BattleSim.PLAYER].core)]
 	for card_id in card_buttons:
 		var button: Button = card_buttons[card_id]
