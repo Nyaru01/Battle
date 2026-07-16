@@ -60,3 +60,11 @@ Ce document suit l'origine des actifs visuels intégrés au projet afin d'évite
 - Référence propriétaire utilisée : aucune
 
 La capture de référence n'est pas versionnée dans Git et n'est pas distribuée avec le jeu.
+
+## Modèles 3D procéduraux 0.31
+
+- Date : 2026-07-16
+- Origine : géométrie originale créée dans Godot par `unit_view_3d.gd` et `battle_world_3d.gd`
+- Usage : arène, ponts, tours, personnages articulés, armes, projectiles et effets 3D
+- Contenu : primitives maillées, matériaux et animations procédurales propres au projet
+- Référence propriétaire utilisée : aucune ressource, texture, modèle ou animation tiers

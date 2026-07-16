@@ -231,7 +231,8 @@ func _test_android_export_configuration() -> void:
 	_expect(config.count("export_files=PackedStringArray()") == 2, "Android presets do not rely on a selective scene list")
 	_expect(config.count("exclude_filter=\"builds/*,tests/*,tools/*\"") == 2, "Android presets exclude only non-runtime project resources")
 	var project := FileAccess.get_file_as_string("res://project.godot")
-	_expect("size/mode=3" in project and "stretch/aspect=\"ignore\"" in project, "mobile canvas fills the entire fullscreen surface")
+	_expect("size/mode=3" in project and "stretch/aspect=\"expand\"" in project, "mobile canvas fills the screen without non-uniform stretching")
+	_expect(project.count("renderer/rendering_method=\"mobile\"") == 1, "battle uses the Vulkan-oriented mobile renderer")
 	_expect("window_width_override" not in project and "window_height_override" not in project, "desktop window overrides cannot letterbox Android")
 
 
@@ -331,10 +332,31 @@ func _test_motion_and_projectile_events() -> void:
 	combat.units[1].y = 500.0
 	combat.units[0].attack_timer = 0.0
 	combat.units[1].attack_timer = 10.0
+	var target_hp: float = combat.units[1].hp
 	combat.step(0.1)
 	var ranged_hits := combat.events.filter(func(event: Dictionary) -> bool: return event.type == "hit" and bool(event.get("ranged", false)))
 	_expect(ranged_hits.size() == 1, "ranged unit attacks emit a projectile event")
 	_expect(ranged_hits[0].has("source_state") and ranged_hits[0].has("target_state"), "projectile events preserve positions after defeated units are removed")
+	_expect(combat.units[1].hp == target_hp and combat.projectiles.size() == 1, "ranged damage is deferred while the projectile travels")
+	for index in range(10):
+		combat.step(0.1)
+	var impacts := combat.events.filter(func(event: Dictionary) -> bool: return event.type == "projectile_impact")
+	_expect(combat.units[1].hp < target_hp and impacts.size() >= 1, "ranged damage is applied exactly when the projectile arrives")
+
+	var miss := BattleSim.new(30)
+	miss.energy = [10.0, 10.0]
+	miss.play_card(BattleSim.PLAYER, "ranger", 0)
+	miss.play_card(BattleSim.ENEMY, "guardian", 0)
+	miss.units[0].y = 600.0
+	miss.units[1].y = 500.0
+	miss.units[0].attack_timer = 0.0
+	miss.units[1].attack_timer = 10.0
+	miss.step(0.1)
+	miss.units[1].hp = 0.0
+	for index in range(10):
+		miss.step(0.1)
+	var dissipated := miss.events.filter(func(event: Dictionary) -> bool: return event.type == "projectile_dissipated")
+	_expect(dissipated.size() == 1, "a projectile dissipates harmlessly when its target dies before impact")
 
 	var objective := BattleSim.new(29)
 	objective.energy[BattleSim.PLAYER] = 10.0
@@ -369,7 +391,10 @@ func _test_core_defends_after_breach() -> void:
 	unit.y = 820.0
 	var initial_hp: float = unit.hp
 	simulation.step(0.1)
-	_expect(unit.hp < initial_hp, "active central fortress attacks an approaching enemy across lanes")
+	_expect(unit.hp == initial_hp and simulation.projectiles.size() == 1, "central fortress launches a projectile before applying damage")
+	for index in range(10):
+		simulation.step(0.1)
+	_expect(unit.hp < initial_hp, "active central fortress damages on projectile impact")
 	var shots := simulation.events.filter(func(event: Dictionary) -> bool: return event.type == "core_shot")
 	_expect(shots.size() == 1, "central fortress emits a projectile event")
 

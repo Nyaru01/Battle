@@ -41,6 +41,7 @@ const CARDS := {
 		"speed": 46.0,
 		"range": 155.0,
 		"interval": 0.9,
+		"projectile_speed": 430.0,
 	},
 	"colossus": {
 		"name": "Colosse",
@@ -79,6 +80,7 @@ const CARDS := {
 		"range": 135.0,
 		"interval": 1.25,
 		"splash": 70.0,
+		"projectile_speed": 320.0,
 	},
 	"bulwark": {
 		"name": "Rempart",
@@ -101,12 +103,14 @@ const CARDS := {
 
 var rng := RandomNumberGenerator.new()
 var units: Array = []
+var projectiles: Array = []
 var energy := [5.0, 5.0]
 var towers: Array = []
 var time_left := MATCH_DURATION
 var finished := false
 var winner := -1
 var next_unit_id := 1
+var next_projectile_id := 1
 var events: Array = []
 var tower_attack_timers := [[0.0, 0.0], [0.0, 0.0]]
 var core_attack_timers := [0.0, 0.0]
@@ -126,6 +130,7 @@ func _init(seed_value: int = 1, player_card_levels: Dictionary = {}, enemy_card_
 func reset(seed_value: int = 1, player_card_levels: Dictionary = {}, enemy_card_levels: Dictionary = {}, randomize_opening: bool = false) -> void:
 	rng.seed = seed_value
 	units.clear()
+	projectiles.clear()
 	energy = [5.0, 5.0]
 	towers = [
 		{"lanes": [1200.0, 1200.0], "core": CORE_MAX_HEALTH},
@@ -135,6 +140,7 @@ func reset(seed_value: int = 1, player_card_levels: Dictionary = {}, enemy_card_
 	finished = false
 	winner = -1
 	next_unit_id = 1
+	next_projectile_id = 1
 	events.clear()
 	tower_attack_timers = [[0.0, 0.0], [0.0, 0.0]]
 	core_attack_timers = [0.0, 0.0]
@@ -213,6 +219,7 @@ func step(delta: float) -> void:
 		energy[side] = minf(MAX_ENERGY, energy[side] + ENERGY_PER_SECOND * energy_multiplier * safe_delta)
 	_update_units(safe_delta)
 	_update_towers(safe_delta)
+	_update_projectiles(safe_delta)
 	_remove_defeated_units()
 	_check_end()
 
@@ -263,6 +270,7 @@ func _spawn_unit(side: int, card_id: String, lane: int, card: Dictionary) -> voi
 			"range": card.range,
 			"interval": card.interval,
 			"splash": float(card.get("splash", 0.0)),
+			"projectile_speed": float(card.get("projectile_speed", 0.0)),
 			"slow_timer": 0.0,
 			"attack_timer": rng.randf_range(0.0, 0.15),
 			"attack_pulse": 0.0,
@@ -293,7 +301,11 @@ func _update_units(delta: float) -> void:
 		var target = _closest_enemy_unit(unit)
 		if target != null and absf(target.y - unit.y) <= unit.range:
 			if unit.attack_timer <= 0.0:
-				_damage_unit_target(unit, target)
+				var ranged := float(unit.range) >= 90.0
+				if ranged:
+					_spawn_unit_projectile(unit, target)
+				else:
+					_damage_unit_target(unit, target)
 				unit.attack_timer = unit.interval
 				unit.attack_pulse = 0.22
 				events.append({
@@ -301,7 +313,7 @@ func _update_units(delta: float) -> void:
 					"source": unit.id,
 					"target": target.id,
 					"side": unit.side,
-					"ranged": float(unit.range) >= 90.0,
+					"ranged": ranged,
 					"source_state": _unit_snapshot(unit),
 					"target_state": _unit_snapshot(target),
 				})
@@ -314,14 +326,18 @@ func _update_units(delta: float) -> void:
 		if distance <= unit.range:
 			if unit.attack_timer <= 0.0:
 				var attacks_core: bool = towers[target_side].lanes[unit.lane] <= 0.0
-				_damage_objective(target_side, unit.lane, unit.damage)
+				var ranged := float(unit.range) >= 90.0
+				if ranged:
+					_spawn_objective_projectile(unit, target_side, attacks_core, target_y)
+				else:
+					_damage_objective(target_side, unit.lane, unit.damage)
 				unit.attack_timer = unit.interval
 				unit.attack_pulse = 0.22
 				events.append({
 					"type": "objective_hit",
 					"side": unit.side,
 					"lane": unit.lane,
-					"ranged": float(unit.range) >= 90.0,
+					"ranged": ranged,
 					"source_state": _unit_snapshot(unit),
 					"target_position": Vector2(360.0, target_y) if attacks_core else Vector2(210.0 if unit.lane == 0 else 510.0, target_y),
 				})
@@ -353,6 +369,149 @@ func _damage_unit_target(source: Dictionary, target: Dictionary) -> void:
 			candidate.hp = maxf(0.0, candidate.hp - source.damage * 0.55)
 
 
+func _spawn_unit_projectile(source: Dictionary, target: Dictionary) -> void:
+	var from_x := 210.0 if int(source.lane) == 0 else 510.0
+	var to_x := 210.0 if int(target.lane) == 0 else 510.0
+	var speed := maxf(1.0, float(source.get("projectile_speed", 380.0)))
+	_spawn_projectile({
+		"kind": String(source.card_id),
+		"side": int(source.side),
+		"source_id": int(source.id),
+		"target_id": int(target.id),
+		"target_side": int(target.side),
+		"lane": int(source.lane),
+		"target_core": false,
+		"from_x": from_x,
+		"from_y": float(source.y),
+		"to_x": to_x,
+		"to_y": float(target.y),
+		"speed": speed,
+		"damage": float(source.damage),
+		"splash": float(source.splash),
+		"slow_duration": 0.0,
+	})
+
+
+func _spawn_objective_projectile(source: Dictionary, target_side: int, target_core: bool, target_y: float) -> void:
+	var from_x := 210.0 if int(source.lane) == 0 else 510.0
+	var to_x := 360.0 if target_core else from_x
+	_spawn_projectile({
+		"kind": String(source.card_id),
+		"side": int(source.side),
+		"source_id": int(source.id),
+		"target_id": -1,
+		"target_side": target_side,
+		"lane": int(source.lane),
+		"target_core": target_core,
+		"from_x": from_x,
+		"from_y": float(source.y),
+		"to_x": to_x,
+		"to_y": target_y,
+		"speed": maxf(1.0, float(source.get("projectile_speed", 380.0))),
+		"damage": float(source.damage),
+		"splash": 0.0,
+		"slow_duration": 0.0,
+	})
+
+
+func _spawn_defensive_projectile(side: int, lane: int, target: Dictionary, core: bool) -> void:
+	var source_y := 955.0 if core and side == PLAYER else 205.0 if core else 900.0 if side == PLAYER else 240.0
+	var source_x := 360.0 if core else 210.0 if lane == 0 else 510.0
+	_spawn_projectile({
+		"kind": "core" if core else "tower",
+		"side": side,
+		"source_id": -1,
+		"target_id": int(target.id),
+		"target_side": int(target.side),
+		"lane": lane,
+		"target_core": false,
+		"from_x": source_x,
+		"from_y": source_y,
+		"to_x": 210.0 if int(target.lane) == 0 else 510.0,
+		"to_y": float(target.y),
+		"speed": 560.0 if core else 500.0,
+		"damage": CORE_DAMAGE if core else TOWER_DAMAGE,
+		"splash": 0.0,
+		"slow_duration": 0.0,
+	})
+
+
+func _spawn_projectile(data: Dictionary) -> void:
+	var distance := Vector2(float(data.from_x), float(data.from_y)).distance_to(Vector2(float(data.to_x), float(data.to_y)))
+	data.id = next_projectile_id
+	next_projectile_id += 1
+	data.elapsed = 0.0
+	data.duration = clampf(distance / float(data.speed), 0.16, 0.9)
+	projectiles.append(data)
+	events.append({"type": "projectile_spawned", "projectile": data.duplicate(true)})
+
+
+func _update_projectiles(delta: float) -> void:
+	for index in range(projectiles.size() - 1, -1, -1):
+		var projectile: Dictionary = projectiles[index]
+		var target = _find_alive_unit(int(projectile.target_id)) if int(projectile.target_id) >= 0 else null
+		if target != null:
+			projectile.to_x = 210.0 if int(target.lane) == 0 else 510.0
+			projectile.to_y = float(target.y)
+		projectile.elapsed = float(projectile.elapsed) + delta
+		if float(projectile.elapsed) + 0.0001 < float(projectile.duration):
+			continue
+		var impacted := false
+		if int(projectile.target_id) >= 0:
+			if target != null:
+				_damage_projectile_target(projectile, target)
+				impacted = true
+		else:
+			impacted = _damage_projectile_objective(projectile)
+		events.append({
+			"type": "projectile_impact" if impacted else "projectile_dissipated",
+			"projectile": projectile.duplicate(true),
+		})
+		projectiles.remove_at(index)
+
+
+func _find_alive_unit(unit_id: int):
+	for unit in units:
+		if int(unit.id) == unit_id and float(unit.hp) > 0.0:
+			return unit
+	return null
+
+
+func _damage_projectile_target(projectile: Dictionary, target: Dictionary) -> void:
+	target.hp = maxf(0.0, float(target.hp) - float(projectile.damage))
+	var splash := float(projectile.splash)
+	if splash <= 0.0:
+		return
+	for candidate in units:
+		if candidate.id == target.id or candidate.side == projectile.side or candidate.lane != target.lane:
+			continue
+		if absf(float(candidate.y) - float(target.y)) <= splash:
+			candidate.hp = maxf(0.0, float(candidate.hp) - float(projectile.damage) * 0.55)
+
+
+func _damage_projectile_objective(projectile: Dictionary) -> bool:
+	var target_side := int(projectile.target_side)
+	var lane := int(projectile.lane)
+	if bool(projectile.target_core):
+		if float(towers[target_side].core) <= 0.0:
+			return false
+		var previous_core_hp: float = towers[target_side].core
+		towers[target_side].core = maxf(0.0, previous_core_hp - float(projectile.damage))
+		events.append({"type": "core_hit", "side": target_side})
+		if previous_core_hp > 0.0 and towers[target_side].core <= 0.0:
+			crowns[1 - target_side] = 3
+			events.append({"type": "core_destroyed", "side": target_side, "attacker": 1 - target_side})
+		return true
+	if float(towers[target_side].lanes[lane]) <= 0.0:
+		return false
+	var previous_hp: float = towers[target_side].lanes[lane]
+	towers[target_side].lanes[lane] = maxf(0.0, previous_hp - float(projectile.damage))
+	events.append({"type": "tower_hit", "side": target_side, "lane": lane})
+	if previous_hp > 0.0 and towers[target_side].lanes[lane] <= 0.0:
+		_award_crown(1 - target_side, target_side, lane)
+	return true
+
+
 func _cycle_card(side: int, card_id: String) -> void:
 	hands[side].erase(card_id)
 	var drawn_card: String = draw_queues[side].pop_front()
@@ -382,7 +541,7 @@ func _update_towers(delta: float) -> void:
 				continue
 			var target = _closest_unit_to_position(1 - side, lane, tower_y, TOWER_RANGE)
 			if target != null:
-				target.hp = maxf(0.0, target.hp - TOWER_DAMAGE)
+				_spawn_defensive_projectile(side, lane, target, false)
 				tower_attack_timers[side][lane] = TOWER_INTERVAL
 				events.append({"type": "tower_shot", "side": side, "lane": lane, "target": target.id, "target_state": _unit_snapshot(target)})
 		core_attack_timers[side] = maxf(0.0, core_attack_timers[side] - delta)
@@ -391,7 +550,7 @@ func _update_towers(delta: float) -> void:
 		var core_y := 955.0 if side == PLAYER else 205.0
 		var core_target = _closest_unit_to_core(1 - side, Vector2(360.0, core_y), CORE_RANGE)
 		if core_target != null:
-			core_target.hp = maxf(0.0, core_target.hp - CORE_DAMAGE)
+			_spawn_defensive_projectile(side, int(core_target.lane), core_target, true)
 			core_attack_timers[side] = CORE_INTERVAL
 			events.append({"type": "core_shot", "side": side, "target": core_target.id, "target_state": _unit_snapshot(core_target)})
 

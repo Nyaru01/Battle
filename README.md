@@ -1,87 +1,42 @@
 # Battle
 
-`Battle` est le nom de travail d'un jeu mobile de stratégie en arène, en temps réel, destiné à Android. Le projet reprend les codes du genre — deck, énergie, déploiement d'unités et parties courtes — avec un univers, des règles, une interface et des contenus originaux.
+Jeu mobile original de stratégie en arène, en temps réel, jouable hors ligne contre une IA. Le vertical slice 0.31 remplace l’ancien rendu 2D fixe par une arène 3D responsive et des combattants articulés.
 
-## État du projet
+## Prototype 0.31
 
-Le développement du premier prototype jouable est en cours.
+- arène 3D complète à deux voies, rivière, ponts et six objectifs ;
+- caméra orthographique sans étirement, adaptée aux téléphones longs et tablettes portrait ;
+- personnages 3D originaux composés de membres indépendants ;
+- cycles visibles de marche, balancement des bras, attaques, impacts et morts ;
+- projectiles simulés avec temps de trajet et dégâts uniquement à l’impact ;
+- huit cartes, main tournante de quatre cartes, énergie et progression locale ;
+- trois difficultés d’IA et tutoriel hors ligne ;
+- interface fantasy responsive pour l’accueil, la collection, la bataille, la pause et le résultat ;
+- rendu Vulkan Mobile, export Android Arm64 et mode immersif ;
+- 197 assertions automatisées et campagne reproductible de 1 000 combats IA.
 
-- [Plan de développement](docs/PLAN_DEVELOPPEMENT.md)
-- [Décision : mode contre IA en premier](docs/decisions/0001-ai-first.md)
-- Cible initiale : APK Android
-- Mode prioritaire : duel 1 contre 1 contre une IA, jouable hors ligne
-- Première livraison : APK solo sans compte ni backend obligatoire
-- Étape suivante : multijoueur avec serveur autoritaire
-- Moteur : Godot 4.7.1, rendu Compatibility
+Tous les personnages, modèles procéduraux, illustrations et éléments d’interface sont originaux. Le projet n’embarque aucun actif de Clash Royale.
 
-## Prototype actuel
-
-- menu et trois difficultés d'IA ;
-- tutoriel interactif guidant les quatre premières actions tactiles ;
-- écran Collection présentant les huit cartes, leurs coûts et statistiques ;
-- arène à deux voies avec tours et noyaux centraux qui s’activent après la première brèche ;
-- deck de huit cartes avec main tournante de quatre cartes et prochaine pioche visible ;
-- main d’ouverture mélangée à chaque duel, symétrique pour le joueur et l’IA ;
-- miniature de la prochaine carte directement au-dessus de la main ;
-- huit cartes originales, dont trois nouveaux combattants et le sort de ralentissement Stase ;
-- carte d’escouade Lames jumelles déployant deux combattants indépendants ;
-- énergie, déplacement, ciblage, combat, victoire et limite de temps ;
-- effets visuels légers pour les déploiements, tirs, impacts, sorts et destructions ;
-- marche animée avec balancement, traces de pas et poussière ;
-- projectiles persistants et lumineux pour les unités à distance et les forteresses ;
-- indicateur circulaire de durée sur les unités ralenties par la Stase ;
-- compte à rebours de duel et guide de placement sur les deux voies ;
-- effets sonores procéduraux pour le départ, les cartes, les attaques et les destructions ;
-- préférences locales persistantes pour les sons et le niveau d’IA ;
-- retours haptiques Android désactivables pour les actions et événements majeurs ;
-- sauvegarde transactionnelle avec récupération automatique depuis une copie de secours ;
-- score par forteresses détruites, prolongation en mort subite et énergie doublée ;
-- énergie doublée pendant la dernière minute avec annonce dédiée ;
-- énergie triplée en mort subite pour accélérer la conclusion ;
-- pause manuelle, pause automatique en arrière-plan, reprise et abandon ;
-- IA équitable utilisant les mêmes commandes que le joueur ;
-- niveaux de cartes IA adaptés à la difficulté et à la progression du joueur ;
-- banc reproductible de 1 000 matchs IA avec contrôle des états et commandes ;
-- sauvegarde locale des victoires et défaites ;
-- progression locale versionnée avec niveau, expérience, éclats et récompenses de match ;
-- amélioration des cartes jusqu’au niveau 5 en dépensant les éclats gagnés ;
-- écran de résultat avec barre d’XP et mise en avant des niveaux gagnés ;
-- contrôles souris et tactiles ;
-- plein écran Android sans fenêtre de test ni letterboxing ;
-- guides distincts de déploiement des unités et de ciblage des sorts ;
-- validation tactile des territoires allié et ennemi selon le type de carte ;
-- arène 2,5D originale avec chemins, rivière et ponts ;
-- cartes, combattants et forteresses illustrés avec des actifs originaux ;
-- export APK Android debug.
-- contrôle automatique des scripts et bibliothèques réellement embarqués dans chaque APK.
-- distributions universelle (armv7 + arm64) et arm64 allégée.
-
-## Lancer le projet
-
-Avec Godot 4.7.1 ou une version compatible :
+## Lancer et tester
 
 ```powershell
 godot --path .
-```
-
-Lancer les tests headless :
-
-```powershell
 godot --headless --path . --script res://tests/run_tests.gd
+godot --headless --path . --script res://tools/run_balance.gd -- --matches=1000
 ```
 
-Exporter l'APK après configuration du SDK Android et des modèles d'export :
+## Export Android
 
 ```powershell
-godot --headless --path . --export-debug "Android Debug" builds/Battle-debug.apk
+godot --headless --path . --export-debug "Android Arm64 Debug" "builds/android/Battle-v0.31-alpha-arm64-debug.apk"
+powershell -ExecutionPolicy Bypass -File tools/verify_apk.ps1 -ApkPath "builds/android/Battle-v0.31-alpha-arm64-debug.apk" -Variant arm64
 ```
 
-Exporter uniquement pour les appareils arm64 modernes :
+Configuration de l’APK : API 24 minimum imposée par le modèle Godot standard, API cible 36, `arm64-v8a`, orientation portrait et rendu Vulkan Mobile. Android 10 ou plus récent est recommandé.
 
-```powershell
-godot --headless --path . --export-debug "Android Arm64 Debug" builds/Battle-arm64-debug.apk
-```
+## Documentation
 
-## Prochaine décision
-
-Tester la boucle de combat sur un appareil Android, puis itérer sur l'IA, l'équilibrage et la lisibilité.
+- [Plan de développement](docs/PLAN_DEVELOPPEMENT.md)
+- [Rapport d’équilibrage](docs/BALANCE_REPORT.md)
+- [Distribution Android](docs/ANDROID_DISTRIBUTION.md)
+- [Provenance des actifs](docs/ASSET_PROVENANCE.md)
