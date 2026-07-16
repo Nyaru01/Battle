@@ -21,6 +21,7 @@ Le développement du premier prototype jouable est en cours.
 - écran Collection présentant les huit cartes, leurs coûts et statistiques ;
 - arène à deux voies avec tours et noyaux ;
 - deck de huit cartes avec main tournante de quatre cartes et prochaine pioche visible ;
+- miniature de la prochaine carte directement au-dessus de la main ;
 - huit cartes originales, dont trois nouveaux combattants et le sort de ralentissement Stase ;
 - carte d’escouade Lames jumelles déployant deux combattants indépendants ;
 - énergie, déplacement, ciblage, combat, victoire et limite de temps ;

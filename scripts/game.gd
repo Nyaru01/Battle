@@ -49,6 +49,7 @@ var energy_bar: ProgressBar
 var core_label: Label
 var hint_label: Label
 var card_buttons: Dictionary = {}
+var next_card_preview: Panel
 var profile := BattleProgression.default_profile()
 var last_reward: Dictionary = {}
 var tutorial: BattleTutorial
@@ -536,7 +537,7 @@ func _build_menu() -> void:
 	collection.add_theme_font_size_override("font_size", 19)
 	collection.pressed.connect(_build_collection)
 	ui_layer.add_child(collection)
-	var version := _label("Prototype 0.23 • Hors ligne", Vector2(160.0, 1202.0), Vector2(400.0, 36.0), 18)
+	var version := _label("Prototype 0.24 • Hors ligne", Vector2(160.0, 1202.0), Vector2(400.0, 36.0), 18)
 	version.add_theme_color_override("font_color", Color("71889a"))
 	var record := _label("%d victoires  •  %d défaites" % [profile.wins, profile.losses], Vector2(160.0, 1080.0), Vector2(400.0, 36.0), 17)
 	record.add_theme_color_override("font_color", Color("8fa7b8"))
@@ -712,11 +713,11 @@ func _build_hud() -> void:
 	pause_button.add_theme_font_size_override("font_size", 22)
 	pause_button.pressed.connect(_pause_battle)
 	ui_layer.add_child(pause_button)
-	energy_label = _label("Énergie 5/10", Vector2(18.0, 1060.0), Vector2(145.0, 36.0), 18)
+	energy_label = _label("Énergie 5/10", Vector2(112.0, 1060.0), Vector2(120.0, 36.0), 18)
 	energy_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	energy_bar = ProgressBar.new()
-	energy_bar.position = Vector2(148.0, 1067.0)
-	energy_bar.size = Vector2(282.0, 24.0)
+	energy_bar.position = Vector2(226.0, 1067.0)
+	energy_bar.size = Vector2(204.0, 24.0)
 	energy_bar.min_value = 0.0
 	energy_bar.max_value = 10.0
 	energy_bar.value = 5.0
@@ -725,8 +726,9 @@ func _build_hud() -> void:
 	energy_bar.add_theme_stylebox_override("fill", _energy_style(Color("c950ed")))
 	ui_layer.add_child(energy_bar)
 	core_label = _label("", Vector2(20.0, 36.0), Vector2(680.0, 30.0), 17)
-	hint_label = _label("Suivante : %s" % BattleSim.CARDS[simulation.get_next_card(BattleSim.PLAYER)].name, Vector2(438.0, 1058.0), Vector2(264.0, 40.0), 15)
+	hint_label = _label("Choisis une carte", Vector2(438.0, 1058.0), Vector2(264.0, 40.0), 15)
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_build_next_card_preview()
 	if tutorial != null:
 		tutorial_label = _label(tutorial.instruction(), Vector2(45.0, 76.0), Vector2(630.0, 42.0), 16)
 		tutorial_label.add_theme_color_override("font_color", Color("ffe17b"))
@@ -777,6 +779,46 @@ func _build_hud() -> void:
 		button.add_child(cost_label)
 		card_buttons[card_id] = button
 	_update_hud()
+
+
+func _build_next_card_preview() -> void:
+	var card_id := simulation.get_next_card(BattleSim.PLAYER)
+	next_card_preview = Panel.new()
+	next_card_preview.position = Vector2(12.0, 1004.0)
+	next_card_preview.size = Vector2(88.0, 90.0)
+	next_card_preview.add_theme_stylebox_override("panel", _card_style(card_id, false))
+	next_card_preview.set_meta("card_id", card_id)
+	next_card_preview.clip_contents = true
+	next_card_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ui_layer.add_child(next_card_preview)
+	var caption := Label.new()
+	caption.text = "APRÈS"
+	caption.position = Vector2(4.0, 2.0)
+	caption.size = Vector2(80.0, 20.0)
+	caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	caption.add_theme_font_size_override("font_size", 12)
+	caption.add_theme_color_override("font_color", Color("d8e7f3"))
+	caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	next_card_preview.add_child(caption)
+	var portrait := TextureRect.new()
+	portrait.texture = _card_texture(card_id, CARD_QUADRANTS[card_id])
+	portrait.position = Vector2(5.0, 22.0)
+	portrait.size = Vector2(78.0, 62.0)
+	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	next_card_preview.add_child(portrait)
+	var cost := Label.new()
+	cost.text = "● %d" % int(BattleSim.CARDS[card_id].cost)
+	cost.position = Vector2(42.0, 64.0)
+	cost.size = Vector2(42.0, 22.0)
+	cost.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cost.add_theme_font_size_override("font_size", 13)
+	cost.add_theme_color_override("font_color", Color("f18cff"))
+	cost.add_theme_color_override("font_outline_color", Color("101827"))
+	cost.add_theme_constant_override("outline_size", 5)
+	cost.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	next_card_preview.add_child(cost)
 
 
 func _select_card(card_id: String) -> void:
