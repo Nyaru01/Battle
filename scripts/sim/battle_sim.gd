@@ -12,6 +12,10 @@ const LANE_COUNT := 2
 const TOWER_RANGE := 235.0
 const TOWER_DAMAGE := 52.0
 const TOWER_INTERVAL := 1.0
+const CORE_RANGE := 275.0
+const CORE_DAMAGE := 68.0
+const CORE_INTERVAL := 1.15
+const CORE_MAX_HEALTH := 2200.0
 const DEFAULT_DECK := [
 	"guardian", "ranger", "colossus", "fireball",
 	"duelist", "alchemist", "bulwark", "frost",
@@ -105,6 +109,7 @@ var winner := -1
 var next_unit_id := 1
 var events: Array = []
 var tower_attack_timers := [[0.0, 0.0], [0.0, 0.0]]
+var core_attack_timers := [0.0, 0.0]
 var hands: Array = []
 var draw_queues: Array = []
 var crowns := [0, 0]
@@ -123,8 +128,8 @@ func reset(seed_value: int = 1, player_card_levels: Dictionary = {}, enemy_card_
 	units.clear()
 	energy = [5.0, 5.0]
 	towers = [
-		{"lanes": [1200.0, 1200.0], "core": 2200.0},
-		{"lanes": [1200.0, 1200.0], "core": 2200.0},
+		{"lanes": [1200.0, 1200.0], "core": CORE_MAX_HEALTH},
+		{"lanes": [1200.0, 1200.0], "core": CORE_MAX_HEALTH},
 	]
 	time_left = MATCH_DURATION
 	finished = false
@@ -132,6 +137,7 @@ func reset(seed_value: int = 1, player_card_levels: Dictionary = {}, enemy_card_
 	next_unit_id = 1
 	events.clear()
 	tower_attack_timers = [[0.0, 0.0], [0.0, 0.0]]
+	core_attack_timers = [0.0, 0.0]
 	hands = [DEFAULT_DECK.slice(0, 4), DEFAULT_DECK.slice(0, 4)]
 	draw_queues = [DEFAULT_DECK.slice(4), DEFAULT_DECK.slice(4)]
 	crowns = [0, 0]
@@ -213,6 +219,10 @@ func get_hand(side: int) -> Array:
 
 func get_next_card(side: int) -> String:
 	return "" if draw_queues[side].is_empty() else String(draw_queues[side][0])
+
+
+func is_core_active(side: int) -> bool:
+	return towers[side].core < CORE_MAX_HEALTH or towers[side].lanes[0] <= 0.0 or towers[side].lanes[1] <= 0.0
 
 
 func get_total_health(side: int) -> float:
@@ -329,6 +339,15 @@ func _update_towers(delta: float) -> void:
 				target.hp = maxf(0.0, target.hp - TOWER_DAMAGE)
 				tower_attack_timers[side][lane] = TOWER_INTERVAL
 				events.append({"type": "tower_shot", "side": side, "lane": lane, "target": target.id})
+		core_attack_timers[side] = maxf(0.0, core_attack_timers[side] - delta)
+		if not is_core_active(side) or towers[side].core <= 0.0 or core_attack_timers[side] > 0.0:
+			continue
+		var core_y := 955.0 if side == PLAYER else 205.0
+		var core_target = _closest_unit_to_core(1 - side, Vector2(360.0, core_y), CORE_RANGE)
+		if core_target != null:
+			core_target.hp = maxf(0.0, core_target.hp - CORE_DAMAGE)
+			core_attack_timers[side] = CORE_INTERVAL
+			events.append({"type": "core_shot", "side": side, "target": core_target.id})
 
 
 func _closest_unit_to_position(target_side: int, lane: int, position_y: float, maximum_distance: float):
@@ -338,6 +357,20 @@ func _closest_unit_to_position(target_side: int, lane: int, position_y: float, m
 		if unit.hp <= 0.0 or unit.side != target_side or unit.lane != lane:
 			continue
 		var distance: float = absf(float(unit.y) - position_y)
+		if distance <= best_distance:
+			best = unit
+			best_distance = distance
+	return best
+
+
+func _closest_unit_to_core(target_side: int, position: Vector2, maximum_distance: float):
+	var best = null
+	var best_distance := maximum_distance
+	for unit in units:
+		if unit.hp <= 0.0 or unit.side != target_side:
+			continue
+		var unit_position := Vector2(210.0 if unit.lane == 0 else 510.0, float(unit.y))
+		var distance := position.distance_to(unit_position)
 		if distance <= best_distance:
 			best = unit
 			best_distance = distance

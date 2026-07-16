@@ -226,7 +226,7 @@ func _draw_objectives() -> void:
 			var hp: float = simulation.towers[side].lanes[lane]
 			_draw_tower(Vector2(LANE_X[lane], tower_y), color, hp, 1200.0, false)
 		var core_hp: float = simulation.towers[side].core
-		_draw_tower(Vector2(360.0, core_y), color, core_hp, 2200.0, true)
+		_draw_tower(Vector2(360.0, core_y), color, core_hp, BattleSim.CORE_MAX_HEALTH, true, simulation.is_core_active(side))
 
 
 func _draw_units() -> void:
@@ -287,6 +287,12 @@ func _consume_battle_events() -> void:
 					var tower_y := 900.0 if event.side == BattleSim.PLAYER else 240.0
 					_add_beam(Vector2(LANE_X[event.lane], tower_y - 35.0), target, _team_color(event.side), 0.22)
 					_play_sfx("tower_shot")
+			"core_shot":
+				var target := _find_unit_position(event.target)
+				if target != Vector2.ZERO:
+					var core_y := 955.0 if event.side == BattleSim.PLAYER else 205.0
+					_add_beam(Vector2(360.0, core_y - 42.0), target, Color("ffe17b"), 0.26)
+					_play_sfx("core_shot")
 			"tower_hit":
 				_add_objective_burst(event.side, event.lane, false, 34.0)
 			"core_hit":
@@ -321,6 +327,7 @@ func _setup_audio() -> void:
 		"deploy": _make_sfx(190.0, 80.0, 0.18, 0.48, 0.05),
 		"hit": _make_sfx(580.0, 230.0, 0.08, 0.28, 0.18),
 		"tower_shot": _make_sfx(820.0, 390.0, 0.12, 0.32, 0.0),
+		"core_shot": _make_sfx(1080.0, 510.0, 0.16, 0.40, 0.0),
 		"fireball": _make_sfx(170.0, 48.0, 0.34, 0.60, 0.42),
 		"frost": _make_sfx(920.0, 1520.0, 0.36, 0.30, 0.06),
 		"destroyed": _make_sfx(105.0, 32.0, 0.58, 0.68, 0.36),
@@ -428,12 +435,14 @@ func _team_color(side: int) -> Color:
 	return Color("57c4ff") if side == BattleSim.PLAYER else Color("ff6173")
 
 
-func _draw_tower(center: Vector2, team_color: Color, hp: float, maximum: float, is_core: bool) -> void:
+func _draw_tower(center: Vector2, team_color: Color, hp: float, maximum: float, is_core: bool, active: bool = false) -> void:
 	var source_width := TOWER_SPRITES.get_width() * 0.5
 	var source := Rect2(source_width if is_core else 0.0, 0.0, source_width, TOWER_SPRITES.get_height())
 	var size := Vector2(170.0, 150.0) if is_core else Vector2(138.0, 142.0)
 	var destination := Rect2(center.x - size.x * 0.5, center.y - size.y * 0.60, size.x, size.y)
 	draw_circle(center + Vector2(7.0, 27.0), 39.0 if is_core else 31.0, Color(0.02, 0.05, 0.04, 0.35))
+	if is_core and active and hp > 0.0:
+		draw_circle(center + Vector2(0.0, 4.0), 67.0, Color("ffe17b"), false, 4.0)
 	var tint := Color.WHITE if hp > 0.0 else Color(0.35, 0.36, 0.37, 0.55)
 	draw_texture_rect_region(TOWER_SPRITES, destination, source, tint)
 	var banner_width := 52.0 if is_core else 42.0
@@ -537,7 +546,7 @@ func _build_menu() -> void:
 	collection.add_theme_font_size_override("font_size", 19)
 	collection.pressed.connect(_build_collection)
 	ui_layer.add_child(collection)
-	var version := _label("Prototype 0.24 • Hors ligne", Vector2(160.0, 1202.0), Vector2(400.0, 36.0), 18)
+	var version := _label("Prototype 0.25 • Hors ligne", Vector2(160.0, 1202.0), Vector2(400.0, 36.0), 18)
 	version.add_theme_color_override("font_color", Color("71889a"))
 	var record := _label("%d victoires  •  %d défaites" % [profile.wins, profile.losses], Vector2(160.0, 1080.0), Vector2(400.0, 36.0), 17)
 	record.add_theme_color_override("font_color", Color("8fa7b8"))
