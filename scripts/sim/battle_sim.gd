@@ -6,7 +6,7 @@ const ENEMY := 1
 const MAX_ENERGY := 10.0
 const ENERGY_PER_SECOND := 1.0
 const MATCH_DURATION := 180.0
-const OVERTIME_DURATION := 60.0
+const OVERTIME_DURATION := 45.0
 const LANE_COUNT := 2
 const TOWER_RANGE := 235.0
 const TOWER_DAMAGE := 52.0
@@ -107,6 +107,7 @@ var hands: Array = []
 var draw_queues: Array = []
 var crowns := [0, 0]
 var overtime := false
+var double_energy := false
 
 
 func _init(seed_value: int = 1) -> void:
@@ -132,6 +133,7 @@ func reset(seed_value: int = 1) -> void:
 	draw_queues = [DEFAULT_DECK.slice(4), DEFAULT_DECK.slice(4)]
 	crowns = [0, 0]
 	overtime = false
+	double_energy = false
 
 
 func play_card(side: int, card_id: String, lane: int) -> bool:
@@ -167,8 +169,11 @@ func step(delta: float) -> void:
 		return
 	var safe_delta := minf(delta, 0.1)
 	time_left = maxf(0.0, time_left - safe_delta)
+	if not overtime and not double_energy and time_left <= 60.0:
+		double_energy = true
+		events.append({"type": "double_energy_started"})
 	for side in [PLAYER, ENEMY]:
-		var energy_multiplier := 2.0 if overtime else 1.0
+		var energy_multiplier := 3.0 if overtime else (2.0 if double_energy else 1.0)
 		energy[side] = minf(MAX_ENERGY, energy[side] + ENERGY_PER_SECOND * energy_multiplier * safe_delta)
 	_update_units(safe_delta)
 	_update_towers(safe_delta)
