@@ -247,9 +247,26 @@ func _draw_units() -> void:
 	for unit in simulation.units:
 		var x: float = LANE_X[unit.lane] + float(unit.get("formation_x", 0.0))
 		var center := Vector2(x, unit.y)
+		if bool(unit.get("moving", false)):
+			var phase := float(unit.get("walk_phase", 0.0))
+			center += Vector2(sin(phase) * 3.5, -absf(sin(phase * 2.0)) * 4.0)
+			_draw_movement_marks(center, unit, phase)
 		var radius := _draw_unit_avatar(center, unit)
-		_draw_health_bar(Vector2(x - radius, unit.y - radius - 12.0), radius * 2.0, unit.hp, unit.max_hp)
+		_draw_health_bar(Vector2(center.x - radius, center.y - radius - 12.0), radius * 2.0, unit.hp, unit.max_hp)
+		if float(unit.get("attack_pulse", 0.0)) > 0.0:
+			var pulse := 1.0 + float(unit.attack_pulse) * 0.8
+			draw_arc(center, radius * pulse, -0.7, 0.7, 12, Color("fff0a6"), 5.0)
 		_draw_unit_status(center, radius, unit)
+
+
+func _draw_movement_marks(center: Vector2, unit: Dictionary, phase: float) -> void:
+	var behind := 1.0 if unit.side == BattleSim.PLAYER else -1.0
+	var dust_center := center + Vector2(0.0, behind * 31.0)
+	var dust_color := Color(0.78, 0.68, 0.48, 0.34)
+	draw_circle(dust_center + Vector2(-11.0, 0.0), 5.0 + absf(sin(phase)) * 3.0, dust_color)
+	draw_circle(dust_center + Vector2(12.0, behind * 4.0), 4.0 + absf(cos(phase)) * 2.5, dust_color)
+	draw_line(center + Vector2(-13.0, behind * 21.0), center + Vector2(-19.0, behind * 30.0), Color("ffe3a0"), 3.0)
+	draw_line(center + Vector2(13.0, behind * 21.0), center + Vector2(19.0, behind * 30.0), Color("ffe3a0"), 3.0)
 
 
 func _draw_unit_status(center: Vector2, radius: float, unit: Dictionary) -> void:
@@ -287,6 +304,17 @@ func _draw_effects() -> void:
 				draw_line(effect.from, effect.to, Color(beam_color, beam_color.a * 0.25), 9.0)
 				draw_line(effect.from, effect.to, beam_color, 3.0)
 				draw_circle(effect.to, lerpf(5.0, 17.0, progress), Color(beam_color, beam_color.a * 0.45))
+			"projectile":
+				var flight := smoothstep(0.0, 1.0, progress)
+				var head: Vector2 = effect.from.lerp(effect.to, flight)
+				var tail: Vector2 = effect.from.lerp(effect.to, maxf(0.0, flight - 0.18))
+				var flight_alpha := clampf(sin(progress * PI) * 1.8, 0.25, 1.0)
+				var projectile_color := Color(color, flight_alpha)
+				draw_line(tail, head, Color(projectile_color, flight_alpha * 0.38), 12.0)
+				draw_line(tail, head, projectile_color, 5.0)
+				draw_circle(head, 11.0 + sin(progress * PI) * 4.0, Color(projectile_color, flight_alpha * 0.30))
+				draw_circle(head, 6.0, projectile_color)
+				draw_circle(head, 2.5, Color.WHITE)
 
 
 func _consume_battle_events() -> void:
@@ -304,22 +332,33 @@ func _consume_battle_events() -> void:
 				_add_effect("burst", Vector2(LANE_X[event.lane], target_y), spell_color, 0.55, 92.0)
 				_play_sfx("fireball" if event.card == "fireball" else "frost")
 			"hit":
-				var source := _find_unit_position(event.source)
-				var target := _find_unit_position(event.target)
+				var source := _event_unit_position(event, "source_state", "source")
+				var target := _event_unit_position(event, "target_state", "target")
 				if source != Vector2.ZERO and target != Vector2.ZERO:
-					_add_beam(source, target, Color("ffe39a"), 0.16)
+					if bool(event.get("ranged", false)):
+						_add_projectile(source, target, _team_color(int(event.side)).lightened(0.28), 0.52)
+					else:
+						_add_beam(source, target, Color("ffe39a"), 0.24)
 					_play_hit_sfx()
+			"objective_hit":
+				var source := _event_unit_position(event, "source_state", "source")
+				var target: Vector2 = event.target_position
+				if bool(event.get("ranged", false)):
+					_add_projectile(source, target, _team_color(int(event.side)).lightened(0.28), 0.55)
+				else:
+					_add_beam(source, target, Color("ffe39a"), 0.24)
+				_play_hit_sfx()
 			"tower_shot":
-				var target := _find_unit_position(event.target)
+				var target := _event_unit_position(event, "target_state", "target")
 				if target != Vector2.ZERO:
 					var tower_y := 900.0 if event.side == BattleSim.PLAYER else 240.0
-					_add_beam(Vector2(LANE_X[event.lane], tower_y - 35.0), target, _team_color(event.side), 0.22)
+					_add_projectile(Vector2(LANE_X[event.lane], tower_y - 35.0), target, _team_color(event.side), 0.48)
 					_play_sfx("tower_shot")
 			"core_shot":
-				var target := _find_unit_position(event.target)
+				var target := _event_unit_position(event, "target_state", "target")
 				if target != Vector2.ZERO:
 					var core_y := 955.0 if event.side == BattleSim.PLAYER else 205.0
-					_add_beam(Vector2(360.0, core_y - 42.0), target, Color("ffe17b"), 0.26)
+					_add_projectile(Vector2(360.0, core_y - 42.0), target, Color("ffe17b"), 0.52)
 					_play_sfx("core_shot")
 			"tower_hit":
 				_add_objective_burst(event.side, event.lane, false, 34.0)
@@ -444,6 +483,17 @@ func _add_beam(from: Vector2, to: Vector2, color: Color, duration: float) -> voi
 	})
 
 
+func _add_projectile(from: Vector2, to: Vector2, color: Color, duration: float) -> void:
+	effects.append({
+		"kind": "projectile",
+		"from": from,
+		"to": to,
+		"color": color,
+		"duration": duration,
+		"ttl": duration,
+	})
+
+
 func _update_effects(delta: float) -> void:
 	announcement_ttl = maxf(0.0, announcement_ttl - delta)
 	for index in range(effects.size() - 1, -1, -1):
@@ -457,6 +507,13 @@ func _find_unit_position(unit_id: int) -> Vector2:
 		if unit.id == unit_id:
 			return Vector2(LANE_X[unit.lane] + float(unit.get("formation_x", 0.0)), unit.y)
 	return Vector2.ZERO
+
+
+func _event_unit_position(event: Dictionary, state_key: String, id_key: String) -> Vector2:
+	var snapshot = event.get(state_key, {})
+	if typeof(snapshot) == TYPE_DICTIONARY and snapshot.has("lane") and snapshot.has("y"):
+		return Vector2(LANE_X[int(snapshot.lane)] + float(snapshot.get("formation_x", 0.0)), float(snapshot.y))
+	return _find_unit_position(int(event.get(id_key, -1)))
 
 
 func _team_color(side: int) -> Color:
@@ -574,7 +631,7 @@ func _build_menu() -> void:
 	collection.add_theme_font_size_override("font_size", 19)
 	collection.pressed.connect(_build_collection)
 	ui_layer.add_child(collection)
-	var version := _label("Prototype 0.29 • Hors ligne", Vector2(160.0, 1202.0), Vector2(400.0, 36.0), 18)
+	var version := _label("Prototype 0.30 • Hors ligne", Vector2(160.0, 1202.0), Vector2(400.0, 36.0), 18)
 	version.add_theme_color_override("font_color", Color("71889a"))
 	var record := _label("%d victoires  •  %d défaites" % [profile.wins, profile.losses], Vector2(160.0, 1080.0), Vector2(400.0, 36.0), 17)
 	record.add_theme_color_override("font_color", Color("8fa7b8"))

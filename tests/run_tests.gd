@@ -27,6 +27,7 @@ func _run() -> void:
 	_test_progression()
 	_test_battle_intro()
 	_test_units_fight()
+	_test_motion_and_projectile_events()
 	_test_tower_defends_lane()
 	_test_core_defends_after_breach()
 	_test_bot_matches_finish()
@@ -229,6 +230,9 @@ func _test_android_export_configuration() -> void:
 	_expect(config.count("export_filter=\"all_resources\"") == 2, "both Android presets include all runtime resources")
 	_expect(config.count("export_files=PackedStringArray()") == 2, "Android presets do not rely on a selective scene list")
 	_expect(config.count("exclude_filter=\"builds/*,tests/*,tools/*\"") == 2, "Android presets exclude only non-runtime project resources")
+	var project := FileAccess.get_file_as_string("res://project.godot")
+	_expect("size/mode=3" in project and "stretch/aspect=\"ignore\"" in project, "mobile canvas fills the entire fullscreen surface")
+	_expect("window_width_override" not in project and "window_height_override" not in project, "desktop window overrides cannot letterbox Android")
 
 
 func _test_progression() -> void:
@@ -307,6 +311,39 @@ func _test_units_fight() -> void:
 		if simulation.units.size() < 2:
 			break
 	_expect(simulation.units.size() < 2, "opposing units eventually defeat each other")
+
+
+func _test_motion_and_projectile_events() -> void:
+	var movement := BattleSim.new(27)
+	movement.energy[BattleSim.PLAYER] = 10.0
+	movement.play_card(BattleSim.PLAYER, "guardian", 0)
+	var walker: Dictionary = movement.units[0]
+	var initial_y: float = walker.y
+	movement.step(0.1)
+	_expect(bool(walker.moving) and walker.y < initial_y, "advancing units expose visible movement state")
+	_expect(float(walker.walk_phase) > 0.0, "advancing units progress their walk animation phase")
+
+	var combat := BattleSim.new(28)
+	combat.energy = [10.0, 10.0]
+	combat.play_card(BattleSim.PLAYER, "ranger", 0)
+	combat.play_card(BattleSim.ENEMY, "guardian", 0)
+	combat.units[0].y = 600.0
+	combat.units[1].y = 500.0
+	combat.units[0].attack_timer = 0.0
+	combat.units[1].attack_timer = 10.0
+	combat.step(0.1)
+	var ranged_hits := combat.events.filter(func(event: Dictionary) -> bool: return event.type == "hit" and bool(event.get("ranged", false)))
+	_expect(ranged_hits.size() == 1, "ranged unit attacks emit a projectile event")
+	_expect(ranged_hits[0].has("source_state") and ranged_hits[0].has("target_state"), "projectile events preserve positions after defeated units are removed")
+
+	var objective := BattleSim.new(29)
+	objective.energy[BattleSim.PLAYER] = 10.0
+	objective.play_card(BattleSim.PLAYER, "ranger", 0)
+	objective.units[0].y = 360.0
+	objective.units[0].attack_timer = 0.0
+	objective.step(0.1)
+	var objective_hits := objective.events.filter(func(event: Dictionary) -> bool: return event.type == "objective_hit")
+	_expect(objective_hits.size() == 1 and bool(objective_hits[0].ranged), "ranged attacks against towers remain visible")
 
 
 func _test_tower_defends_lane() -> void:
