@@ -232,8 +232,22 @@ func _draw_objectives() -> void:
 func _draw_units() -> void:
 	for unit in simulation.units:
 		var x: float = LANE_X[unit.lane] + float(unit.get("formation_x", 0.0))
-		var radius := _draw_unit_avatar(Vector2(x, unit.y), unit)
+		var center := Vector2(x, unit.y)
+		var radius := _draw_unit_avatar(center, unit)
 		_draw_health_bar(Vector2(x - radius, unit.y - radius - 12.0), radius * 2.0, unit.hp, unit.max_hp)
+		_draw_unit_status(center, radius, unit)
+
+
+func _draw_unit_status(center: Vector2, radius: float, unit: Dictionary) -> void:
+	var slow_time := float(unit.get("slow_timer", 0.0))
+	if slow_time <= 0.0:
+		return
+	var maximum := float(BattleSim.CARDS.frost.slow_duration)
+	var remaining := clampf(slow_time / maximum, 0.0, 1.0)
+	var status_color := Color("75e6ff")
+	draw_circle(center, radius + 7.0, Color(status_color, 0.13))
+	draw_arc(center, radius + 8.0, -PI * 0.5, -PI * 0.5 + TAU * remaining, 28, status_color, 4.0)
+	draw_string(ThemeDB.fallback_font, center + Vector2(-35.0, radius + 27.0), "STASE", HORIZONTAL_ALIGNMENT_CENTER, 70.0, 12, Color("d8f8ff"))
 
 
 func _draw_effects() -> void:
@@ -546,7 +560,7 @@ func _build_menu() -> void:
 	collection.add_theme_font_size_override("font_size", 19)
 	collection.pressed.connect(_build_collection)
 	ui_layer.add_child(collection)
-	var version := _label("Prototype 0.25 • Hors ligne", Vector2(160.0, 1202.0), Vector2(400.0, 36.0), 18)
+	var version := _label("Prototype 0.26 • Hors ligne", Vector2(160.0, 1202.0), Vector2(400.0, 36.0), 18)
 	version.add_theme_color_override("font_color", Color("71889a"))
 	var record := _label("%d victoires  •  %d défaites" % [profile.wins, profile.losses], Vector2(160.0, 1080.0), Vector2(400.0, 36.0), 17)
 	record.add_theme_color_override("font_color", Color("8fa7b8"))

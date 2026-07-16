@@ -41,6 +41,15 @@ func _capture() -> void:
 		await process_frame
 	_save_viewport("res://builds/targeting.png")
 	scene.selected_card = ""
+	scene.simulation.play_card(BattleSim.ENEMY, "guardian", 0)
+	scene.simulation.units[0].y = 505.0
+	scene.simulation.units[0].slow_timer = BattleSim.CARDS.frost.slow_duration * 0.72
+	for index in range(2):
+		await process_frame
+	_save_viewport("res://builds/status.png")
+	scene._start_battle()
+	scene.battle_intro_time = 0.0
+	scene.simulation.energy = [100.0, 100.0]
 	for card_id in ["guardian", "ranger", "colossus", "fireball"]:
 		scene.simulation.play_card(BattleSim.PLAYER, card_id, 1)
 		scene.simulation.play_card(BattleSim.ENEMY, card_id, 0)
@@ -51,6 +60,7 @@ func _capture() -> void:
 	scene.simulation.play_card(BattleSim.ENEMY, "duelist", 1)
 	scene.simulation.play_card(BattleSim.ENEMY, "alchemist", 0)
 	scene.simulation.play_card(BattleSim.ENEMY, "bulwark", 1)
+	scene.simulation.play_card(BattleSim.PLAYER, "frost", 1)
 	scene.simulation.towers[BattleSim.ENEMY].lanes[0] = 1.0
 	scene.simulation._damage_objective(BattleSim.ENEMY, 0, 5.0)
 	scene.simulation.towers[BattleSim.PLAYER].lanes[1] = 1.0
