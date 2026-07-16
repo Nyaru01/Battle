@@ -11,6 +11,7 @@ func _init() -> void:
 func _run() -> void:
 	_test_card_cost_and_validation()
 	_test_energy_regeneration()
+	_test_double_energy()
 	_test_spell_damage()
 	_test_deck_cycle()
 	_test_frost_slow()
@@ -43,6 +44,20 @@ func _test_energy_regeneration() -> void:
 	for index in range(20):
 		simulation.step(0.1)
 	_expect(absf(simulation.energy[BattleSim.PLAYER] - 2.0) < 0.01, "energy regenerates at one point per second")
+
+
+func _test_double_energy() -> void:
+	var simulation := BattleSim.new(17)
+	simulation.energy = [0.0, 0.0]
+	simulation.time_left = 60.05
+	simulation.step(0.1)
+	_expect(simulation.double_energy, "the final regulation minute enables double energy")
+	_expect(absf(simulation.energy[BattleSim.PLAYER] - 0.2) < 0.01, "double energy applies to regeneration")
+	var announcements := simulation.events.filter(func(event: Dictionary) -> bool: return event.type == "double_energy_started")
+	_expect(announcements.size() == 1, "double energy emits one announcement event")
+	simulation.step(0.1)
+	announcements = simulation.events.filter(func(event: Dictionary) -> bool: return event.type == "double_energy_started")
+	_expect(announcements.size() == 1, "double energy announcement is not repeated")
 
 
 func _test_spell_damage() -> void:
@@ -103,7 +118,7 @@ func _test_overtime_rules() -> void:
 	_expect(is_equal_approx(simulation.time_left, BattleSim.OVERTIME_DURATION), "overtime receives its full duration")
 	for index in range(10):
 		simulation.step(0.1)
-	_expect(absf(simulation.energy[BattleSim.PLAYER] - 2.1) < 0.02, "energy regenerates twice as fast in overtime")
+	_expect(absf(simulation.energy[BattleSim.PLAYER] - 3.2) < 0.02, "energy regenerates three times as fast in overtime")
 	simulation.towers[BattleSim.ENEMY].lanes[0] = 1.0
 	simulation._damage_objective(BattleSim.ENEMY, 0, 5.0)
 	_expect(simulation.finished and simulation.winner == BattleSim.PLAYER, "the next crown wins overtime")

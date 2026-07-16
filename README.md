@@ -30,6 +30,8 @@ Le développement du premier prototype jouable est en cours.
 - retours haptiques Android désactivables pour les actions et événements majeurs ;
 - sauvegarde transactionnelle avec récupération automatique depuis une copie de secours ;
 - score par forteresses détruites, prolongation en mort subite et énergie doublée ;
+- énergie doublée pendant la dernière minute avec annonce dédiée ;
+- énergie triplée en mort subite pour accélérer la conclusion ;
 - pause manuelle, pause automatique en arrière-plan, reprise et abandon ;
 - IA équitable utilisant les mêmes commandes que le joueur ;
 - banc reproductible de 1 000 matchs IA avec contrôle des états et commandes ;

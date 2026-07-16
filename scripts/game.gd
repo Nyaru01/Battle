@@ -62,6 +62,8 @@ var sfx_bank: Dictionary = {}
 var sfx_players: Array[AudioStreamPlayer] = []
 var sfx_player_index := 0
 var last_hit_sound_msec := 0
+var announcement_text := ""
+var announcement_ttl := 0.0
 
 
 func _ready() -> void:
@@ -145,6 +147,7 @@ func _draw() -> void:
 	_draw_objectives()
 	_draw_units()
 	_draw_effects()
+	_draw_announcement()
 	_draw_battle_intro()
 
 
@@ -193,6 +196,15 @@ func _draw_battle_intro() -> void:
 	draw_circle(center, 86.0 * pulse, Color(0.02, 0.06, 0.11, 0.82))
 	draw_arc(center, 86.0 * pulse, 0.0, TAU, 40, Color("ffe07a"), 6.0)
 	draw_string(ThemeDB.fallback_font, Vector2(210.0, 585.0), message, HORIZONTAL_ALIGNMENT_CENTER, 300.0, 50 if message == "COMBAT !" else 72, Color.WHITE)
+
+
+func _draw_announcement() -> void:
+	if state != ScreenState.BATTLE or announcement_ttl <= 0.0 or battle_intro_time > 0.0:
+		return
+	var opacity := clampf(announcement_ttl, 0.0, 1.0)
+	draw_rect(Rect2(105.0, 500.0, 510.0, 82.0), Color(0.02, 0.06, 0.11, 0.76 * opacity), true)
+	draw_rect(Rect2(105.0, 500.0, 510.0, 82.0), Color(1.0, 0.83, 0.35, 0.8 * opacity), false, 4.0)
+	draw_string(ThemeDB.fallback_font, Vector2(125.0, 551.0), announcement_text, HORIZONTAL_ALIGNMENT_CENTER, 470.0, 30, Color(1.0, 0.9, 0.55, opacity))
 
 
 func _draw_objectives() -> void:
@@ -277,6 +289,19 @@ func _consume_battle_events() -> void:
 				_add_objective_burst(event.side, 0, true, 135.0)
 				_play_sfx("destroyed")
 				_haptic(180, 0.78)
+			"double_energy_started":
+				_show_announcement("ÉNERGIE x2")
+				_play_sfx("battle_start")
+				_haptic(70, 0.5)
+			"overtime_started":
+				_show_announcement("MORT SUBITE • ÉNERGIE x3")
+				_play_sfx("destroyed")
+				_haptic(120, 0.68)
+
+
+func _show_announcement(message: String) -> void:
+	announcement_text = message
+	announcement_ttl = 2.2
 
 
 func _setup_audio() -> void:
@@ -375,6 +400,7 @@ func _add_beam(from: Vector2, to: Vector2, color: Color, duration: float) -> voi
 
 
 func _update_effects(delta: float) -> void:
+	announcement_ttl = maxf(0.0, announcement_ttl - delta)
 	for index in range(effects.size() - 1, -1, -1):
 		effects[index].ttl = float(effects[index].ttl) - delta
 		if effects[index].ttl <= 0.0:
@@ -501,7 +527,7 @@ func _build_menu() -> void:
 	collection.add_theme_font_size_override("font_size", 19)
 	collection.pressed.connect(_build_collection)
 	ui_layer.add_child(collection)
-	var version := _label("Prototype 0.18 • Hors ligne", Vector2(160.0, 1202.0), Vector2(400.0, 36.0), 18)
+	var version := _label("Prototype 0.19 • Hors ligne", Vector2(160.0, 1202.0), Vector2(400.0, 36.0), 18)
 	version.add_theme_color_override("font_color", Color("71889a"))
 	var record := _label("%d victoires  •  %d défaites" % [profile.wins, profile.losses], Vector2(160.0, 1080.0), Vector2(400.0, 36.0), 17)
 	record.add_theme_color_override("font_color", Color("8fa7b8"))
@@ -617,6 +643,7 @@ func _start_battle() -> void:
 	effects.clear()
 	battle_intro_time = 3.8
 	last_intro_count = 4
+	announcement_ttl = 0.0
 	tutorial = null
 	simulation = BattleSim.new(Time.get_ticks_msec())
 	opponent = BattleAI.new(BattleSim.ENEMY, selected_difficulty, Time.get_ticks_msec() + 19)
@@ -632,6 +659,7 @@ func _start_tutorial() -> void:
 	effects.clear()
 	battle_intro_time = 3.8
 	last_intro_count = 4
+	announcement_ttl = 0.0
 	tutorial = BattleTutorial.new()
 	simulation = BattleSim.new(101)
 	simulation.energy[BattleSim.PLAYER] = 10.0
@@ -752,7 +780,8 @@ func _update_hud() -> void:
 	var seconds := ceili(simulation.time_left)
 	time_label.text = ("MORT SUBITE  " if simulation.overtime else "") + "%02d:%02d" % [seconds / 60, seconds % 60]
 	time_label.add_theme_color_override("font_color", Color("ffcf68") if simulation.overtime else Color.WHITE)
-	energy_label.text = ("x2  " if simulation.overtime else "") + "%.1f/10" % simulation.energy[BattleSim.PLAYER]
+	var energy_prefix := "x3  " if simulation.overtime else ("x2  " if simulation.double_energy else "")
+	energy_label.text = energy_prefix + "%.1f/10" % simulation.energy[BattleSim.PLAYER]
 	energy_bar.value = simulation.energy[BattleSim.PLAYER]
 	var opponent_name := "ENTRAÎNEUR" if tutorial != null else "IA %s" % DIFFICULTY_NAMES[selected_difficulty]
 	core_label.text = "%s %d   ◆ %d — %d ◆   %d TOI" % [opponent_name, int(simulation.towers[BattleSim.ENEMY].core), simulation.crowns[BattleSim.ENEMY], simulation.crowns[BattleSim.PLAYER], int(simulation.towers[BattleSim.PLAYER].core)]

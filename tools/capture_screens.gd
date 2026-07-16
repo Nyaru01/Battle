@@ -27,6 +27,14 @@ func _capture() -> void:
 		await process_frame
 	_save_viewport("res://builds/intro.png")
 	scene.battle_intro_time = 0.0
+	scene.simulation.energy = [0.0, 0.0]
+	scene.simulation.time_left = 60.05
+	scene._process(0.1)
+	for index in range(2):
+		await process_frame
+	_save_viewport("res://builds/double-energy.png")
+	scene._start_battle()
+	scene.battle_intro_time = 0.0
 	scene.simulation.energy = [100.0, 100.0]
 	for card_id in ["guardian", "ranger", "colossus", "fireball"]:
 		scene.simulation.play_card(BattleSim.PLAYER, card_id, 1)
