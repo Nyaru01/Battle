@@ -35,6 +35,7 @@ Le développement du premier prototype jouable est en cours.
 - énergie triplée en mort subite pour accélérer la conclusion ;
 - pause manuelle, pause automatique en arrière-plan, reprise et abandon ;
 - IA équitable utilisant les mêmes commandes que le joueur ;
+- niveaux de cartes IA adaptés à la difficulté et à la progression du joueur ;
 - banc reproductible de 1 000 matchs IA avec contrôle des états et commandes ;
 - sauvegarde locale des victoires et défaites ;
 - progression locale versionnée avec niveau, expérience, éclats et récompenses de match ;

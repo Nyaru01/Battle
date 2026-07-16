@@ -47,6 +47,27 @@ static func card_upgrade_cost(level: int) -> int:
 	return 50 * clampi(level, 1, MAX_CARD_LEVEL)
 
 
+static func opponent_card_levels(player_levels: Dictionary, difficulty: int) -> Dictionary:
+	var levels := {}
+	var safe_difficulty := clampi(difficulty, 0, 2)
+	for card_id in BattleSim.DEFAULT_DECK:
+		var player_level := clampi(int(player_levels.get(card_id, 1)), 1, MAX_CARD_LEVEL)
+		if safe_difficulty == 0:
+			levels[card_id] = 1
+		elif safe_difficulty == 1:
+			levels[card_id] = maxi(1, player_level - 1)
+		else:
+			levels[card_id] = player_level
+	return levels
+
+
+static func average_card_level(levels: Dictionary) -> int:
+	var total := 0
+	for card_id in BattleSim.DEFAULT_DECK:
+		total += clampi(int(levels.get(card_id, 1)), 1, MAX_CARD_LEVEL)
+	return roundi(float(total) / float(BattleSim.DEFAULT_DECK.size()))
+
+
 static func upgrade_card(profile: Dictionary, card_id: String) -> bool:
 	if card_id not in BattleSim.DEFAULT_DECK:
 		return false
