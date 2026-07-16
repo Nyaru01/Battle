@@ -4,6 +4,7 @@ extends RefCounted
 const PLAYER := 0
 const ENEMY := 1
 const MAX_ENERGY := 10.0
+const MAX_CARD_LEVEL := 5
 const ENERGY_PER_SECOND := 1.0
 const MATCH_DURATION := 180.0
 const OVERTIME_DURATION := 45.0
@@ -109,14 +110,15 @@ var draw_queues: Array = []
 var crowns := [0, 0]
 var overtime := false
 var double_energy := false
+var card_levels: Array = [{}, {}]
 
 
-func _init(seed_value: int = 1) -> void:
+func _init(seed_value: int = 1, player_card_levels: Dictionary = {}, enemy_card_levels: Dictionary = {}) -> void:
 	rng.seed = seed_value
-	reset(seed_value)
+	reset(seed_value, player_card_levels, enemy_card_levels)
 
 
-func reset(seed_value: int = 1) -> void:
+func reset(seed_value: int = 1, player_card_levels: Dictionary = {}, enemy_card_levels: Dictionary = {}) -> void:
 	rng.seed = seed_value
 	units.clear()
 	energy = [5.0, 5.0]
@@ -135,6 +137,7 @@ func reset(seed_value: int = 1) -> void:
 	crowns = [0, 0]
 	overtime = false
 	double_energy = false
+	card_levels = [player_card_levels.duplicate(true), enemy_card_levels.duplicate(true)]
 
 
 func play_card(side: int, card_id: String, lane: int) -> bool:
@@ -144,7 +147,8 @@ func play_card(side: int, card_id: String, lane: int) -> bool:
 		return false
 	if card_id not in hands[side]:
 		return false
-	var card: Dictionary = CARDS[card_id]
+	var level := clampi(int(card_levels[side].get(card_id, 1)), 1, MAX_CARD_LEVEL)
+	var card: Dictionary = scaled_card(CARDS[card_id], level)
 	if energy[side] + 0.001 < card.cost:
 		return false
 	energy[side] -= card.cost
@@ -153,8 +157,22 @@ func play_card(side: int, card_id: String, lane: int) -> bool:
 	else:
 		_spawn_unit(side, card_id, lane, card)
 	_cycle_card(side, card_id)
-	events.append({"type": "card_played", "side": side, "card": card_id, "lane": lane})
+	events.append({"type": "card_played", "side": side, "card": card_id, "lane": lane, "level": level})
 	return true
+
+
+static func level_multiplier(level: int) -> float:
+	return 1.0 + float(clampi(level, 1, MAX_CARD_LEVEL) - 1) * 0.08
+
+
+static func scaled_card(base_card: Dictionary, level: int) -> Dictionary:
+	var card := base_card.duplicate(true)
+	var multiplier := level_multiplier(level)
+	if card.has("hp"):
+		card.hp = float(card.hp) * multiplier
+	if card.has("damage"):
+		card.damage = float(card.damage) * multiplier
+	return card
 
 
 func forfeit(side: int) -> bool:

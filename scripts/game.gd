@@ -527,7 +527,7 @@ func _build_menu() -> void:
 	collection.add_theme_font_size_override("font_size", 19)
 	collection.pressed.connect(_build_collection)
 	ui_layer.add_child(collection)
-	var version := _label("Prototype 0.20 • Hors ligne", Vector2(160.0, 1202.0), Vector2(400.0, 36.0), 18)
+	var version := _label("Prototype 0.21 • Hors ligne", Vector2(160.0, 1202.0), Vector2(400.0, 36.0), 18)
 	version.add_theme_color_override("font_color", Color("71889a"))
 	var record := _label("%d victoires  •  %d défaites" % [profile.wins, profile.losses], Vector2(160.0, 1080.0), Vector2(400.0, 36.0), 17)
 	record.add_theme_color_override("font_color", Color("8fa7b8"))
@@ -571,11 +571,12 @@ func _build_collection() -> void:
 	add_child(ui_layer)
 	var title := _label("COLLECTION", Vector2(80.0, 28.0), Vector2(560.0, 58.0), 38)
 	title.add_theme_color_override("font_color", Color("76d6ff"))
-	var subtitle := _label("8 cartes disponibles • deck de combat actuel", Vector2(90.0, 82.0), Vector2(540.0, 38.0), 18)
+	var subtitle := _label("8 cartes disponibles • ◈ %d éclats" % profile.coins, Vector2(90.0, 82.0), Vector2(540.0, 38.0), 18)
 	subtitle.add_theme_color_override("font_color", Color("a9bdca"))
 	for index in range(BattleSim.DEFAULT_DECK.size()):
 		var card_id: String = BattleSim.DEFAULT_DECK[index]
-		var card: Dictionary = BattleSim.CARDS[card_id]
+		var level: int = profile.card_levels[card_id]
+		var card: Dictionary = BattleSim.scaled_card(BattleSim.CARDS[card_id], level)
 		var column := index % 2
 		var row := index / 2
 		var panel := Panel.new()
@@ -599,7 +600,7 @@ func _build_collection() -> void:
 		name_label.add_theme_font_size_override("font_size", 20)
 		panel.add_child(name_label)
 		var cost_label := Label.new()
-		cost_label.text = "●  %d énergie" % int(card.cost)
+		cost_label.text = "Niv. %d  •  ● %d énergie" % [level, int(card.cost)]
 		cost_label.position = Vector2(145.0, 50.0)
 		cost_label.size = Vector2(165.0, 30.0)
 		cost_label.add_theme_font_size_override("font_size", 16)
@@ -613,14 +614,19 @@ func _build_collection() -> void:
 		details.add_theme_font_size_override("font_size", 14)
 		details.add_theme_color_override("font_color", Color("b8c8d2"))
 		panel.add_child(details)
-		var status := Label.new()
-		status.text = "DÉBLOQUÉE"
-		status.position = Vector2(12.0, 162.0)
-		status.size = Vector2(300.0, 30.0)
-		status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		status.add_theme_font_size_override("font_size", 14)
-		status.add_theme_color_override("font_color", Color("79e28c"))
-		panel.add_child(status)
+		var upgrade := Button.new()
+		upgrade.position = Vector2(12.0, 160.0)
+		upgrade.size = Vector2(300.0, 36.0)
+		upgrade.add_theme_font_size_override("font_size", 14)
+		if level >= BattleProgression.MAX_CARD_LEVEL:
+			upgrade.text = "NIVEAU MAXIMUM"
+			upgrade.disabled = true
+		else:
+			var upgrade_cost := BattleProgression.card_upgrade_cost(level)
+			upgrade.text = "AMÉLIORER NIV. %d  •  ◈ %d" % [level + 1, upgrade_cost]
+			upgrade.disabled = profile.coins < upgrade_cost
+			upgrade.pressed.connect(_upgrade_card.bind(card_id))
+		panel.add_child(upgrade)
 	var back := Button.new()
 	back.text = "RETOUR"
 	back.position = Vector2(210.0, 1070.0)
@@ -629,6 +635,16 @@ func _build_collection() -> void:
 	back.pressed.connect(_build_menu)
 	ui_layer.add_child(back)
 	queue_redraw()
+
+
+func _upgrade_card(card_id: String) -> void:
+	if not BattleProgression.upgrade_card(profile, card_id):
+		_haptic(70, 0.22)
+		return
+	_save_profile()
+	_play_sfx("battle_start")
+	_haptic(90, 0.55)
+	_build_collection()
 
 
 func _card_details(card: Dictionary) -> String:
@@ -647,7 +663,7 @@ func _start_battle() -> void:
 	last_intro_count = 4
 	announcement_ttl = 0.0
 	tutorial = null
-	simulation = BattleSim.new(Time.get_ticks_msec())
+	simulation = BattleSim.new(Time.get_ticks_msec(), profile.card_levels)
 	opponent = BattleAI.new(BattleSim.ENEMY, selected_difficulty, Time.get_ticks_msec() + 19)
 	selected_card = ""
 	last_reward = {}

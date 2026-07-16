@@ -15,6 +15,7 @@ func _run() -> void:
 	_test_spell_damage()
 	_test_deck_cycle()
 	_test_squad_card()
+	_test_card_level_scaling()
 	_test_frost_slow()
 	_test_crown_scoring()
 	_test_overtime_rules()
@@ -89,6 +90,15 @@ func _test_squad_card() -> void:
 	_expect(squad.size() == 2, "squad card spawns two independent fighters")
 	_expect(squad[0].id != squad[1].id, "squad fighters receive distinct unit ids")
 	_expect(float(squad[0].formation_x) < 0.0 and float(squad[1].formation_x) > 0.0, "squad fighters deploy in formation")
+
+
+func _test_card_level_scaling() -> void:
+	var simulation := BattleSim.new(25, {"guardian": 3})
+	_expect(simulation.play_card(BattleSim.PLAYER, "guardian", 0), "upgraded player card can be played")
+	_expect(simulation.play_card(BattleSim.ENEMY, "guardian", 1), "baseline enemy card can be played")
+	var expected_hp: float = BattleSim.CARDS.guardian.hp * BattleSim.level_multiplier(3)
+	_expect(is_equal_approx(simulation.units[0].hp, expected_hp), "card level scales player unit health")
+	_expect(is_equal_approx(simulation.units[1].hp, BattleSim.CARDS.guardian.hp), "enemy remains at its configured card level")
 
 
 func _test_frost_slow() -> void:
@@ -205,8 +215,17 @@ func _test_progression() -> void:
 	var profile := BattleProgression.normalize(legacy)
 	_expect(profile.wins == 3 and profile.level == 1, "legacy profiles migrate with defaults")
 	_expect(profile.sound_enabled and profile.haptics_enabled and profile.difficulty == 1, "legacy profiles receive default settings")
+	_expect(profile.card_levels.size() == BattleSim.DEFAULT_DECK.size() and profile.card_levels.guardian == 1, "legacy profiles receive level-one cards")
 	var settings := BattleProgression.normalize({"sound_enabled": false, "haptics_enabled": false, "difficulty": 9})
 	_expect(not settings.sound_enabled and not settings.haptics_enabled and settings.difficulty == 2, "local settings are normalized safely")
+	var upgrade_profile := BattleProgression.default_profile()
+	upgrade_profile.coins = 160
+	_expect(BattleProgression.upgrade_card(upgrade_profile, "guardian"), "coins can upgrade a card")
+	_expect(upgrade_profile.card_levels.guardian == 2 and upgrade_profile.coins == 110, "upgrade spends the correct amount")
+	_expect(BattleProgression.upgrade_card(upgrade_profile, "guardian"), "a card can be upgraded again")
+	_expect(not BattleProgression.upgrade_card(upgrade_profile, "guardian"), "upgrade is rejected without enough coins")
+	var capped := BattleProgression.normalize({"card_levels": {"guardian": 99}})
+	_expect(capped.card_levels.guardian == BattleProgression.MAX_CARD_LEVEL, "stored card levels are capped safely")
 	var tutorial_reward := BattleProgression.complete_tutorial(profile)
 	_expect(tutorial_reward.coins == 15 and profile.tutorial_completed, "tutorial grants its first completion reward")
 	_expect(BattleProgression.complete_tutorial(profile).coins == 0, "tutorial reward cannot be claimed twice")
