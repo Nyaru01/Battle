@@ -26,6 +26,7 @@ Le développement du premier prototype jouable est en cours.
 - carte d’escouade Lames jumelles déployant deux combattants indépendants ;
 - énergie, déplacement, ciblage, combat, victoire et limite de temps ;
 - effets visuels légers pour les déploiements, tirs, impacts, sorts et destructions ;
+- indicateur circulaire de durée sur les unités ralenties par la Stase ;
 - compte à rebours de duel et guide de placement sur les deux voies ;
 - effets sonores procéduraux pour le départ, les cartes, les attaques et les destructions ;
 - préférences locales persistantes pour les sons et le niveau d’IA ;
