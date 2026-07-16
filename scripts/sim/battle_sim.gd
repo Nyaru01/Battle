@@ -265,6 +265,9 @@ func _spawn_unit(side: int, card_id: String, lane: int, card: Dictionary) -> voi
 			"splash": float(card.get("splash", 0.0)),
 			"slow_timer": 0.0,
 			"attack_timer": rng.randf_range(0.0, 0.15),
+			"attack_pulse": 0.0,
+			"moving": false,
+			"walk_phase": float(member) * PI,
 		})
 		next_unit_id += 1
 
@@ -283,14 +286,25 @@ func _update_units(delta: float) -> void:
 	for unit in units:
 		if unit.hp <= 0.0:
 			continue
+		unit.moving = false
 		unit.attack_timer = maxf(0.0, unit.attack_timer - delta)
+		unit.attack_pulse = maxf(0.0, float(unit.attack_pulse) - delta)
 		unit.slow_timer = maxf(0.0, unit.slow_timer - delta)
 		var target = _closest_enemy_unit(unit)
 		if target != null and absf(target.y - unit.y) <= unit.range:
 			if unit.attack_timer <= 0.0:
 				_damage_unit_target(unit, target)
 				unit.attack_timer = unit.interval
-				events.append({"type": "hit", "source": unit.id, "target": target.id})
+				unit.attack_pulse = 0.22
+				events.append({
+					"type": "hit",
+					"source": unit.id,
+					"target": target.id,
+					"side": unit.side,
+					"ranged": float(unit.range) >= 90.0,
+					"source_state": _unit_snapshot(unit),
+					"target_state": _unit_snapshot(target),
+				})
 			continue
 		var target_y := 240.0 if unit.side == PLAYER else 900.0
 		var target_side: int = 1 - int(unit.side)
@@ -299,12 +313,33 @@ func _update_units(delta: float) -> void:
 		var distance := absf(target_y - unit.y)
 		if distance <= unit.range:
 			if unit.attack_timer <= 0.0:
+				var attacks_core: bool = towers[target_side].lanes[unit.lane] <= 0.0
 				_damage_objective(target_side, unit.lane, unit.damage)
 				unit.attack_timer = unit.interval
+				unit.attack_pulse = 0.22
+				events.append({
+					"type": "objective_hit",
+					"side": unit.side,
+					"lane": unit.lane,
+					"ranged": float(unit.range) >= 90.0,
+					"source_state": _unit_snapshot(unit),
+					"target_position": Vector2(360.0, target_y) if attacks_core else Vector2(210.0 if unit.lane == 0 else 510.0, target_y),
+				})
 			continue
 		var direction := -1.0 if unit.side == PLAYER else 1.0
 		var speed_multiplier := 0.55 if unit.slow_timer > 0.0 else 1.0
-		unit.y += direction * unit.speed * speed_multiplier * delta
+		var distance_moved: float = unit.speed * speed_multiplier * delta
+		unit.y += direction * distance_moved
+		unit.moving = true
+		unit.walk_phase = fmod(float(unit.walk_phase) + distance_moved * 0.22, TAU)
+
+
+func _unit_snapshot(unit: Dictionary) -> Dictionary:
+	return {
+		"lane": int(unit.lane),
+		"y": float(unit.y),
+		"formation_x": float(unit.get("formation_x", 0.0)),
+	}
 
 
 func _damage_unit_target(source: Dictionary, target: Dictionary) -> void:
@@ -349,7 +384,7 @@ func _update_towers(delta: float) -> void:
 			if target != null:
 				target.hp = maxf(0.0, target.hp - TOWER_DAMAGE)
 				tower_attack_timers[side][lane] = TOWER_INTERVAL
-				events.append({"type": "tower_shot", "side": side, "lane": lane, "target": target.id})
+				events.append({"type": "tower_shot", "side": side, "lane": lane, "target": target.id, "target_state": _unit_snapshot(target)})
 		core_attack_timers[side] = maxf(0.0, core_attack_timers[side] - delta)
 		if not is_core_active(side) or towers[side].core <= 0.0 or core_attack_timers[side] > 0.0:
 			continue
@@ -358,7 +393,7 @@ func _update_towers(delta: float) -> void:
 		if core_target != null:
 			core_target.hp = maxf(0.0, core_target.hp - CORE_DAMAGE)
 			core_attack_timers[side] = CORE_INTERVAL
-			events.append({"type": "core_shot", "side": side, "target": core_target.id})
+			events.append({"type": "core_shot", "side": side, "target": core_target.id, "target_state": _unit_snapshot(core_target)})
 
 
 func _closest_unit_to_position(target_side: int, lane: int, position_y: float, maximum_distance: float):

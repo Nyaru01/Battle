@@ -11,4 +11,6 @@ L'export inclut toutes les ressources reconnues par Godot afin d'embarquer les s
 
 Après chaque export, `tools/verify_apk.ps1` contrôle que la scène principale, les six scripts d'exécution et les bibliothèques natives attendues sont réellement présents dans l'archive APK. Ce contrôle évite qu'un export sélectif produise une application installable mais incapable d'initialiser sa première scène.
 
+Le projet utilise le mode plein écran avec étirement du canevas sur toute la surface Android. Les dimensions de fenêtre de test desktop ne doivent pas être ajoutées à `project.godot`, car elles provoquent un letterboxing sur les écrans mobiles allongés.
+
 Ces APK sont des builds de développement. Une future publication en boutique devra utiliser une clé de production protégée et un Android App Bundle arm64.

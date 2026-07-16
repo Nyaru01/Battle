@@ -27,6 +27,8 @@ Le développement du premier prototype jouable est en cours.
 - carte d’escouade Lames jumelles déployant deux combattants indépendants ;
 - énergie, déplacement, ciblage, combat, victoire et limite de temps ;
 - effets visuels légers pour les déploiements, tirs, impacts, sorts et destructions ;
+- marche animée avec balancement, traces de pas et poussière ;
+- projectiles persistants et lumineux pour les unités à distance et les forteresses ;
 - indicateur circulaire de durée sur les unités ralenties par la Stase ;
 - compte à rebours de duel et guide de placement sur les deux voies ;
 - effets sonores procéduraux pour le départ, les cartes, les attaques et les destructions ;
@@ -45,6 +47,7 @@ Le développement du premier prototype jouable est en cours.
 - amélioration des cartes jusqu’au niveau 5 en dépensant les éclats gagnés ;
 - écran de résultat avec barre d’XP et mise en avant des niveaux gagnés ;
 - contrôles souris et tactiles ;
+- plein écran Android sans fenêtre de test ni letterboxing ;
 - guides distincts de déploiement des unités et de ciblage des sorts ;
 - validation tactile des territoires allié et ennemi selon le type de carte ;
 - arène 2,5D originale avec chemins, rivière et ponts ;

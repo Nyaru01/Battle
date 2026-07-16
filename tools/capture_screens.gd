@@ -6,6 +6,10 @@ func _init() -> void:
 
 
 func _capture() -> void:
+	if not OS.has_feature("mobile"):
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+		DisplayServer.window_set_size(Vector2i(540, 960))
+		await process_frame
 	var scene: Node = load("res://scenes/main.tscn").instantiate()
 	root.add_child(scene)
 	await process_frame
@@ -47,6 +51,21 @@ func _capture() -> void:
 	for index in range(2):
 		await process_frame
 	_save_viewport("res://builds/status.png")
+	scene._start_battle(false)
+	scene.battle_intro_time = 0.0
+	scene.simulation.energy = [100.0, 100.0]
+	scene.simulation.play_card(BattleSim.PLAYER, "ranger", 0)
+	scene.simulation.play_card(BattleSim.ENEMY, "guardian", 0)
+	scene.simulation.units[0].y = 620.0
+	scene.simulation.units[1].y = 510.0
+	scene.simulation.units[0].attack_timer = 0.0
+	scene.simulation.units[1].attack_timer = 10.0
+	scene.simulation.step(0.1)
+	scene._consume_battle_events()
+	scene.simulation.events.clear()
+	for index in range(2):
+		await process_frame
+	_save_viewport("res://builds/projectiles.png")
 	scene._start_battle(false)
 	scene.battle_intro_time = 0.0
 	scene.simulation.energy = [100.0, 100.0]
