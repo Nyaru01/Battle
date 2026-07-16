@@ -14,6 +14,7 @@ func _run() -> void:
 	_test_double_energy()
 	_test_spell_damage()
 	_test_deck_cycle()
+	_test_random_opening()
 	_test_squad_card()
 	_test_card_level_scaling()
 	_test_frost_slow()
@@ -80,6 +81,16 @@ func _test_deck_cycle() -> void:
 	_expect(simulation.play_card(BattleSim.PLAYER, "guardian", 0), "a hand card can be played")
 	_expect("duelist" in simulation.get_hand(BattleSim.PLAYER), "playing draws the next card")
 	_expect(simulation.get_next_card(BattleSim.PLAYER) == "alchemist", "draw queue advances")
+
+
+func _test_random_opening() -> void:
+	var first := BattleSim.new(98, {}, {}, true)
+	var repeat := BattleSim.new(98, {}, {}, true)
+	var different := BattleSim.new(99, {}, {}, true)
+	_expect(first.get_hand(BattleSim.PLAYER) == first.get_hand(BattleSim.ENEMY), "random opening is symmetrical for both sides")
+	_expect(first.get_hand(BattleSim.PLAYER) == repeat.get_hand(BattleSim.PLAYER), "random opening is deterministic for a seed")
+	_expect(first.get_hand(BattleSim.PLAYER) != BattleSim.DEFAULT_DECK.slice(0, 4), "random opening changes the fixed starting hand")
+	_expect(first.get_hand(BattleSim.PLAYER) != different.get_hand(BattleSim.PLAYER) or first.get_next_card(BattleSim.PLAYER) != different.get_next_card(BattleSim.PLAYER), "different seeds vary the opening cycle")
 
 
 func _test_squad_card() -> void:
@@ -253,7 +264,7 @@ func _test_battle_intro() -> void:
 	root.add_child(scene)
 	_expect(scene.sfx_bank.size() == 9 and scene.sfx_bank.has("core_shot") and scene.sfx_players.size() == 8, "procedural sound bank includes central fortress fire")
 	_expect(scene.sfx_bank["fireball"].data.size() > 1000, "procedural sound contains PCM samples")
-	scene._start_battle()
+	scene._start_battle(false)
 	var initial_time: float = scene.simulation.time_left
 	scene._process(1.0)
 	_expect(is_equal_approx(scene.simulation.time_left, initial_time), "battle countdown freezes the simulation")
@@ -320,7 +331,7 @@ func _test_core_defends_after_breach() -> void:
 
 func _test_bot_matches_finish() -> void:
 	for match_index in range(20):
-		var simulation := BattleSim.new(1000 + match_index)
+		var simulation := BattleSim.new(1000 + match_index, {}, {}, true)
 		var player_bot := BattleAI.new(BattleSim.PLAYER, 2, 2000 + match_index)
 		var enemy_bot := BattleAI.new(BattleSim.ENEMY, 2, 3000 + match_index)
 		for tick in range(2500):

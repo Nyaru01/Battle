@@ -1,6 +1,6 @@
 # Rapport de simulation IA
 
-Dernière campagne : 2026-07-16 — prototype 0.25.0
+Dernière campagne : 2026-07-16 — prototype 0.28.0
 
 Commande :
 
@@ -13,11 +13,11 @@ godot --headless --path . --script res://tools/run_balance.gd -- --matches=1000
 | Mesure | Valeur |
 |---|---:|
 | Matchs terminés | 1 000 / 1 000 |
-| Victoires côté joueur | 477 |
-| Victoires côté adversaire | 479 |
-| Égalités | 44 |
-| Prolongations | 815 |
-| Durée moyenne | 213,1 s |
+| Victoires côté joueur | 479 |
+| Victoires côté adversaire | 465 |
+| Égalités | 56 |
+| Prolongations | 825 |
+| Durée moyenne | 213,4 s |
 | Commandes IA invalides | 0 |
 | États finaux invalides | 0 |
 
@@ -28,5 +28,7 @@ La phase d'énergie doublée pendant la dernière minute produit davantage d'ég
 La campagne 0.20 intègre la carte d'escouade Lames jumelles. L'écart entre les deux côtés n'est que de trois victoires et la durée moyenne descend à 211,8 secondes ; son coût de 3 est donc conservé pour les essais sur appareil.
 
 La campagne 0.25 active la forteresse centrale dès qu'une tour de voie tombe. Elle défend alors les deux couloirs avec 68 dégâts toutes les 1,15 seconde dans un rayon de 275 unités. Le résultat reste presque parfaitement symétrique (deux victoires d'écart) et n'allonge la partie moyenne que de 1,3 seconde par rapport à la base 0.20.
+
+La campagne 0.28 mélange l’ordre des huit cartes à chaque match tout en donnant exactement la même ouverture aux deux camps. Les 1 000 graines produisent 479 victoires joueur contre 465 côté adverse, sans commande invalide ni match inachevé. Le tutoriel conserve son ordre fixe afin que son parcours guidé reste déterministe.
 
 La première passe a détecté 104 fins de partie laissant une unité vaincue dans l'état terminal lorsqu'un sort achevait simultanément un objectif. La simulation nettoie désormais les unités vaincues avant de figer le résultat ; la seconde campagne ne reproduit plus le défaut.
