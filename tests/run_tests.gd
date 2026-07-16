@@ -23,6 +23,7 @@ func _run() -> void:
 	_test_tutorial_flow()
 	_test_forfeit()
 	_test_profile_store()
+	_test_android_export_configuration()
 	_test_progression()
 	_test_battle_intro()
 	_test_units_fight()
@@ -221,6 +222,13 @@ func _test_profile_store() -> void:
 		var absolute := ProjectSettings.globalize_path(path + suffix)
 		if FileAccess.file_exists(path + suffix):
 			DirAccess.remove_absolute(absolute)
+
+
+func _test_android_export_configuration() -> void:
+	var config := FileAccess.get_file_as_string("res://export_presets.cfg")
+	_expect(config.count("export_filter=\"all_resources\"") == 2, "both Android presets include all runtime resources")
+	_expect(config.count("export_files=PackedStringArray()") == 2, "Android presets do not rely on a selective scene list")
+	_expect(config.count("exclude_filter=\"builds/*,tests/*,tools/*\"") == 2, "Android presets exclude only non-runtime project resources")
 
 
 func _test_progression() -> void:

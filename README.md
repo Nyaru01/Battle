@@ -50,6 +50,7 @@ Le développement du premier prototype jouable est en cours.
 - arène 2,5D originale avec chemins, rivière et ponts ;
 - cartes, combattants et forteresses illustrés avec des actifs originaux ;
 - export APK Android debug.
+- contrôle automatique des scripts et bibliothèques réellement embarqués dans chaque APK.
 - distributions universelle (armv7 + arm64) et arm64 allégée.
 
 ## Lancer le projet
