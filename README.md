@@ -42,6 +42,7 @@ Le développement du premier prototype jouable est en cours.
 - amélioration des cartes jusqu’au niveau 5 en dépensant les éclats gagnés ;
 - écran de résultat avec barre d’XP et mise en avant des niveaux gagnés ;
 - contrôles souris et tactiles ;
+- guides distincts de déploiement des unités et de ciblage des sorts ;
 - arène 2,5D originale avec chemins, rivière et ponts ;
 - cartes, combattants et forteresses illustrés avec des actifs originaux ;
 - export APK Android debug.
