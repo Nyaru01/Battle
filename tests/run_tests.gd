@@ -264,6 +264,7 @@ func _test_battle_intro() -> void:
 	_expect(scene.selected_card.is_empty(), "tapping the selected card again cancels targeting")
 	scene._select_card("fireball")
 	_expect("vise une zone ennemie" in scene.hint_label.text, "spell selection explains enemy targeting")
+	_expect(scene.next_card_preview.get_meta("card_id") == scene.simulation.get_next_card(BattleSim.PLAYER), "HUD renders the next card preview")
 	var initial_wins: int = scene.profile.wins
 	scene.simulation.forfeit(BattleSim.ENEMY)
 	scene.last_reward = {"coins": 25, "xp": 35, "levels": 0}
