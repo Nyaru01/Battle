@@ -4,6 +4,7 @@
 
 # Builds
 builds/
+/Battle.apk
 
 # IDE and operating system
 .idea/
