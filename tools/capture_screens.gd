@@ -17,6 +17,8 @@ func _capture() -> void:
 	_save_viewport("res://builds/screens/collection-540x960.png")
 	scene.tutorial = null
 	scene._start_battle(false)
+	await _frames(3)
+	_save_viewport("res://builds/screens/intro-540x960.png")
 	scene.battle_intro_time = 0.0
 	scene.simulation.energy = [100.0, 100.0]
 	scene.simulation.play_card(BattleSim.PLAYER, "guardian", 0)
@@ -40,6 +42,12 @@ func _capture() -> void:
 	DisplayServer.window_set_size(Vector2i(800, 1280))
 	await _frames(6)
 	_save_viewport("res://builds/screens/battle-tablet-800x1280.png")
+	DisplayServer.window_set_size(Vector2i(540, 960))
+	await _frames(5)
+	scene.simulation.forfeit(BattleSim.ENEMY)
+	scene._show_result(false)
+	await _frames(3)
+	_save_viewport("res://builds/screens/result-540x960.png")
 	quit()
 
 

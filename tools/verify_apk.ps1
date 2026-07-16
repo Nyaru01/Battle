@@ -27,8 +27,8 @@ try {
         "assets/scripts/tutorial_flow.gdc",
         "assets/scripts/sim/ai_controller.gdc",
         "assets/scripts/sim/battle_sim.gdc",
-        "assets/scripts/visual/battle_world_3d.gdc",
-        "assets/scripts/visual/unit_view_3d.gdc",
+        "assets/scripts/ui/arena_theme.gdc",
+        "assets/scripts/visual/battle_world_2d.gdc",
         "lib/arm64-v8a/libgodot_android.so"
     )
     if ($Variant -eq "universal") {
@@ -50,7 +50,12 @@ try {
         "icon.png",
         "tower-sprites-v3.png",
         "unit-sprites-v3.png",
-        "unit-sprites-v4.png"
+        "unit-sprites-v4.png",
+        "icon-battle.png",
+        "icon-collection.png",
+        "icon-crown.png",
+        "icon-energy.png",
+        "icon-shard.png"
     )
     $missingTextures = @()
     foreach ($textureName in $textureNames) {
@@ -63,12 +68,25 @@ try {
     if ($missingTextures.Count -gt 0) {
         throw "Textures compilées absentes : $($missingTextures -join ', ')"
     }
+
+    $fontNames = @("LilitaOne-Regular.ttf", "Nunito-Variable.ttf")
+    $missingFonts = @()
+    foreach ($fontName in $fontNames) {
+        $pattern = "assets/.godot/imported/$fontName-*.fontdata"
+        $matches = @($entries.Keys | Where-Object { $_ -like $pattern -and $entries[$_] -gt 0 })
+        if ($matches.Count -eq 0) {
+            $missingFonts += $fontName
+        }
+    }
+    if ($missingFonts.Count -gt 0) {
+        throw "Polices compilées absentes : $($missingFonts -join ', ')"
+    }
     if ($Variant -eq "arm64" -and $entries.ContainsKey("lib/armeabi-v7a/libgodot_android.so")) {
         throw "L'APK ARM64 contient par erreur la bibliothèque ARMv7."
     }
 
     Write-Host "APK vérifié : $resolved"
-    Write-Host "Scripts d'exécution : 8/8 | Textures : 7/7 | Variante : $Variant"
+    Write-Host "Scripts d'exécution : 8/8 | Textures : 12/12 | Polices : 2/2 | Variante : $Variant"
 }
 finally {
     $archive.Dispose()

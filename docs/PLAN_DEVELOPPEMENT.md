@@ -1,8 +1,8 @@
 # Plan de développement — Battle
 
-Version : 0.31
+Version : 0.32
 
-Statut : vertical slice 3D implémenté ; extension et validation sur appareil en cours
+Statut : vertical slice 2,5D premium implémenté ; extension et validation sur appareil en cours
 
 Plateforme initiale : Android (APK)
 
@@ -84,7 +84,7 @@ Tout ajout exige une décision explicite et le retrait d'un élément de coût c
 
 - Godot 4.7.1 au démarrage du prototype, version figée par jalon ;
 - GDScript et rendu Vulkan Mobile pour Android Arm64 ;
-- arène 3D stylisée, caméra orthographique et interface 2D responsive ;
+- arène 2,5D stylisée et interface responsive, optimisées pour une lecture tactile immédiate ;
 - ScriptableObjects pour l'édition, avec export vers des données communes versionnées ;
 - tests headless de la logique et des parcours critiques.
 
@@ -198,11 +198,11 @@ Livrables : système d'utilité, trois difficultés, personnalités, decks IA, t
 
 **Sortie :** l'APK est jouable hors ligne de bout en bout, les difficultés sont perceptibles et aucune partie automatisée ne se bloque.
 
-### Phase 3 — Vertical slice solo (terminée en 0.31)
+### Phase 3 — Vertical slice solo (terminée en 0.32)
 
 Livrables : une arène représentative, huit cartes avec son et effets, écrans principaux, progression locale, première passe d'accessibilité et profilage sur appareils bas, moyen et haut de gamme.
 
-**Sortie :** arène 3D, roster articulé, tirs à temps de trajet réel, interface responsive, APK Arm64 et campagne de 1 000 matchs livrés. La validation tactile et thermique sur appareil physique reste requise.
+**Sortie :** arène 2,5D, roster animé, tirs à temps de trajet réel, interface premium responsive, APK Arm64 et campagne de 1 000 matchs livrés. La validation tactile et thermique sur appareil physique reste requise.
 
 ### Phase 4 — Contenu et alpha APK solo (3 semaines)
 

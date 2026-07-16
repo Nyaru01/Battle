@@ -61,10 +61,27 @@ Ce document suit l'origine des actifs visuels intégrés au projet afin d'évite
 
 La capture de référence n'est pas versionnée dans Git et n'est pas distribuée avec le jeu.
 
-## Modèles 3D procéduraux 0.31
+## Icônes d'interface 0.32
 
 - Date : 2026-07-16
-- Origine : géométrie originale créée dans Godot par `unit_view_3d.gd` et `battle_world_3d.gd`
-- Usage : arène, ponts, tours, personnages articulés, armes, projectiles et effets 3D
-- Contenu : primitives maillées, matériaux et animations procédurales propres au projet
+- Origine : génération OpenAI intégrée à Codex, puis détourage local par clé chromatique
+- Usage : couronne, éclats, combat, collection et énergie dans l'interface 0.32
+- Direction : cinq pictogrammes fantasy originaux, peints en 3D, palette or, cyan et bleu nuit, sans texte ni logo
+- Fichiers : `assets/ui/icon-crown.png`, `icon-shard.png`, `icon-battle.png`, `icon-collection.png` et `icon-energy.png`
+- Référence propriétaire utilisée : aucune
+
+## Typographies 0.32
+
+- Date : 2026-07-16
+- Origine : Google Fonts, téléchargées depuis les dépôts officiels `google/fonts`
+- Fichiers : `LilitaOne-Regular.ttf` et `Nunito-Variable.ttf`
+- Licence : SIL Open Font License 1.1, copies conservées dans `assets/fonts/OFL-LilitaOne.txt` et `assets/fonts/OFL-Nunito.txt`
+- Usage : titres à fort impact et texte courant lisible sur mobile
+
+## Rendu 2,5D 0.32
+
+- Date : 2026-07-16
+- Origine : renderer original écrit en GDScript dans `battle_world_2d.gd`
+- Usage : composition de l'arène, tours, unités, projectiles, effets, barres de vie et ciblage
+- Contenu : réemploi des illustrations originales listées ci-dessus, avec ombres, interpolation, impacts et surimpressions générés par le moteur
 - Référence propriétaire utilisée : aucune ressource, texture, modèle ou animation tiers

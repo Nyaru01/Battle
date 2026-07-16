@@ -5,6 +5,8 @@
 # Builds
 builds/
 /Battle.apk
+# `Android/Battle-latest.apk` est volontairement versionné pour un accès direct depuis GitHub.
+Android/*.idsig
 
 # IDE and operating system
 .idea/

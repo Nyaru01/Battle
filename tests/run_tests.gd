@@ -24,6 +24,7 @@ func _run() -> void:
 	_test_forfeit()
 	_test_profile_store()
 	_test_android_export_configuration()
+	_test_visual_system()
 	_test_progression()
 	_test_battle_intro()
 	_test_units_fight()
@@ -229,11 +230,31 @@ func _test_android_export_configuration() -> void:
 	var config := FileAccess.get_file_as_string("res://export_presets.cfg")
 	_expect(config.count("export_filter=\"all_resources\"") == 2, "both Android presets include all runtime resources")
 	_expect(config.count("export_files=PackedStringArray()") == 2, "Android presets do not rely on a selective scene list")
-	_expect(config.count("exclude_filter=\"builds/*,tests/*,tools/*\"") == 2, "Android presets exclude only non-runtime project resources")
+	_expect(config.count("exclude_filter=\"Android/*,builds/*,tests/*,tools/*\"") == 2, "Android presets exclude the downloadable APK and non-runtime project resources")
+	_expect(config.count("export_path=\"Android/Battle-latest.apk\"") == 2, "both Android presets refresh the easy-to-find root APK")
 	var project := FileAccess.get_file_as_string("res://project.godot")
 	_expect("size/mode=3" in project and "stretch/aspect=\"expand\"" in project, "mobile canvas fills the screen without non-uniform stretching")
 	_expect(project.count("renderer/rendering_method=\"mobile\"") == 1, "battle uses the Vulkan-oriented mobile renderer")
 	_expect("window_width_override" not in project and "window_height_override" not in project, "desktop window overrides cannot letterbox Android")
+
+
+func _test_visual_system() -> void:
+	_expect(ResourceLoader.exists("res://assets/fonts/LilitaOne-Regular.ttf"), "premium heading font is packaged")
+	_expect(ResourceLoader.exists("res://assets/fonts/Nunito-Variable.ttf"), "readable body font is packaged")
+	_expect(ResourceLoader.exists("res://assets/ui/icon-battle.png") and ResourceLoader.exists("res://assets/ui/icon-energy.png"), "original UI icon set is packaged")
+	var world := BattleWorld2D.new()
+	world.size = Vector2(540.0, 700.0)
+	root.add_child(world)
+	world._update_arena_rect()
+	_expect(absf(world.arena_rect.size.x / world.arena_rect.size.y - 0.70) < 0.001, "2.5D arena preserves its aspect ratio")
+	var enemy_left := world.to_sim_position(world.arena_rect.position + world.arena_rect.size * Vector2(0.25, 0.25))
+	var player_right := world.to_sim_position(world.arena_rect.position + world.arena_rect.size * Vector2(0.75, 0.75))
+	_expect(world.lane_at(enemy_left) == 0 and world.lane_at(player_right) == 1, "responsive arena mapping preserves both lanes")
+	_expect(not world.is_player_half(enemy_left) and world.is_player_half(player_right), "responsive arena mapping preserves deployment territories")
+	_expect(is_inf(world.to_sim_position(Vector2(-20.0, -20.0)).x), "touches outside the arena are ignored")
+	world.set_targeting("unit", 1)
+	_expect(world.targeting_type == "unit" and world.targeting_lane == 1, "targeting state reaches the 2.5D renderer")
+	world.free()
 
 
 func _test_progression() -> void:
@@ -278,6 +299,8 @@ func _test_battle_intro() -> void:
 	_expect(scene.sfx_bank.size() == 9 and scene.sfx_bank.has("core_shot") and scene.sfx_players.size() == 8, "procedural sound bank includes central fortress fire")
 	_expect(scene.sfx_bank["fireball"].data.size() > 1000, "procedural sound contains PCM samples")
 	scene._start_battle(false)
+	_expect(scene.battle_world is BattleWorld2D, "battle uses the responsive 2.5D renderer")
+	_expect(scene.card_buttons.size() == 4, "battle HUD always exposes a four-card hand")
 	var initial_time: float = scene.simulation.time_left
 	scene._process(1.0)
 	_expect(is_equal_approx(scene.simulation.time_left, initial_time), "battle countdown freezes the simulation")

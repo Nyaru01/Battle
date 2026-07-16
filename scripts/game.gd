@@ -1,8 +1,14 @@
 extends Node
 
-const BattleWorldScript := preload("res://scripts/visual/battle_world_3d.gd")
+const BattleWorldScript := preload("res://scripts/visual/battle_world_2d.gd")
 const CARD_ART := preload("res://assets/card-art-v2.png")
 const CARD_ART_V4 := preload("res://assets/card-art-v4.png")
+const ICON_TEXTURE := preload("res://assets/icon.png")
+const ICON_BATTLE := preload("res://assets/ui/icon-battle.png")
+const ICON_COLLECTION := preload("res://assets/ui/icon-collection.png")
+const ICON_CROWN := preload("res://assets/ui/icon-crown.png")
+const ICON_ENERGY := preload("res://assets/ui/icon-energy.png")
+const ICON_SHARD := preload("res://assets/ui/icon-shard.png")
 const SAVE_PATH := "user://profile.json"
 const DIFFICULTY_NAMES := ["INITIATION", "TACTIQUE", "EXPERT"]
 const CARD_QUADRANTS := {
@@ -34,18 +40,20 @@ var result_shown := false
 var ui_layer: CanvasLayer
 var ui_root: Control
 var pause_layer: CanvasLayer
+var result_layer: CanvasLayer
 var time_label: Label
 var energy_label: Label
 var energy_bar: ProgressBar
 var core_label: Label
 var hint_label: Label
 var tutorial_label: Label
+var intro_label: Label
 var next_card_preview: PanelContainer
 var next_card_label: Label
+var next_card_art: TextureRect
 var card_buttons: Dictionary = {}
-var arena_container: SubViewportContainer
-var arena_viewport: SubViewport
-var battle_world: BattleWorld3D
+var arena_container: Control
+var battle_world: BattleWorld2D
 var hovered_lane := -1
 
 var sfx_bank: Dictionary = {}
@@ -72,6 +80,9 @@ func _process(delta: float) -> void:
 				_play_sfx("countdown")
 			if battle_intro_time <= 0.0:
 				_play_sfx("battle_start")
+			if is_instance_valid(intro_label):
+				intro_label.visible = battle_intro_time > 0.0
+				intro_label.text = str(maxi(1, ceili(battle_intro_time - 0.55))) if battle_intro_time > 0.55 else "À L’ASSAUT !"
 		else:
 			opponent.update(delta, simulation)
 			simulation.step(delta)
@@ -91,44 +102,70 @@ func _notification(what: int) -> void:
 
 func _build_menu() -> void:
 	_clear_pause_overlay()
+	_clear_result_overlay()
 	_clear_ui()
 	state = ScreenState.MENU
 	ui_layer = CanvasLayer.new()
 	add_child(ui_layer)
-	ui_root = _screen_root(Color("10283a"))
+	ui_root = _screen_root(ArenaTheme.NAVY)
+
+	var hero := TextureRect.new()
+	hero.texture = ICON_TEXTURE
+	hero.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	hero.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	hero.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	hero.anchor_left = 0.12
+	hero.anchor_right = 0.88
+	hero.anchor_bottom = 0.55
+	hero.offset_left = 0.0
+	hero.offset_right = 0.0
+	hero.offset_top = 18.0
+	hero.offset_bottom = 0.0
+	hero.modulate = Color(1.0, 1.0, 1.0, 0.96)
+	hero.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ui_root.add_child(hero)
+
+	var fade_texture := GradientTexture2D.new()
+	var fade_gradient := Gradient.new()
+	fade_gradient.colors = PackedColorArray([Color(0.03, 0.08, 0.14, 0.02), ArenaTheme.NAVY])
+	fade_texture.gradient = fade_gradient
+	fade_texture.fill_from = Vector2(0.5, 0.0)
+	fade_texture.fill_to = Vector2(0.5, 1.0)
+	var fade := TextureRect.new()
+	fade.texture = fade_texture
+	fade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ui_root.add_child(fade)
+
 	var safe := _safe_margin()
 	ui_root.add_child(safe)
 	var layout := VBoxContainer.new()
-	layout.alignment = BoxContainer.ALIGNMENT_CENTER
-	layout.add_theme_constant_override("separation", 16)
+	layout.alignment = BoxContainer.ALIGNMENT_BEGIN
+	layout.add_theme_constant_override("separation", 8)
 	safe.add_child(layout)
 
-	var crest := Label.new()
-	crest.text = "♛"
-	crest.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	crest.add_theme_font_size_override("font_size", 72)
-	crest.add_theme_color_override("font_color", Color("ffd66b"))
-	layout.add_child(crest)
-	var title := _title_label("BATTLE", 56, Color("7be2ff"))
+	var hero_spacer := Control.new()
+	hero_spacer.custom_minimum_size.y = 210
+	hero_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	layout.add_child(hero_spacer)
+	var title := _title_label("BATTLE", 52, ArenaTheme.CYAN)
 	layout.add_child(title)
-	var subtitle := _title_label("CHRONIQUES DE L’ARÈNE", 18, Color("bed8e5"))
+	var subtitle := _title_label("CHRONIQUES DE L’ARÈNE", 17, ArenaTheme.TEXT_MUTED)
 	layout.add_child(subtitle)
 
 	var profile_panel := PanelContainer.new()
-	profile_panel.add_theme_stylebox_override("panel", _panel_style(Color("173d50"), Color("3e7185"), 18))
-	profile_panel.custom_minimum_size = Vector2(0, 84)
+	profile_panel.add_theme_stylebox_override("panel", ArenaTheme.inset_panel(Color("102f47"), Color("4e9abb"), 16))
+	profile_panel.custom_minimum_size = Vector2(0, 68)
 	var profile_row := HBoxContainer.new()
 	profile_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	profile_row.add_theme_constant_override("separation", 28)
+	profile_row.add_theme_constant_override("separation", 24)
 	profile_panel.add_child(profile_row)
-	profile_row.add_child(_stat_label("NIVEAU", str(profile.level), Color("7be2ff")))
-	profile_row.add_child(_stat_label("VICTOIRES", str(profile.wins), Color("77e58b")))
-	profile_row.add_child(_stat_label("ÉCLATS", str(profile.coins), Color("ffd66b")))
+	profile_row.add_child(_stat_label("NIVEAU", str(profile.level), ArenaTheme.CYAN))
+	profile_row.add_child(_stat_label("VICTOIRES", str(profile.wins), ArenaTheme.GREEN))
+	profile_row.add_child(_stat_label("ÉCLATS", str(profile.coins), ArenaTheme.GOLD_LIGHT))
 	layout.add_child(profile_panel)
 
-	var mode := _title_label("DUEL CONTRE IA", 23, Color("fff0b5"))
-	mode.add_theme_constant_override("outline_size", 5)
-	mode.add_theme_color_override("font_outline_color", Color("65441c"))
+	var mode := _title_label("DUEL CONTRE IA", 22, ArenaTheme.GOLD_LIGHT)
 	layout.add_child(mode)
 	var difficulty := HBoxContainer.new()
 	difficulty.add_theme_constant_override("separation", 8)
@@ -138,16 +175,19 @@ func _build_menu() -> void:
 		choice.text = DIFFICULTY_NAMES[index]
 		choice.toggle_mode = true
 		choice.button_pressed = selected_difficulty == index
-		choice.custom_minimum_size = Vector2(0, 52)
+		choice.custom_minimum_size = Vector2(0, 48)
 		choice.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_apply_button_theme(choice, "gold" if selected_difficulty == index else "secondary", 15)
+		_apply_button_theme(choice, "gold" if selected_difficulty == index else "secondary", 14)
 		choice.pressed.connect(_select_difficulty.bind(index))
 		difficulty.add_child(choice)
 
 	var start := Button.new()
-	start.text = "⚔  COMBAT IA"
-	start.custom_minimum_size = Vector2(0, 86)
-	_apply_button_theme(start, "primary", 29)
+	start.text = "COMBAT IA"
+	start.icon = ICON_BATTLE
+	start.expand_icon = true
+	start.add_theme_constant_override("icon_max_width", 42)
+	start.custom_minimum_size = Vector2(0, 72)
+	_apply_button_theme(start, "primary", 28)
 	start.pressed.connect(_start_battle)
 	layout.add_child(start)
 	var secondary := HBoxContainer.new()
@@ -156,21 +196,24 @@ func _build_menu() -> void:
 	var training := Button.new()
 	training.text = "APPRENDRE"
 	training.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	training.custom_minimum_size.y = 58
-	_apply_button_theme(training, "secondary", 17)
+	training.custom_minimum_size.y = 50
+	_apply_button_theme(training, "secondary", 16)
 	training.pressed.connect(_start_tutorial)
 	secondary.add_child(training)
 	var collection := Button.new()
 	collection.text = "COLLECTION"
+	collection.icon = ICON_COLLECTION
+	collection.expand_icon = true
+	collection.add_theme_constant_override("icon_max_width", 28)
 	collection.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	collection.custom_minimum_size.y = 58
-	_apply_button_theme(collection, "secondary", 17)
+	collection.custom_minimum_size.y = 50
+	_apply_button_theme(collection, "secondary", 16)
 	collection.pressed.connect(_build_collection)
 	secondary.add_child(collection)
 
 	var settings := HBoxContainer.new()
 	settings.alignment = BoxContainer.ALIGNMENT_CENTER
-	settings.add_theme_constant_override("separation", 28)
+	settings.add_theme_constant_override("separation", 22)
 	layout.add_child(settings)
 	var sound_toggle := CheckButton.new()
 	sound_toggle.text = "SONS"
@@ -182,17 +225,18 @@ func _build_menu() -> void:
 	haptics_toggle.button_pressed = haptics_enabled
 	haptics_toggle.toggled.connect(_toggle_haptics)
 	settings.add_child(haptics_toggle)
-	var version := _title_label("v0.31 • VERTICAL SLICE 3D • HORS LIGNE", 13, Color("7599aa"))
+	var version := _title_label("v0.32 • ARÈNE 2,5D • HORS LIGNE", 12, Color("7599aa"))
 	layout.add_child(version)
 
 
 func _build_collection() -> void:
 	_clear_pause_overlay()
+	_clear_result_overlay()
 	_clear_ui()
 	state = ScreenState.COLLECTION
 	ui_layer = CanvasLayer.new()
 	add_child(ui_layer)
-	ui_root = _screen_root(Color("10283a"))
+	ui_root = _screen_root(ArenaTheme.NAVY)
 	var safe := _safe_margin()
 	ui_root.add_child(safe)
 	var layout := VBoxContainer.new()
@@ -206,13 +250,22 @@ func _build_collection() -> void:
 	_apply_button_theme(back, "secondary", 32)
 	back.pressed.connect(_build_menu)
 	header.add_child(back)
-	var title := _title_label("COLLECTION", 34, Color("7be2ff"))
+	var title := _title_label("COLLECTION", 34, ArenaTheme.CYAN)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(title)
-	var coins := _title_label("◆ %d" % profile.coins, 21, Color("ffd66b"))
-	coins.custom_minimum_size.x = 100
-	header.add_child(coins)
-	var description := _title_label("Améliore tes cartes et prépare ton escouade", 16, Color("aec9d5"))
+	var currency := HBoxContainer.new()
+	currency.alignment = BoxContainer.ALIGNMENT_CENTER
+	currency.custom_minimum_size.x = 112
+	var shard := TextureRect.new()
+	shard.texture = ICON_SHARD
+	shard.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	shard.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	shard.custom_minimum_size = Vector2(30, 30)
+	currency.add_child(shard)
+	var coins := _title_label(str(profile.coins), 21, ArenaTheme.GOLD_LIGHT)
+	currency.add_child(coins)
+	header.add_child(currency)
+	var description := _title_label("Améliore tes cartes et prépare ton escouade", 16, ArenaTheme.TEXT_MUTED)
 	layout.add_child(description)
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -233,7 +286,7 @@ func _collection_card(card_id: String) -> Control:
 	var card: Dictionary = BattleSim.scaled_card(BattleSim.CARDS[card_id], level)
 	var panel := PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.custom_minimum_size = Vector2(0, 278)
+	panel.custom_minimum_size = Vector2(0, 270)
 	panel.add_theme_stylebox_override("panel", _card_panel_style(card_id, false, false))
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 10)
@@ -250,7 +303,7 @@ func _collection_card(card_id: String) -> Control:
 	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	art.custom_minimum_size.y = 112
 	layout.add_child(art)
-	var name := _title_label(String(card.name), 20, Color.WHITE)
+	var name := _title_label(String(card.name), 20, ArenaTheme.TEXT)
 	layout.add_child(name)
 	var stats := _title_label("Niv. %d  •  %d énergie" % [level, int(card.cost)], 14, Color("f4a6ff"))
 	layout.add_child(stats)
@@ -260,7 +313,7 @@ func _collection_card(card_id: String) -> Control:
 	details.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	details.custom_minimum_size.y = 42
 	details.add_theme_font_size_override("font_size", 13)
-	details.add_theme_color_override("font_color", Color("c2d6df"))
+	ArenaTheme.apply_body(details, 13, Color("d5e5ec"))
 	layout.add_child(details)
 	var upgrade := Button.new()
 	upgrade.custom_minimum_size.y = 44
@@ -279,11 +332,12 @@ func _collection_card(card_id: String) -> Control:
 
 func _start_battle(randomize_opening: bool = true, keep_tutorial: bool = false) -> void:
 	_clear_pause_overlay()
+	_clear_result_overlay()
 	_clear_ui()
 	state = ScreenState.BATTLE
 	selected_card = ""
 	hovered_lane = -1
-	battle_intro_time = 3.2
+	battle_intro_time = 3.55
 	last_intro_count = 4
 	result_shown = false
 	event_cursor = 0
@@ -306,60 +360,73 @@ func _start_tutorial() -> void:
 func _build_battle_screen() -> void:
 	ui_layer = CanvasLayer.new()
 	add_child(ui_layer)
-	ui_root = _screen_root(Color("0a1722"))
+	ui_root = _screen_root(ArenaTheme.NAVY)
 	var layout := VBoxContainer.new()
 	layout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	layout.add_theme_constant_override("separation", 0)
 	ui_root.add_child(layout)
 	layout.add_child(_build_battle_header())
 
-	arena_container = SubViewportContainer.new()
-	arena_container.stretch = true
+	arena_container = PanelContainer.new()
 	arena_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	arena_container.mouse_filter = Control.MOUSE_FILTER_STOP
-	arena_container.gui_input.connect(_on_arena_input)
+	arena_container.add_theme_stylebox_override("panel", ArenaTheme.panel(Color("06111c"), Color("29627a"), 0, 2, 0))
 	layout.add_child(arena_container)
-	arena_viewport = SubViewport.new()
-	arena_viewport.size = Vector2i(640, 780)
-	arena_viewport.transparent_bg = true
-	arena_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	arena_viewport.msaa_3d = Viewport.MSAA_4X
-	arena_container.add_child(arena_viewport)
 	battle_world = BattleWorldScript.new()
-	arena_viewport.add_child(battle_world)
+	battle_world.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	battle_world.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	battle_world.gui_input.connect(_on_arena_input)
+	arena_container.add_child(battle_world)
+
+	intro_label = _title_label("3", 72, Color.WHITE)
+	intro_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	intro_label.position = Vector2(-132, -70)
+	intro_label.size = Vector2(264, 140)
+	intro_label.add_theme_stylebox_override("normal", ArenaTheme.panel(Color(0.02, 0.06, 0.10, 0.86), ArenaTheme.GOLD_LIGHT, 70, 5, 12))
+	intro_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	battle_world.add_child(intro_label)
 
 	layout.add_child(_build_battle_footer())
 
 
 func _build_battle_header() -> Control:
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size.y = 78
-	panel.add_theme_stylebox_override("panel", _panel_style(Color("10283a"), Color("2d6076"), 0))
+	panel.custom_minimum_size.y = 70
+	panel.add_theme_stylebox_override("panel", ArenaTheme.panel(Color("0d2639"), Color("3e819e"), 0, 2, 4))
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 14)
-	margin.add_theme_constant_override("margin_right", 14)
-	margin.add_theme_constant_override("margin_top", 8)
-	margin.add_theme_constant_override("margin_bottom", 8)
+	margin.add_theme_constant_override("margin_left", 12)
+	margin.add_theme_constant_override("margin_right", 12)
+	margin.add_theme_constant_override("margin_top", 7)
+	margin.add_theme_constant_override("margin_bottom", 7)
 	panel.add_child(margin)
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
+	row.add_theme_constant_override("separation", 8)
 	margin.add_child(row)
 	var enemy := VBoxContainer.new()
+	enemy.custom_minimum_size.x = 94
 	enemy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(enemy)
-	var enemy_name := _title_label("IA %s" % DIFFICULTY_NAMES[selected_difficulty], 15, Color("ff8ba0"))
+	var enemy_caption := _title_label("ADVERSAIRE", 10, ArenaTheme.TEXT_MUTED)
+	enemy_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	enemy.add_child(enemy_caption)
+	var enemy_name := _title_label("IA %s" % DIFFICULTY_NAMES[selected_difficulty], 14, Color("ff8296"))
 	enemy_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	enemy.add_child(enemy_name)
-	core_label = _title_label("♛ 2200   0 — 0   2200 ♛", 17, Color("d8edf5"))
+	var crown := TextureRect.new()
+	crown.texture = ICON_CROWN
+	crown.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	crown.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	crown.custom_minimum_size = Vector2(28, 28)
+	row.add_child(crown)
+	core_label = _title_label("2200  0 — 0  2200", 16, ArenaTheme.TEXT)
 	core_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(core_label)
-	time_label = _title_label("3:00", 27, Color.WHITE)
-	time_label.custom_minimum_size.x = 76
+	time_label = _title_label("3:00", 25, Color.WHITE)
+	time_label.custom_minimum_size.x = 64
 	row.add_child(time_label)
 	var pause := Button.new()
 	pause.text = "Ⅱ"
-	pause.custom_minimum_size = Vector2(54, 54)
-	_apply_button_theme(pause, "secondary", 21)
+	pause.custom_minimum_size = Vector2(48, 48)
+	_apply_button_theme(pause, "secondary", 19)
 	pause.pressed.connect(_pause_battle)
 	row.add_child(pause)
 	return panel
@@ -367,45 +434,60 @@ func _build_battle_header() -> Control:
 
 func _build_battle_footer() -> Control:
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size.y = 208
-	panel.add_theme_stylebox_override("panel", _panel_style(Color("122738"), Color("39667a"), 0))
+	panel.custom_minimum_size.y = 196
+	panel.add_theme_stylebox_override("panel", ArenaTheme.panel(Color("0e2435"), Color("3e7891"), 0, 2, 0))
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 10)
-	margin.add_theme_constant_override("margin_right", 10)
-	margin.add_theme_constant_override("margin_top", 7)
-	margin.add_theme_constant_override("margin_bottom", 10)
+	margin.add_theme_constant_override("margin_left", 8)
+	margin.add_theme_constant_override("margin_right", 8)
+	margin.add_theme_constant_override("margin_top", 5)
+	margin.add_theme_constant_override("margin_bottom", 8)
 	panel.add_child(margin)
 	var layout := VBoxContainer.new()
-	layout.add_theme_constant_override("separation", 6)
+	layout.add_theme_constant_override("separation", 4)
 	margin.add_child(layout)
-	hint_label = _title_label("Choisis une carte puis touche une voie", 15, Color("b9dbe9"))
-	hint_label.custom_minimum_size.y = 23
+	hint_label = _title_label("Choisis une carte puis touche une voie", 14, ArenaTheme.TEXT_MUTED)
+	hint_label.custom_minimum_size.y = 20
 	layout.add_child(hint_label)
-	tutorial_label = _title_label("", 14, Color("ffe580"))
+	tutorial_label = _title_label("", 13, ArenaTheme.GOLD_LIGHT)
 	tutorial_label.visible = tutorial != null
 	layout.add_child(tutorial_label)
 	var energy_row := HBoxContainer.new()
-	energy_row.add_theme_constant_override("separation", 9)
+	energy_row.add_theme_constant_override("separation", 6)
 	layout.add_child(energy_row)
 	next_card_preview = PanelContainer.new()
-	next_card_preview.custom_minimum_size = Vector2(86, 48)
-	next_card_preview.add_theme_stylebox_override("panel", _panel_style(Color("1a3548"), Color("4e7990"), 12))
-	next_card_label = _title_label("APRÈS", 12, Color("b7d0db"))
-	next_card_preview.add_child(next_card_label)
+	next_card_preview.custom_minimum_size = Vector2(70, 48)
+	next_card_preview.add_theme_stylebox_override("panel", ArenaTheme.inset_panel(Color("142f42"), Color("4e8096"), 11))
+	var next_layout := VBoxContainer.new()
+	next_layout.add_theme_constant_override("separation", 0)
+	next_card_preview.add_child(next_layout)
+	next_card_art = TextureRect.new()
+	next_card_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	next_card_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	next_card_art.custom_minimum_size.y = 26
+	next_card_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	next_layout.add_child(next_card_art)
+	next_card_label = _title_label("APRÈS", 9, ArenaTheme.TEXT_MUTED)
+	next_layout.add_child(next_card_label)
 	energy_row.add_child(next_card_preview)
-	energy_label = _title_label("10.0", 18, Color("f5a5ff"))
-	energy_label.custom_minimum_size.x = 54
+	var energy_icon := TextureRect.new()
+	energy_icon.texture = ICON_ENERGY
+	energy_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	energy_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	energy_icon.custom_minimum_size = Vector2(28, 28)
+	energy_row.add_child(energy_icon)
+	energy_label = _title_label("10", 18, Color("f5a5ff"))
+	energy_label.custom_minimum_size.x = 34
 	energy_row.add_child(energy_label)
 	energy_bar = ProgressBar.new()
 	energy_bar.max_value = BattleSim.MAX_ENERGY
 	energy_bar.show_percentage = false
 	energy_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	energy_bar.custom_minimum_size.y = 22
-	energy_bar.add_theme_stylebox_override("background", _panel_style(Color("281b35"), Color("563b66"), 11))
-	energy_bar.add_theme_stylebox_override("fill", _panel_style(Color("d84ee9"), Color("f19cff"), 11))
+	energy_bar.custom_minimum_size.y = 20
+	energy_bar.add_theme_stylebox_override("background", ArenaTheme.panel(Color("281b35"), Color("654276"), 10, 2, 1))
+	energy_bar.add_theme_stylebox_override("fill", ArenaTheme.panel(ArenaTheme.MAGENTA, Color("f4a3ff"), 10, 2, 1))
 	energy_row.add_child(energy_bar)
 	var hand := HBoxContainer.new()
-	hand.add_theme_constant_override("separation", 7)
+	hand.add_theme_constant_override("separation", 6)
 	layout.add_child(hand)
 	card_buttons.clear()
 	for card_id in simulation.get_hand(BattleSim.PLAYER):
@@ -419,7 +501,7 @@ func _battle_card_button(card_id: String) -> Button:
 	var card: Dictionary = BattleSim.CARDS[card_id]
 	var button := Button.new()
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button.custom_minimum_size = Vector2(0, 108)
+	button.custom_minimum_size = Vector2(0, 104)
 	button.clip_contents = true
 	button.set_meta("card_id", card_id)
 	button.add_theme_stylebox_override("normal", _card_panel_style(card_id, false, false))
@@ -428,7 +510,8 @@ func _battle_card_button(card_id: String) -> Button:
 	button.add_theme_stylebox_override("disabled", _card_panel_style(card_id, false, true))
 	button.pressed.connect(_select_card.bind(card_id))
 	var layout := VBoxContainer.new()
-	layout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 5)
+	layout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 4)
+	layout.add_theme_constant_override("separation", 1)
 	layout.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(layout)
 	var art := TextureRect.new()
@@ -438,9 +521,20 @@ func _battle_card_button(card_id: String) -> Button:
 	art.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layout.add_child(art)
-	var caption := _title_label("%s  ◆%d" % [String(card.name), int(card.cost)], 12, Color.WHITE)
+	var caption := _title_label(String(card.name), 11, Color.WHITE)
+	caption.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layout.add_child(caption)
+	var cost_badge := Label.new()
+	cost_badge.text = str(int(card.cost))
+	cost_badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cost_badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	cost_badge.position = Vector2(4, 4)
+	cost_badge.size = Vector2(30, 30)
+	cost_badge.add_theme_stylebox_override("normal", ArenaTheme.badge())
+	ArenaTheme.apply_heading(cost_badge, 16, Color.WHITE)
+	cost_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(cost_badge)
 	return button
 
 
@@ -459,15 +553,15 @@ func _on_arena_input(event: InputEvent) -> void:
 		local_position = event.position
 	else:
 		return
-	var world_position := battle_world.screen_to_arena(local_position)
-	if is_inf(world_position.x):
+	var sim_position := battle_world.to_sim_position(local_position)
+	if is_inf(sim_position.x):
 		return
-	hovered_lane = battle_world.world_lane(world_position)
+	hovered_lane = battle_world.lane_at(sim_position)
 	battle_world.set_targeting(String(BattleSim.CARDS[selected_card].type), hovered_lane)
 	if not released:
 		return
 	var is_unit := String(BattleSim.CARDS[selected_card].type) == "unit"
-	var valid_half := battle_world.is_player_half(world_position) if is_unit else not battle_world.is_player_half(world_position)
+	var valid_half := battle_world.is_player_half(sim_position) if is_unit else not battle_world.is_player_half(sim_position)
 	if not valid_half:
 		hint_label.text = "Zone interdite : vise la moitié %s" % ("alliée" if is_unit else "ennemie")
 		_haptic(55, 0.25)
@@ -557,24 +651,28 @@ func _consume_battle_events() -> void:
 func _update_hud() -> void:
 	if not is_instance_valid(time_label) or simulation == null:
 		return
+	if is_instance_valid(intro_label):
+		intro_label.visible = battle_intro_time > 0.0
+		intro_label.text = str(maxi(1, ceili(battle_intro_time - 0.55))) if battle_intro_time > 0.55 else "À L’ASSAUT !"
 	var seconds := ceili(simulation.time_left)
 	time_label.text = "%d:%02d" % [seconds / 60, seconds % 60]
-	if battle_intro_time > 0.0:
-		time_label.text = str(maxi(1, ceili(battle_intro_time)))
-	energy_label.text = "%.1f" % simulation.energy[BattleSim.PLAYER]
+	energy_label.text = str(int(floor(float(simulation.energy[BattleSim.PLAYER]))))
 	energy_bar.value = simulation.energy[BattleSim.PLAYER]
-	core_label.text = "♛ %d   %d — %d   %d ♛" % [
+	core_label.text = "%d  %d — %d  %d" % [
 		int(simulation.towers[BattleSim.ENEMY].core), simulation.crowns[BattleSim.ENEMY],
 		simulation.crowns[BattleSim.PLAYER], int(simulation.towers[BattleSim.PLAYER].core),
 	]
 	var next_id := simulation.get_next_card(BattleSim.PLAYER)
 	next_card_preview.set_meta("card_id", next_id)
-	next_card_label.text = "APRÈS\n%s" % String(BattleSim.CARDS[next_id].name)
+	next_card_art.texture = _card_texture(next_id)
+	next_card_label.text = "APRÈS • %s" % String(BattleSim.CARDS[next_id].name)
 	for card_id in card_buttons:
 		var button: Button = card_buttons[card_id]
 		var affordable: bool = float(simulation.energy[BattleSim.PLAYER]) + 0.001 >= float(BattleSim.CARDS[card_id].cost)
 		button.disabled = not affordable
 		button.add_theme_stylebox_override("normal", _card_panel_style(card_id, selected_card == card_id, false))
+		button.pivot_offset = button.size * 0.5
+		button.scale = Vector2(1.035, 1.035) if selected_card == card_id else Vector2.ONE
 	if tutorial != null:
 		tutorial_label.visible = true
 		tutorial_label.text = tutorial.instruction()
@@ -611,36 +709,54 @@ func _show_result(award_progression: bool = true) -> void:
 			profile.draws += 1
 		last_reward = BattleProgression.apply_match_result(profile, simulation.winner, simulation.crowns[BattleSim.PLAYER])
 		_save_profile()
-	_clear_ui()
-	ui_layer = CanvasLayer.new()
-	add_child(ui_layer)
-	ui_root = _screen_root(Color("10283a"))
+	_clear_result_overlay()
+	result_layer = CanvasLayer.new()
+	result_layer.layer = 30
+	add_child(result_layer)
+	var root := Control.new()
+	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root.theme = ArenaTheme.root_theme()
+	result_layer.add_child(root)
+	var shade := ColorRect.new()
+	shade.color = Color(0.01, 0.035, 0.06, 0.80)
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root.add_child(shade)
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	ui_root.add_child(center)
+	root.add_child(center)
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(520, 620)
-	panel.add_theme_stylebox_override("panel", _panel_style(Color("17384a"), Color("e7bd58"), 24))
+	panel.custom_minimum_size = Vector2(480, 510)
+	panel.add_theme_stylebox_override("panel", ArenaTheme.panel(Color("102f47"), ArenaTheme.GOLD_LIGHT, 24, 5, 16))
 	center.add_child(panel)
 	var margin := MarginContainer.new()
 	for side_name in ["left", "right", "top", "bottom"]:
-		margin.add_theme_constant_override("margin_" + side_name, 28)
+		margin.add_theme_constant_override("margin_" + side_name, 24)
 	panel.add_child(margin)
 	var layout := VBoxContainer.new()
 	layout.alignment = BoxContainer.ALIGNMENT_CENTER
-	layout.add_theme_constant_override("separation", 18)
+	layout.add_theme_constant_override("separation", 14)
 	margin.add_child(layout)
+	var crown := TextureRect.new()
+	crown.texture = ICON_CROWN
+	crown.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	crown.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	crown.custom_minimum_size = Vector2(0, 82)
+	layout.add_child(crown)
 	var text := "ÉGALITÉ" if simulation.winner == -1 else "VICTOIRE" if simulation.winner == BattleSim.PLAYER else "DÉFAITE"
-	var color := Color("76e58b") if simulation.winner == BattleSim.PLAYER else Color("ffd66b") if simulation.winner == -1 else Color("ff7d91")
+	var color := ArenaTheme.GREEN if simulation.winner == BattleSim.PLAYER else ArenaTheme.GOLD_LIGHT if simulation.winner == -1 else Color("ff7d91")
 	layout.add_child(_title_label(text, 48, color))
-	layout.add_child(_title_label("COURONNES  %d — %d" % [simulation.crowns[0], simulation.crowns[1]], 22, Color.WHITE))
+	layout.add_child(_title_label("COURONNES  %d — %d" % [simulation.crowns[BattleSim.PLAYER], simulation.crowns[BattleSim.ENEMY]], 22, Color.WHITE))
 	var reward_text := "Partie de démonstration"
 	if tutorial == null and not last_reward.is_empty():
 		reward_text = "+%d éclats   +%d XP" % [last_reward.coins, last_reward.xp]
-	layout.add_child(_title_label(reward_text, 20, Color("ffd66b")))
+	layout.add_child(_title_label(reward_text, 20, ArenaTheme.GOLD_LIGHT))
+	layout.add_child(_title_label("NIVEAU %d  •  %d/%d XP" % [profile.level, profile.xp, BattleProgression.xp_to_next(profile.level)], 14, ArenaTheme.TEXT_MUTED))
 	var replay := Button.new()
 	replay.text = "REJOUER"
-	replay.custom_minimum_size = Vector2(350, 72)
+	replay.icon = ICON_BATTLE
+	replay.expand_icon = true
+	replay.add_theme_constant_override("icon_max_width", 34)
+	replay.custom_minimum_size = Vector2(350, 66)
 	_apply_button_theme(replay, "primary", 24)
 	replay.pressed.connect(_start_battle)
 	layout.add_child(replay)
@@ -661,6 +777,7 @@ func _pause_battle() -> void:
 	add_child(pause_layer)
 	var root := Control.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root.theme = ArenaTheme.root_theme()
 	pause_layer.add_child(root)
 	var shade := ColorRect.new()
 	shade.color = Color(0.02, 0.06, 0.09, 0.84)
@@ -670,14 +787,24 @@ func _pause_battle() -> void:
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.add_child(center)
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(480, 430)
-	panel.add_theme_stylebox_override("panel", _panel_style(Color("17384a"), Color("e7bd58"), 24))
+	panel.custom_minimum_size = Vector2(460, 400)
+	panel.add_theme_stylebox_override("panel", ArenaTheme.panel(Color("102f47"), ArenaTheme.GOLD_LIGHT, 24, 5, 16))
 	center.add_child(panel)
+	var margin := MarginContainer.new()
+	for side_name in ["left", "right", "top", "bottom"]:
+		margin.add_theme_constant_override("margin_" + side_name, 26)
+	panel.add_child(margin)
 	var layout := VBoxContainer.new()
 	layout.alignment = BoxContainer.ALIGNMENT_CENTER
 	layout.add_theme_constant_override("separation", 22)
-	panel.add_child(layout)
-	layout.add_child(_title_label("PARTIE EN PAUSE", 32, Color("ffe17b")))
+	margin.add_child(layout)
+	var crown := TextureRect.new()
+	crown.texture = ICON_CROWN
+	crown.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	crown.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	crown.custom_minimum_size.y = 72
+	layout.add_child(crown)
+	layout.add_child(_title_label("PARTIE EN PAUSE", 32, ArenaTheme.GOLD_LIGHT))
 	var resume := Button.new()
 	resume.text = "REPRENDRE"
 	resume.custom_minimum_size = Vector2(340, 72)
@@ -707,6 +834,12 @@ func _clear_pause_overlay() -> void:
 	if is_instance_valid(pause_layer):
 		pause_layer.queue_free()
 	pause_layer = null
+
+
+func _clear_result_overlay() -> void:
+	if is_instance_valid(result_layer):
+		result_layer.queue_free()
+	result_layer = null
 
 
 func _select_difficulty(index: int) -> void:
@@ -749,6 +882,7 @@ func _card_details(card: Dictionary) -> String:
 func _screen_root(color: Color) -> Control:
 	var root := Control.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root.theme = ArenaTheme.root_theme()
 	ui_layer.add_child(root)
 	var background := ColorRect.new()
 	background.color = color
@@ -760,10 +894,22 @@ func _screen_root(color: Color) -> Control:
 func _safe_margin() -> MarginContainer:
 	var margin := MarginContainer.new()
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 22)
-	margin.add_theme_constant_override("margin_right", 22)
-	margin.add_theme_constant_override("margin_top", 24)
-	margin.add_theme_constant_override("margin_bottom", 24)
+	var left := 18
+	var right := 18
+	var top := 18
+	var bottom := 18
+	var viewport_size := get_viewport().get_visible_rect().size
+	var screen_size := Vector2(DisplayServer.screen_get_size())
+	var safe := Rect2(DisplayServer.get_display_safe_area())
+	if screen_size.x > 0.0 and screen_size.y > 0.0 and safe.size.x > 0.0 and safe.size.y > 0.0:
+		left = maxi(left, roundi(safe.position.x / screen_size.x * viewport_size.x))
+		right = maxi(right, roundi((screen_size.x - safe.end.x) / screen_size.x * viewport_size.x))
+		top = maxi(top, roundi(safe.position.y / screen_size.y * viewport_size.y))
+		bottom = maxi(bottom, roundi((screen_size.y - safe.end.y) / screen_size.y * viewport_size.y))
+	margin.add_theme_constant_override("margin_left", left)
+	margin.add_theme_constant_override("margin_right", right)
+	margin.add_theme_constant_override("margin_top", top)
+	margin.add_theme_constant_override("margin_bottom", bottom)
 	return margin
 
 
@@ -772,59 +918,27 @@ func _title_label(text_value: String, font_size: int, color: Color) -> Label:
 	label.text = text_value
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", font_size)
-	label.add_theme_color_override("font_color", color)
+	ArenaTheme.apply_heading(label, font_size, color)
 	return label
 
 
 func _stat_label(caption: String, value: String, color: Color) -> Control:
 	var layout := VBoxContainer.new()
-	layout.add_child(_title_label(caption, 12, Color("9ebdca")))
-	layout.add_child(_title_label(value, 24, color))
+	layout.add_child(_title_label(caption, 11, ArenaTheme.TEXT_MUTED))
+	layout.add_child(_title_label(value, 23, color))
 	return layout
 
 
 func _panel_style(background: Color, border: Color, radius: int) -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = background
-	style.border_color = border
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(radius)
-	style.shadow_color = Color(0, 0, 0, 0.34)
-	style.shadow_size = 7
-	return style
+	return ArenaTheme.panel(background, border, radius)
 
 
 func _apply_button_theme(button: Button, kind: String, font_size: int) -> void:
-	var colors := {
-		"primary": [Color("168bc1"), Color("55cdf3")],
-		"secondary": [Color("1e4558"), Color("4e788b")],
-		"gold": [Color("8b6420"), Color("e3b850")],
-		"danger": [Color("7c3040"), Color("d45b70")],
-	}
-	var pair: Array = colors.get(kind, colors.secondary)
-	button.add_theme_stylebox_override("normal", _panel_style(pair[0], pair[1], 14))
-	button.add_theme_stylebox_override("hover", _panel_style(pair[0].lightened(0.08), pair[1].lightened(0.12), 14))
-	button.add_theme_stylebox_override("pressed", _panel_style(pair[0].darkened(0.10), pair[1], 14))
-	button.add_theme_stylebox_override("disabled", _panel_style(Color("26333a"), Color("47555b"), 14))
-	button.add_theme_font_size_override("font_size", font_size)
-	button.add_theme_color_override("font_color", Color.WHITE)
-	button.add_theme_color_override("font_disabled_color", Color("74838a"))
+	ArenaTheme.apply_button(button, kind, font_size)
 
 
 func _card_panel_style(card_id: String, selected: bool, disabled: bool) -> StyleBoxFlat:
-	var color_map := {
-		"guardian": Color("315f72"), "ranger": Color("426d44"), "colossus": Color("6b513e"),
-		"fireball": Color("84422c"), "duelist": Color("624577"), "alchemist": Color("82512f"),
-		"bulwark": Color("405966"), "frost": Color("36718a"),
-	}
-	var background: Color = color_map.get(card_id, Color("315366"))
-	if disabled:
-		background = background.darkened(0.48)
-	var border := Color("ffe27b") if selected else background.lightened(0.28)
-	var style := _panel_style(background, border, 12)
-	style.set_border_width_all(4 if selected else 2)
-	return style
+	return ArenaTheme.card_style(card_id, selected, disabled)
 
 
 func _card_texture(card_id: String) -> AtlasTexture:
@@ -847,8 +961,9 @@ func _clear_ui() -> void:
 	ui_layer = null
 	ui_root = null
 	battle_world = null
-	arena_viewport = null
 	arena_container = null
+	intro_label = null
+	next_card_art = null
 	card_buttons.clear()
 
 
