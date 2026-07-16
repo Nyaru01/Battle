@@ -26,6 +26,7 @@ func _run() -> void:
 	_test_battle_intro()
 	_test_units_fight()
 	_test_tower_defends_lane()
+	_test_core_defends_after_breach()
 	_test_bot_matches_finish()
 	print("Battle tests: %d assertions, %d failures" % [assertions, failures])
 	quit(1 if failures > 0 else 0)
@@ -250,7 +251,7 @@ func _test_progression() -> void:
 func _test_battle_intro() -> void:
 	var scene: Node = load("res://scenes/main.tscn").instantiate()
 	root.add_child(scene)
-	_expect(scene.sfx_bank.size() == 8 and scene.sfx_players.size() == 8, "procedural sound bank is ready")
+	_expect(scene.sfx_bank.size() == 9 and scene.sfx_bank.has("core_shot") and scene.sfx_players.size() == 8, "procedural sound bank includes central fortress fire")
 	_expect(scene.sfx_bank["fireball"].data.size() > 1000, "procedural sound contains PCM samples")
 	scene._start_battle()
 	var initial_time: float = scene.simulation.time_left
@@ -295,6 +296,22 @@ func _test_tower_defends_lane() -> void:
 	for index in range(12):
 		simulation.step(0.1)
 	_expect(unit.hp < initial_hp, "a lane tower attacks an approaching enemy")
+
+
+func _test_core_defends_after_breach() -> void:
+	var simulation := BattleSim.new(26)
+	_expect(not simulation.is_core_active(BattleSim.PLAYER), "central fortress starts inactive")
+	simulation.towers[BattleSim.PLAYER].lanes[0] = 0.0
+	_expect(simulation.is_core_active(BattleSim.PLAYER), "destroying a lane tower activates the central fortress")
+	simulation.energy[BattleSim.ENEMY] = 10.0
+	simulation.play_card(BattleSim.ENEMY, "guardian", 0)
+	var unit: Dictionary = simulation.units[0]
+	unit.y = 820.0
+	var initial_hp: float = unit.hp
+	simulation.step(0.1)
+	_expect(unit.hp < initial_hp, "active central fortress attacks an approaching enemy across lanes")
+	var shots := simulation.events.filter(func(event: Dictionary) -> bool: return event.type == "core_shot")
+	_expect(shots.size() == 1, "central fortress emits a projectile event")
 
 
 func _test_bot_matches_finish() -> void:
