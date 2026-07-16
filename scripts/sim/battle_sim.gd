@@ -54,14 +54,15 @@ const CARDS := {
 		"damage": 185.0,
 	},
 	"duelist": {
-		"name": "Duelliste",
-		"cost": 2.0,
+		"name": "Lames jumelles",
+		"cost": 3.0,
 		"type": "unit",
-		"hp": 330.0,
-		"damage": 44.0,
-		"speed": 78.0,
+		"count": 2,
+		"hp": 220.0,
+		"damage": 34.0,
+		"speed": 72.0,
 		"range": 44.0,
-		"interval": 0.65,
+		"interval": 0.75,
 	},
 	"alchemist": {
 		"name": "Alchimiste",
@@ -206,23 +207,27 @@ func get_units_in_lane(side: int, lane: int) -> Array:
 
 func _spawn_unit(side: int, card_id: String, lane: int, card: Dictionary) -> void:
 	var spawn_y := 820.0 if side == PLAYER else 310.0
-	units.append({
-		"id": next_unit_id,
-		"side": side,
-		"card_id": card_id,
-		"lane": lane,
-		"y": spawn_y,
-		"hp": card.hp,
-		"max_hp": card.hp,
-		"damage": card.damage,
-		"speed": card.speed,
-		"range": card.range,
-		"interval": card.interval,
-		"splash": float(card.get("splash", 0.0)),
-		"slow_timer": 0.0,
-		"attack_timer": rng.randf_range(0.0, 0.15),
-	})
-	next_unit_id += 1
+	var unit_count := maxi(1, int(card.get("count", 1)))
+	for member in range(unit_count):
+		var formation_x := (float(member) - float(unit_count - 1) * 0.5) * 56.0
+		units.append({
+			"id": next_unit_id,
+			"side": side,
+			"card_id": card_id,
+			"lane": lane,
+			"y": spawn_y,
+			"formation_x": formation_x,
+			"hp": card.hp,
+			"max_hp": card.hp,
+			"damage": card.damage,
+			"speed": card.speed,
+			"range": card.range,
+			"interval": card.interval,
+			"splash": float(card.get("splash", 0.0)),
+			"slow_timer": 0.0,
+			"attack_timer": rng.randf_range(0.0, 0.15),
+		})
+		next_unit_id += 1
 
 
 func _cast_spell(side: int, card_id: String, lane: int, card: Dictionary) -> void:

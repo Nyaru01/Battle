@@ -221,7 +221,7 @@ func _draw_objectives() -> void:
 
 func _draw_units() -> void:
 	for unit in simulation.units:
-		var x: float = LANE_X[unit.lane]
+		var x: float = LANE_X[unit.lane] + float(unit.get("formation_x", 0.0))
 		var radius := _draw_unit_avatar(Vector2(x, unit.y), unit)
 		_draw_health_bar(Vector2(x - radius, unit.y - radius - 12.0), radius * 2.0, unit.hp, unit.max_hp)
 
@@ -410,7 +410,7 @@ func _update_effects(delta: float) -> void:
 func _find_unit_position(unit_id: int) -> Vector2:
 	for unit in simulation.units:
 		if unit.id == unit_id:
-			return Vector2(LANE_X[unit.lane], unit.y)
+			return Vector2(LANE_X[unit.lane] + float(unit.get("formation_x", 0.0)), unit.y)
 	return Vector2.ZERO
 
 
@@ -527,7 +527,7 @@ func _build_menu() -> void:
 	collection.add_theme_font_size_override("font_size", 19)
 	collection.pressed.connect(_build_collection)
 	ui_layer.add_child(collection)
-	var version := _label("Prototype 0.19 • Hors ligne", Vector2(160.0, 1202.0), Vector2(400.0, 36.0), 18)
+	var version := _label("Prototype 0.20 • Hors ligne", Vector2(160.0, 1202.0), Vector2(400.0, 36.0), 18)
 	version.add_theme_color_override("font_color", Color("71889a"))
 	var record := _label("%d victoires  •  %d défaites" % [profile.wins, profile.losses], Vector2(160.0, 1080.0), Vector2(400.0, 36.0), 17)
 	record.add_theme_color_override("font_color", Color("8fa7b8"))
@@ -635,6 +635,8 @@ func _card_details(card: Dictionary) -> String:
 	if card.type == "spell":
 		var effect := " • ralentit" if card.has("slow_duration") else ""
 		return "Sort • %d dégâts%s" % [int(card.damage), effect]
+	if int(card.get("count", 1)) > 1:
+		return "%d unités • %d PV chacune\n%d dégâts • portée %d" % [int(card.count), int(card.hp), int(card.damage), int(card.range)]
 	return "%d PV\n%d dégâts • portée %d" % [int(card.hp), int(card.damage), int(card.range)]
 
 

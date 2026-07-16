@@ -14,6 +14,7 @@ func _run() -> void:
 	_test_double_energy()
 	_test_spell_damage()
 	_test_deck_cycle()
+	_test_squad_card()
 	_test_frost_slow()
 	_test_crown_scoring()
 	_test_overtime_rules()
@@ -77,6 +78,17 @@ func _test_deck_cycle() -> void:
 	_expect(simulation.play_card(BattleSim.PLAYER, "guardian", 0), "a hand card can be played")
 	_expect("duelist" in simulation.get_hand(BattleSim.PLAYER), "playing draws the next card")
 	_expect(simulation.get_next_card(BattleSim.PLAYER) == "alchemist", "draw queue advances")
+
+
+func _test_squad_card() -> void:
+	var simulation := BattleSim.new(24)
+	simulation.energy[BattleSim.PLAYER] = 100.0
+	_expect(simulation.play_card(BattleSim.PLAYER, "guardian", 0), "deck cycle exposes the squad card")
+	_expect(simulation.play_card(BattleSim.PLAYER, "duelist", 1), "squad card can be deployed")
+	var squad := simulation.units.filter(func(unit: Dictionary) -> bool: return unit.card_id == "duelist")
+	_expect(squad.size() == 2, "squad card spawns two independent fighters")
+	_expect(squad[0].id != squad[1].id, "squad fighters receive distinct unit ids")
+	_expect(float(squad[0].formation_x) < 0.0 and float(squad[1].formation_x) > 0.0, "squad fighters deploy in formation")
 
 
 func _test_frost_slow() -> void:
