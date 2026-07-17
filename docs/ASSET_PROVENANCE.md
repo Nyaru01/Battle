@@ -1,4 +1,4 @@
-# Provenance des actifs visuels — v0.55
+# Provenance des actifs visuels — v0.56
 
 Ce registre documente tous les actifs visuels distribués. Les archives sources 3D ne sont pas versionnées : seuls les sprites 2D pré-rendus et les composants d’interface nécessaires au jeu sont inclus.
 

@@ -12,6 +12,7 @@ const ICON_CROWN := preload("res://assets/v050/ui/icon-crown.png")
 const ICON_TIME := preload("res://assets/v050/ui/icon-time.png")
 const ICON_AWARD := preload("res://assets/v050/ui/icon-award.png")
 const DifficultySheetScript := preload("res://scripts/ui/difficulty_sheet.gd")
+const FantasyFrameScript := preload("res://scripts/ui/fantasy_frame.gd")
 const SAVE_PATH := "user://profile.json"
 const DIFFICULTY_NAMES := ["INITIATION", "TACTIQUE", "EXPERT"]
 const ICON_BATTLE_INDEX := 0
@@ -151,77 +152,86 @@ func _build_menu() -> void:
 	header.offset_bottom = 70
 	home.add_child(header)
 
-	var arena_tag := _build_home_arena_tag()
-	arena_tag.anchor_left = 0.5
-	arena_tag.anchor_top = 0.0
-	arena_tag.anchor_right = 0.5
-	arena_tag.anchor_bottom = 0.0
-	arena_tag.offset_left = -128
-	arena_tag.offset_top = 80
-	arena_tag.offset_right = 128
-	arena_tag.offset_bottom = 112
-	home.add_child(arena_tag)
-
-	var bottom_stack := VBoxContainer.new()
-	bottom_stack.name = "HomeActions"
-	bottom_stack.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	bottom_stack.offset_top = -158
-	bottom_stack.add_theme_constant_override("separation", 8)
-	home.add_child(bottom_stack)
-	var start := _build_home_primary_action()
-	bottom_stack.add_child(start)
-	primary_action_button = start
-	bottom_stack.add_child(_build_home_navigation())
+	var dock := _build_home_dock()
+	dock.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	dock.offset_top = -170
+	home.add_child(dock)
 
 
 func _build_home_header() -> Control:
-	var panel := PanelContainer.new()
+	var panel := Control.new()
 	panel.name = "ProfileHeader"
 	panel.custom_minimum_size.y = 70
-	panel.add_theme_stylebox_override("panel", ArenaTheme.home_surface(Color(0.025, 0.10, 0.20, 0.94), ArenaTheme.GOLD, 18, 5))
+	var frame := FantasyFrameScript.new()
+	frame.configure(FantasyFrame.FrameKind.HEADER)
+	frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	panel.add_child(frame)
+	var margin := MarginContainer.new()
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	margin.add_theme_constant_override("margin_left", 11)
+	margin.add_theme_constant_override("margin_right", 11)
+	margin.add_theme_constant_override("margin_top", 7)
+	margin.add_theme_constant_override("margin_bottom", 7)
+	panel.add_child(margin)
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
-	panel.add_child(row)
+	row.add_theme_constant_override("separation", 9)
+	margin.add_child(row)
+	var medallion := PanelContainer.new()
+	medallion.custom_minimum_size = Vector2(55, 55)
+	medallion.add_theme_stylebox_override("panel", ArenaTheme.fantasy_medallion())
+	row.add_child(medallion)
 	var portrait := TextureRect.new()
 	portrait.texture = APP_ICON
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	portrait.custom_minimum_size = Vector2(48, 48)
-	row.add_child(portrait)
+	medallion.add_child(portrait)
 	var identity := VBoxContainer.new()
 	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	identity.add_theme_constant_override("separation", -2)
+	identity.add_theme_constant_override("separation", 1)
 	row.add_child(identity)
 	var name_row := HBoxContainer.new()
-	name_row.add_theme_constant_override("separation", 8)
+	name_row.add_theme_constant_override("separation", 6)
 	identity.add_child(name_row)
-	var player_name := _title_label("CAPITAINE NYARU", 19, Color.WHITE)
+	var player_name := _title_label("CAPITAINE NYARU", 18, ArenaTheme.GOLD_LIGHT)
 	player_name.name = "PlayerName"
 	player_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	player_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_row.add_child(player_name)
-	var victories := _title_label("%d VICT." % profile.wins, 11, ArenaTheme.CYAN)
-	victories.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	name_row.add_child(victories)
+	var wins := HBoxContainer.new()
+	wins.add_theme_constant_override("separation", 2)
+	name_row.add_child(wins)
+	var crown := TextureRect.new()
+	crown.texture = ICON_CROWN
+	crown.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	crown.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	crown.custom_minimum_size = Vector2(17, 17)
+	wins.add_child(crown)
+	var victories := _title_label(str(profile.wins), 11, ArenaTheme.CYAN)
+	wins.add_child(victories)
 	var progress_row := HBoxContainer.new()
-	progress_row.add_theme_constant_override("separation", 7)
+	progress_row.add_theme_constant_override("separation", 6)
 	identity.add_child(progress_row)
-	var level := _title_label("NIV. %d" % profile.level, 12, ArenaTheme.GOLD_LIGHT)
+	var level := _title_label("NIV. %d" % profile.level, 11, Color.WHITE)
 	level.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	level.add_theme_stylebox_override("normal", ArenaTheme.fantasy_badge())
 	progress_row.add_child(level)
 	var xp_bar := ProgressBar.new()
 	xp_bar.name = "ExperienceBar"
 	xp_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	xp_bar.custom_minimum_size.y = 9
+	xp_bar.custom_minimum_size.y = 12
 	xp_bar.show_percentage = false
 	xp_bar.max_value = BattleProgression.xp_to_next(profile.level)
 	xp_bar.value = profile.xp
-	xp_bar.add_theme_stylebox_override("background", ArenaTheme.panel(Color("06182c"), Color("2b5c80"), 5, 1, 0))
-	xp_bar.add_theme_stylebox_override("fill", ArenaTheme.panel(ArenaTheme.GOLD, ArenaTheme.GOLD_LIGHT, 5, 1, 0))
+	xp_bar.add_theme_stylebox_override("background", ArenaTheme.panel(Color("030b13"), Color("6b512f"), 6, 2, 0))
+	xp_bar.add_theme_stylebox_override("fill", ArenaTheme.panel(Color("28a9dd"), Color("9feaff"), 6, 1, 0))
 	progress_row.add_child(xp_bar)
 	var wallet := PanelContainer.new()
 	wallet.name = "Wallet"
-	wallet.add_theme_stylebox_override("panel", ArenaTheme.home_chip(ArenaTheme.GOLD))
+	var wallet_style := ArenaTheme.fantasy_badge()
+	wallet_style.set_corner_radius_all(15)
+	wallet_style.content_margin_left = 9
+	wallet_style.content_margin_right = 9
+	wallet.add_theme_stylebox_override("panel", wallet_style)
 	var wallet_row := HBoxContainer.new()
 	wallet_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	wallet_row.add_theme_constant_override("separation", 3)
@@ -237,23 +247,38 @@ func _build_home_header() -> Control:
 	return panel
 
 
-func _build_home_arena_tag() -> Control:
-	var tag := Label.new()
-	tag.name = "ArenaTag"
-	tag.text = "ESCOUADE  •  HAUTS-RIVAGES"
-	tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	tag.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	tag.add_theme_stylebox_override("normal", ArenaTheme.home_chip(ArenaTheme.GOLD))
-	ArenaTheme.apply_heading(tag, 13, ArenaTheme.GOLD_LIGHT)
-	return tag
+func _build_home_dock() -> Control:
+	var dock := Control.new()
+	dock.name = "HomeDock"
+	dock.custom_minimum_size.y = 170
+	var frame := FantasyFrameScript.new()
+	frame.configure(FantasyFrame.FrameKind.DOCK)
+	frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dock.add_child(frame)
+	var margin := MarginContainer.new()
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	for side_name in ["left", "right", "top", "bottom"]:
+		margin.add_theme_constant_override("margin_" + side_name, 8)
+	dock.add_child(margin)
+	var layout := VBoxContainer.new()
+	layout.add_theme_constant_override("separation", 6)
+	margin.add_child(layout)
+	var start := _build_home_primary_action()
+	layout.add_child(start)
+	primary_action_button = start
+	layout.add_child(_build_home_navigation())
+	return dock
 
 
 func _build_home_primary_action() -> Button:
 	var button := Button.new()
 	button.name = "CombatButton"
-	button.custom_minimum_size.y = 80
+	button.custom_minimum_size.y = 78
 	button.set_meta("role", "primary_action")
-	_apply_button_theme(button, "gold", 24)
+	button.add_theme_stylebox_override("normal", ArenaTheme.fantasy_action())
+	button.add_theme_stylebox_override("hover", ArenaTheme.fantasy_action(false, true))
+	button.add_theme_stylebox_override("pressed", ArenaTheme.fantasy_action(true))
+	button.add_theme_stylebox_override("focus", ArenaTheme.fantasy_action(false, true))
 	button.pressed.connect(_show_difficulty_sheet)
 	var content := HBoxContainer.new()
 	content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -276,11 +301,11 @@ func _build_home_primary_action() -> Button:
 	labels.add_theme_constant_override("separation", -5)
 	labels.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.add_child(labels)
-	var title := _title_label("COMBAT", 28, Color.WHITE)
+	var title := _title_label("COMBAT", 28, ArenaTheme.GOLD_LIGHT)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	labels.add_child(title)
-	var subtitle := _title_label("DUEL IA  •  %s" % DIFFICULTY_NAMES[selected_difficulty], 12, Color("fff3bd"))
+	var subtitle := _title_label("DUEL IA  •  %s" % DIFFICULTY_NAMES[selected_difficulty], 12, ArenaTheme.CYAN)
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	subtitle.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	labels.add_child(subtitle)
@@ -293,8 +318,8 @@ func _build_home_primary_action() -> Button:
 func _build_home_navigation() -> Control:
 	var navigation := HBoxContainer.new()
 	navigation.name = "HomeNavigation"
-	navigation.custom_minimum_size.y = 70
-	navigation.add_theme_constant_override("separation", 6)
+	navigation.custom_minimum_size.y = 68
+	navigation.add_theme_constant_override("separation", 2)
 	navigation.add_child(_menu_nav_button("ACCUEIL", ICON_HOME, _build_menu, true))
 	navigation.add_child(_menu_nav_button("CARTES", ICON_CARDS, _build_collection))
 	navigation.add_child(_menu_nav_button("ENTRAÎN.", ICON_TRAINING, _start_tutorial))
@@ -1123,7 +1148,7 @@ func _show_settings() -> void:
 		row_panel.add_child(toggle)
 		layout.add_child(row_panel)
 	layout.add_child(_title_label("AUCUN COMPTE • AUCUNE PUBLICITÉ • 100 % HORS LIGNE", 11, ArenaTheme.TEXT_MUTED))
-	layout.add_child(_title_label("BATTLE v0.55 • KAYKIT + KENNEY CC0", 11, Color("7eb5d4")))
+	layout.add_child(_title_label("BATTLE v0.56 • KAYKIT + KENNEY CC0", 11, Color("7eb5d4")))
 	var close := Button.new()
 	close.text = "FERMER"
 	close.custom_minimum_size = Vector2(300, 58)
@@ -1262,7 +1287,7 @@ func _menu_nav_button(label_text: String, icon_texture: Texture2D, callback: Cal
 	button.name = "Nav%s" % label_text.replace(".", "").replace("É", "E")
 	button.set_meta("navigation_label", label_text)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button.custom_minimum_size.y = 70
+	button.custom_minimum_size.y = 68
 	button.add_theme_stylebox_override("normal", ArenaTheme.nav_button(active))
 	button.add_theme_stylebox_override("hover", ArenaTheme.nav_button(active))
 	button.add_theme_stylebox_override("pressed", ArenaTheme.nav_button(active, true))
@@ -1277,10 +1302,10 @@ func _menu_nav_button(label_text: String, icon_texture: Texture2D, callback: Cal
 	icon.texture = icon_texture
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.custom_minimum_size = Vector2(0, 32)
+	icon.custom_minimum_size = Vector2(0, 31)
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.add_child(icon)
-	var caption := _title_label(label_text, 12, ArenaTheme.GOLD_LIGHT if active else Color("c2d9e5"))
+	var caption := _title_label(label_text, 11, ArenaTheme.GOLD_LIGHT if active else Color("c2d9e5"))
 	caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.add_child(caption)
 	button.pressed.connect(callback)

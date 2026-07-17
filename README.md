@@ -1,11 +1,11 @@
 # Battle
 
-Jeu mobile original de stratégie en arène, en temps réel et jouable hors ligne contre une IA. La v0.55 remplace l’ancien accueil en panneaux par un véritable château plein écran : estrade intégrée, héros animés, commandes superposées et direction artistique bleu-or unifiée.
+Jeu mobile original de stratégie en arène, en temps réel et jouable hors ligne contre une IA. La v0.56 enrichit le château plein écran avec un HUD fantasy original : barre de profil sculptée, médaillon, jauge magique et dock bronze-pierre unifié.
 
-## Vertical slice 0.55
+## Vertical slice 0.56
 
 - six héros KayKit distincts, chacun avec 100 images : apparition, repos, marche, attaque, impact et défaite, de face et de dos ;
-- accueil château plein écran avec profondeur illustrée, trio animé posé sur son estrade, profil et XP superposés, action Combat dominante, navigation unifiée et fiche de difficulté dédiée ;
+- accueil château plein écran avec profondeur illustrée, trio animé posé sur son estrade, HUD fantasy sculpté, action Combat dominante, navigation en dock et fiche de difficulté dédiée ;
 - collection de huit cartes avec portraits animés, statistiques et améliorations ;
 - arène verticale illustrée en cadrage `cover` 2:3 sans déformation ni bandes noires, tours modulaires, eau animée, projectiles, sorts, impacts et secousses de caméra ;
 - placement libre des unités dans la base alliée, position x/y conservée, trajectoires convergentes, projectiles issus de la position réelle et orientation dynamique vers la cible ;
@@ -36,7 +36,7 @@ powershell -ExecutionPolicy Bypass -File tools/verify_apk.ps1 -ApkPath "Android/
 
 L’APK courant se trouve toujours dans [Android/Battle-latest.apk](Android/Battle-latest.apk). Chaque export remplace ce fichier stable afin qu’il reste immédiatement visible depuis la racine du dépôt.
 
-Configuration : `versionCode 55`, `versionName 0.55.0-alpha`, API 24 minimum, API cible 36, `arm64-v8a`, portrait, mode immersif et Vulkan Mobile. Android 10 ou plus récent est recommandé.
+Configuration : `versionCode 56`, `versionName 0.56.0-alpha`, API 24 minimum, API cible 36, `arm64-v8a`, portrait, mode immersif et Vulkan Mobile. Android 10 ou plus récent est recommandé.
 
 ## Documentation
 

@@ -82,12 +82,45 @@ static func home_chip(accent := CYAN, filled := false) -> StyleBoxFlat:
 	return style
 
 
+static func fantasy_medallion() -> StyleBoxFlat:
+	var style := panel(Color("07172a"), Color("e0ae45"), 28, 3, 6)
+	style.content_margin_left = 4.0
+	style.content_margin_right = 4.0
+	style.content_margin_top = 4.0
+	style.content_margin_bottom = 4.0
+	return style
+
+
+static func fantasy_badge() -> StyleBoxFlat:
+	var style := panel(Color("6f471f"), Color("f2c65b"), 10, 2, 2)
+	style.content_margin_left = 7.0
+	style.content_margin_right = 7.0
+	style.content_margin_top = 2.0
+	style.content_margin_bottom = 2.0
+	return style
+
+
+static func fantasy_action(pressed := false, hovered := false) -> StyleBoxFlat:
+	var background := Color("123e68")
+	if hovered:
+		background = Color("195482")
+	if pressed:
+		background = Color("0b2948")
+	var style := panel(background, Color("f2c65b") if not pressed else Color("9c6b28"), 13, 4, 3 if pressed else 8)
+	style.content_margin_left = 12.0
+	style.content_margin_right = 12.0
+	style.content_margin_top = 7.0
+	style.content_margin_bottom = 7.0
+	return style
+
+
 static func nav_button(active: bool, pressed := false) -> StyleBoxFlat:
-	var background := Color("173d63") if active else Color("091d35")
-	var border := Color(GOLD, 0.82) if active else Color("315b7c")
+	var background := Color("16466d") if active else Color("101c29")
+	var border := Color("f2c65b") if active else Color("60482d")
 	if pressed:
 		background = background.darkened(0.14)
-	var style := panel(background, border, 14, 2 if active else 1, 2 if pressed else 4)
+	var style := panel(background, border, 8, 2 if active else 1, 1 if pressed else 3)
+	style.border_width_top = 4 if active else 2
 	style.content_margin_left = 4.0
 	style.content_margin_right = 4.0
 	style.content_margin_top = 5.0
