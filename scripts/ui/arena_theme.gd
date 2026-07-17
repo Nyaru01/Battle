@@ -62,6 +62,39 @@ static func royal_panel(background := Color("0d315b"), border := CYAN, radius :=
 	return style
 
 
+static func home_surface(background := Color("0b2949"), border := Color("3d7fac"), radius := 18, shadow := 5) -> StyleBoxFlat:
+	var style := panel(background, Color(border, 0.62), radius, 1, shadow)
+	style.content_margin_left = 12.0
+	style.content_margin_right = 12.0
+	style.content_margin_top = 10.0
+	style.content_margin_bottom = 10.0
+	return style
+
+
+static func home_chip(accent := CYAN, filled := false) -> StyleBoxFlat:
+	var background := Color(accent, 0.90) if filled else Color(0.02, 0.10, 0.19, 0.82)
+	var border := Color(GOLD_LIGHT, 0.80) if filled else Color(accent, 0.48)
+	var style := panel(background, border, 13, 1, 0)
+	style.content_margin_left = 9.0
+	style.content_margin_right = 9.0
+	style.content_margin_top = 4.0
+	style.content_margin_bottom = 4.0
+	return style
+
+
+static func nav_button(active: bool, pressed := false) -> StyleBoxFlat:
+	var background := Color("173d63") if active else Color("091d35")
+	var border := Color(GOLD, 0.82) if active else Color("315b7c")
+	if pressed:
+		background = background.darkened(0.14)
+	var style := panel(background, border, 14, 2 if active else 1, 2 if pressed else 4)
+	style.content_margin_left = 4.0
+	style.content_margin_right = 4.0
+	style.content_margin_top = 5.0
+	style.content_margin_bottom = 5.0
+	return style
+
+
 static func chip(active: bool, accent := GOLD) -> StyleBoxFlat:
 	var background := Color(accent, 0.96) if active else Color("11365e")
 	var border := GOLD_LIGHT if active else Color("417bac")

@@ -11,7 +11,7 @@ const ICON_BATTLE := preload("res://assets/v050/ui/icon-battle.png")
 const ICON_CROWN := preload("res://assets/v050/ui/icon-crown.png")
 const ICON_TIME := preload("res://assets/v050/ui/icon-time.png")
 const ICON_AWARD := preload("res://assets/v050/ui/icon-award.png")
-const ORNATE_BORDER := preload("res://assets/v050/ui/border-ornate.png")
+const DifficultySheetScript := preload("res://scripts/ui/difficulty_sheet.gd")
 const SAVE_PATH := "user://profile.json"
 const DIFFICULTY_NAMES := ["INITIATION", "TACTIQUE", "EXPERT"]
 const ICON_BATTLE_INDEX := 0
@@ -70,6 +70,7 @@ var drag_candidate_start := Vector2.ZERO
 var drag_active := false
 var suppress_card_tap := false
 var primary_action_button: Button
+var difficulty_sheet: Control
 var ui_animation_time := 0.0
 
 var sfx_bank: Dictionary = {}
@@ -129,6 +130,7 @@ func _build_menu() -> void:
 	_clear_pause_overlay()
 	_clear_result_overlay()
 	_clear_settings_overlay()
+	_clear_difficulty_sheet()
 	_clear_ui()
 	state = ScreenState.MENU
 	ui_layer = CanvasLayer.new()
@@ -136,143 +138,194 @@ func _build_menu() -> void:
 	ui_root = _screen_root(ArenaTheme.NAVY)
 	var safe := _safe_margin()
 	ui_root.add_child(safe)
-	var layout := VBoxContainer.new()
-	layout.add_theme_constant_override("separation", 9)
-	safe.add_child(layout)
+	var home := Control.new()
+	home.name = "HomeLayout"
+	safe.add_child(home)
 
-	var profile_panel := PanelContainer.new()
-	profile_panel.custom_minimum_size.y = 70
-	profile_panel.add_theme_stylebox_override("panel", ArenaTheme.royal_panel(Color("0c315b"), Color("4aa9df"), 20))
-	layout.add_child(profile_panel)
-	var top_bar := HBoxContainer.new()
-	top_bar.add_theme_constant_override("separation", 10)
-	profile_panel.add_child(top_bar)
+	var header := _build_home_header()
+	header.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	header.offset_bottom = 70
+	home.add_child(header)
+
+	var stage_slot := Control.new()
+	stage_slot.name = "StageSlot"
+	stage_slot.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	stage_slot.offset_top = 80
+	stage_slot.offset_bottom = -168
+	stage_slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	home.add_child(stage_slot)
+	var stage_height := clampf(get_viewport().get_visible_rect().size.y * 0.54, 340.0, 640.0)
+	var stage := _build_home_stage()
+	stage.anchor_left = 0.0
+	stage.anchor_top = 0.5
+	stage.anchor_right = 1.0
+	stage.anchor_bottom = 0.5
+	stage.offset_top = -stage_height * 0.5
+	stage.offset_bottom = stage_height * 0.5
+	stage_slot.add_child(stage)
+
+	var bottom_stack := VBoxContainer.new()
+	bottom_stack.name = "HomeActions"
+	bottom_stack.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	bottom_stack.offset_top = -158
+	bottom_stack.add_theme_constant_override("separation", 8)
+	home.add_child(bottom_stack)
+	var start := _build_home_primary_action()
+	bottom_stack.add_child(start)
+	primary_action_button = start
+	bottom_stack.add_child(_build_home_navigation())
+
+
+func _build_home_header() -> Control:
+	var panel := PanelContainer.new()
+	panel.name = "ProfileHeader"
+	panel.custom_minimum_size.y = 70
+	panel.add_theme_stylebox_override("panel", ArenaTheme.home_surface(Color("0b2c50"), Color("55a6d4"), 18, 4))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	panel.add_child(row)
 	var portrait := TextureRect.new()
 	portrait.texture = APP_ICON
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	portrait.custom_minimum_size = Vector2(54, 54)
-	top_bar.add_child(portrait)
+	portrait.custom_minimum_size = Vector2(48, 48)
+	row.add_child(portrait)
 	var identity := VBoxContainer.new()
 	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	identity.add_theme_constant_override("separation", -5)
-	top_bar.add_child(identity)
-	var player_name := _title_label("CAPITAINE NYARU", 20, Color.WHITE)
+	identity.add_theme_constant_override("separation", -2)
+	row.add_child(identity)
+	var name_row := HBoxContainer.new()
+	name_row.add_theme_constant_override("separation", 8)
+	identity.add_child(name_row)
+	var player_name := _title_label("CAPITAINE NYARU", 18, Color.WHITE)
+	player_name.name = "PlayerName"
 	player_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	identity.add_child(player_name)
-	var progress_text := _title_label("NIV. %d  •  %d VICTOIRES" % [profile.level, profile.wins], 12, ArenaTheme.CYAN)
-	progress_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	identity.add_child(progress_text)
+	player_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_row.add_child(player_name)
+	var victories := _title_label("%d VICT." % profile.wins, 11, ArenaTheme.CYAN)
+	victories.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	name_row.add_child(victories)
+	var progress_row := HBoxContainer.new()
+	progress_row.add_theme_constant_override("separation", 7)
+	identity.add_child(progress_row)
+	var level := _title_label("NIV. %d" % profile.level, 12, ArenaTheme.GOLD_LIGHT)
+	level.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	progress_row.add_child(level)
+	var xp_bar := ProgressBar.new()
+	xp_bar.name = "ExperienceBar"
+	xp_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	xp_bar.custom_minimum_size.y = 9
+	xp_bar.show_percentage = false
+	xp_bar.max_value = BattleProgression.xp_to_next(profile.level)
+	xp_bar.value = profile.xp
+	xp_bar.add_theme_stylebox_override("background", ArenaTheme.panel(Color("06182c"), Color("2b5c80"), 5, 1, 0))
+	xp_bar.add_theme_stylebox_override("fill", ArenaTheme.panel(ArenaTheme.GOLD, ArenaTheme.GOLD_LIGHT, 5, 1, 0))
+	progress_row.add_child(xp_bar)
 	var wallet := PanelContainer.new()
-	wallet.add_theme_stylebox_override("panel", ArenaTheme.chip(true, ArenaTheme.MAGENTA))
+	wallet.name = "Wallet"
+	wallet.add_theme_stylebox_override("panel", ArenaTheme.home_chip(ArenaTheme.MAGENTA, true))
 	var wallet_row := HBoxContainer.new()
-	wallet_row.add_theme_constant_override("separation", 4)
+	wallet_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	wallet_row.add_theme_constant_override("separation", 3)
 	wallet.add_child(wallet_row)
 	var shard := TextureRect.new()
 	shard.texture = _ui_icon(ICON_SHARD_INDEX)
 	shard.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	shard.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	shard.custom_minimum_size = Vector2(27, 27)
+	shard.custom_minimum_size = Vector2(25, 25)
 	wallet_row.add_child(shard)
-	wallet_row.add_child(_title_label(str(profile.coins), 20, Color.WHITE))
-	top_bar.add_child(wallet)
+	wallet_row.add_child(_title_label(str(profile.coins), 18, Color.WHITE))
+	row.add_child(wallet)
+	return panel
 
-	var diorama_panel := PanelContainer.new()
-	diorama_panel.custom_minimum_size.y = 330
-	diorama_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	diorama_panel.clip_contents = true
-	diorama_panel.add_theme_stylebox_override("panel", ArenaTheme.panel(Color("0d3157"), ArenaTheme.CYAN, 24, 4, 12))
-	layout.add_child(diorama_panel)
-	var diorama_stack := Control.new()
-	diorama_stack.custom_minimum_size.y = 330
-	diorama_panel.add_child(diorama_stack)
+
+func _build_home_stage() -> Control:
+	var panel := PanelContainer.new()
+	panel.name = "HeroStage"
+	panel.clip_contents = true
+	var stage_style := ArenaTheme.home_surface(Color("08233e"), Color("4a91ba"), 22, 8)
+	for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
+		stage_style.set_content_margin(side, 0.0)
+	panel.add_theme_stylebox_override("panel", stage_style)
+	var stack := Control.new()
+	panel.add_child(stack)
 	var diorama := LobbyDiorama.new()
+	diorama.name = "LobbyDiorama"
 	diorama.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	diorama_stack.add_child(diorama)
-	var ornate := NinePatchRect.new()
-	ornate.texture = ORNATE_BORDER
-	ornate.set_patch_margin(SIDE_LEFT, 16)
-	ornate.set_patch_margin(SIDE_TOP, 16)
-	ornate.set_patch_margin(SIDE_RIGHT, 16)
-	ornate.set_patch_margin(SIDE_BOTTOM, 16)
-	ornate.draw_center = false
-	ornate.modulate = Color(ArenaTheme.GOLD_LIGHT, 0.72)
-	ornate.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	ornate.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	diorama_stack.add_child(ornate)
-	var arena_banner := Label.new()
-	arena_banner.text = "ARÈNE 1  •  HAUTS-RIVAGES"
-	arena_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	arena_banner.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	arena_banner.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	arena_banner.offset_left = 20
-	arena_banner.offset_right = -20
-	arena_banner.offset_top = 12
-	arena_banner.offset_bottom = 58
-	arena_banner.add_theme_stylebox_override("normal", ArenaTheme.panel(Color(0.02, 0.10, 0.20, 0.88), ArenaTheme.GOLD_LIGHT, 19, 3, 7))
-	ArenaTheme.apply_heading(arena_banner, 21, Color.WHITE)
-	diorama_stack.add_child(arena_banner)
-	var squad_banner := Label.new()
-	squad_banner.text = "TON ESCOUADE EST PRÊTE"
-	squad_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	squad_banner.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	squad_banner.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	squad_banner.offset_left = 62
-	squad_banner.offset_right = -62
-	squad_banner.offset_top = -49
-	squad_banner.offset_bottom = -12
-	squad_banner.add_theme_stylebox_override("normal", ArenaTheme.panel(Color(0.03, 0.14, 0.25, 0.86), Color("3a89bd"), 16, 2, 4))
-	ArenaTheme.apply_heading(squad_banner, 14, ArenaTheme.CYAN)
-	diorama_stack.add_child(squad_banner)
+	stack.add_child(diorama)
+	var heading := HBoxContainer.new()
+	heading.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	heading.offset_left = 12
+	heading.offset_right = -12
+	heading.offset_top = 12
+	heading.offset_bottom = 50
+	heading.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stack.add_child(heading)
+	var arena_name := _title_label("HAUTS-RIVAGES", 13, Color.WHITE)
+	arena_name.add_theme_stylebox_override("normal", ArenaTheme.home_chip(ArenaTheme.CYAN))
+	heading.add_child(arena_name)
+	var heading_spacer := Control.new()
+	heading_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading.add_child(heading_spacer)
+	var difficulty := _title_label(DIFFICULTY_NAMES[selected_difficulty], 12, ArenaTheme.NAVY_DARK)
+	difficulty.name = "ActiveDifficulty"
+	difficulty.add_theme_stylebox_override("normal", ArenaTheme.home_chip(ArenaTheme.GOLD, true))
+	heading.add_child(difficulty)
+	return panel
 
-	var mode_row := HBoxContainer.new()
-	mode_row.add_theme_constant_override("separation", 10)
-	layout.add_child(mode_row)
-	var mode := _title_label("DUEL CONTRE IA", 19, Color.WHITE)
-	mode.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	mode.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	mode_row.add_child(mode)
-	mode_row.add_child(_title_label("CHOISIS LE DÉFI", 12, ArenaTheme.TEXT_MUTED))
-	var difficulty := HBoxContainer.new()
-	difficulty.add_theme_constant_override("separation", 8)
-	layout.add_child(difficulty)
-	for index in range(3):
-		var choice := Button.new()
-		choice.text = DIFFICULTY_NAMES[index]
-		choice.toggle_mode = true
-		choice.button_pressed = selected_difficulty == index
-		choice.custom_minimum_size = Vector2(0, 44)
-		choice.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		choice.add_theme_stylebox_override("normal", ArenaTheme.chip(selected_difficulty == index))
-		choice.add_theme_stylebox_override("pressed", ArenaTheme.chip(true))
-		choice.add_theme_stylebox_override("hover", ArenaTheme.chip(true, ArenaTheme.CYAN))
-		choice.add_theme_font_override("font", ArenaTheme.HEADING_FONT)
-		choice.add_theme_font_size_override("font_size", 13)
-		choice.add_theme_color_override("font_color", ArenaTheme.NAVY_DARK if selected_difficulty == index else Color.WHITE)
-		choice.pressed.connect(_select_difficulty.bind(index))
-		difficulty.add_child(choice)
 
-	var start := Button.new()
-	start.text = "COMBAT !"
-	start.icon = ICON_BATTLE
-	start.expand_icon = true
-	start.add_theme_constant_override("icon_max_width", 44)
-	start.custom_minimum_size = Vector2(0, 76)
-	_apply_button_theme(start, "success", 30)
-	start.pressed.connect(_start_battle)
-	layout.add_child(start)
-	primary_action_button = start
+func _build_home_primary_action() -> Button:
+	var button := Button.new()
+	button.name = "CombatButton"
+	button.custom_minimum_size.y = 80
+	button.set_meta("role", "primary_action")
+	_apply_button_theme(button, "gold", 24)
+	button.pressed.connect(_show_difficulty_sheet)
+	var content := HBoxContainer.new()
+	content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	content.offset_left = 22
+	content.offset_right = -18
+	content.alignment = BoxContainer.ALIGNMENT_CENTER
+	content.add_theme_constant_override("separation", 12)
+	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(content)
+	var icon := TextureRect.new()
+	icon.texture = ICON_BATTLE
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.custom_minimum_size = Vector2(43, 43)
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.add_child(icon)
+	var labels := VBoxContainer.new()
+	labels.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	labels.alignment = BoxContainer.ALIGNMENT_CENTER
+	labels.add_theme_constant_override("separation", -5)
+	labels.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.add_child(labels)
+	var title := _title_label("COMBAT", 28, Color.WHITE)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	labels.add_child(title)
+	var subtitle := _title_label("DUEL IA  •  %s" % DIFFICULTY_NAMES[selected_difficulty], 12, Color("fff3bd"))
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	subtitle.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	labels.add_child(subtitle)
+	var arrow := _title_label("›", 32, Color.WHITE)
+	arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.add_child(arrow)
+	return button
 
+
+func _build_home_navigation() -> Control:
 	var navigation := HBoxContainer.new()
-	navigation.custom_minimum_size.y = 72
-	navigation.add_theme_constant_override("separation", 7)
-	layout.add_child(navigation)
+	navigation.name = "HomeNavigation"
+	navigation.custom_minimum_size.y = 70
+	navigation.add_theme_constant_override("separation", 6)
 	navigation.add_child(_menu_nav_button("ACCUEIL", ICON_HOME, _build_menu, true))
 	navigation.add_child(_menu_nav_button("CARTES", ICON_CARDS, _build_collection))
 	navigation.add_child(_menu_nav_button("ENTRAÎN.", ICON_TRAINING, _start_tutorial))
 	navigation.add_child(_menu_nav_button("RÉGLAGES", _ui_icon(ICON_SETTINGS_INDEX), _show_settings))
-	var version := _title_label("v0.53 • KAYKIT CC0 • HORS LIGNE", 11, Color("7eb5d4"))
-	layout.add_child(version)
+	return navigation
 
 
 func _build_collection() -> void:
@@ -635,6 +688,10 @@ func _battle_card_button(card_id: String) -> Button:
 
 
 func _input(event: InputEvent) -> void:
+	if is_instance_valid(difficulty_sheet) and event.is_action_pressed("ui_cancel"):
+		_clear_difficulty_sheet()
+		get_viewport().set_input_as_handled()
+		return
 	if state != ScreenState.BATTLE or drag_card_id.is_empty() or not is_instance_valid(battle_world):
 		return
 	var viewport_position := Vector2.ZERO
@@ -1092,6 +1149,7 @@ func _show_settings() -> void:
 		row_panel.add_child(toggle)
 		layout.add_child(row_panel)
 	layout.add_child(_title_label("AUCUN COMPTE • AUCUNE PUBLICITÉ • 100 % HORS LIGNE", 11, ArenaTheme.TEXT_MUTED))
+	layout.add_child(_title_label("BATTLE v0.54 • KAYKIT + KENNEY CC0", 11, Color("7eb5d4")))
 	var close := Button.new()
 	close.text = "FERMER"
 	close.custom_minimum_size = Vector2(300, 58)
@@ -1104,6 +1162,30 @@ func _clear_settings_overlay() -> void:
 	if is_instance_valid(settings_layer):
 		settings_layer.queue_free()
 	settings_layer = null
+
+
+func _show_difficulty_sheet() -> void:
+	if state != ScreenState.MENU or not is_instance_valid(ui_root):
+		return
+	_clear_difficulty_sheet()
+	difficulty_sheet = DifficultySheetScript.new()
+	difficulty_sheet.configure(selected_difficulty)
+	difficulty_sheet.confirmed.connect(_confirm_difficulty)
+	difficulty_sheet.cancelled.connect(_clear_difficulty_sheet)
+	ui_root.add_child(difficulty_sheet)
+
+
+func _confirm_difficulty(index: int) -> void:
+	selected_difficulty = clampi(index, 0, DIFFICULTY_NAMES.size() - 1)
+	_save_profile()
+	_clear_difficulty_sheet()
+	_start_battle()
+
+
+func _clear_difficulty_sheet() -> void:
+	if is_instance_valid(difficulty_sheet):
+		difficulty_sheet.queue_free()
+	difficulty_sheet = null
 
 
 func _select_difficulty(index: int) -> void:
@@ -1203,16 +1285,30 @@ func _apply_button_theme(button: Button, kind: String, font_size: int) -> void:
 
 func _menu_nav_button(label_text: String, icon_texture: Texture2D, callback: Callable, active := false) -> Button:
 	var button := Button.new()
-	button.text = label_text
-	button.icon = icon_texture
-	button.expand_icon = true
-	button.add_theme_constant_override("icon_max_width", 27)
+	button.name = "Nav%s" % label_text.replace(".", "").replace("É", "E")
+	button.set_meta("navigation_label", label_text)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.custom_minimum_size.y = 70
-	_apply_button_theme(button, "gold" if active else "secondary", 11)
-	button.add_theme_stylebox_override("normal", ArenaTheme.kenney_button(false, active))
-	button.add_theme_stylebox_override("hover", ArenaTheme.kenney_button(false, active))
-	button.add_theme_stylebox_override("pressed", ArenaTheme.kenney_button(true, active))
+	button.add_theme_stylebox_override("normal", ArenaTheme.nav_button(active))
+	button.add_theme_stylebox_override("hover", ArenaTheme.nav_button(active))
+	button.add_theme_stylebox_override("pressed", ArenaTheme.nav_button(active, true))
+	button.add_theme_stylebox_override("focus", ArenaTheme.nav_button(active))
+	var content := VBoxContainer.new()
+	content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	content.alignment = BoxContainer.ALIGNMENT_CENTER
+	content.add_theme_constant_override("separation", -3)
+	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(content)
+	var icon := TextureRect.new()
+	icon.texture = icon_texture
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.custom_minimum_size = Vector2(0, 32)
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.add_child(icon)
+	var caption := _title_label(label_text, 12, ArenaTheme.GOLD_LIGHT if active else Color("c2d9e5"))
+	caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.add_child(caption)
 	button.pressed.connect(callback)
 	return button
 
@@ -1248,6 +1344,7 @@ func _clear_ui() -> void:
 		ui_layer.free()
 	ui_layer = null
 	ui_root = null
+	difficulty_sheet = null
 	primary_action_button = null
 	battle_world = null
 	arena_container = null

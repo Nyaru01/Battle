@@ -11,7 +11,28 @@ func _capture() -> void:
 	var scene: Node = load("res://scenes/main.tscn").instantiate()
 	root.add_child(scene)
 	await _frames(4)
+	await _settle_menu()
 	_save_viewport("res://builds/screens/menu-540x960.png")
+	scene._show_difficulty_sheet()
+	await _frames(3)
+	_save_viewport("res://builds/screens/difficulty-540x960.png")
+	scene._clear_difficulty_sheet()
+	for capture in [
+		{"size": Vector2i(360, 640), "path": "res://builds/screens/menu-360x640.png"},
+		{"size": Vector2i(360, 800), "path": "res://builds/screens/menu-360x800.png"},
+		{"size": Vector2i(720, 1280), "path": "res://builds/screens/menu-720x1280.png"},
+	]:
+		DisplayServer.window_set_size(capture.size)
+		await _frames(4)
+		scene._build_menu()
+		await _frames(4)
+		await _settle_menu()
+		_save_viewport(capture.path)
+	DisplayServer.window_set_size(Vector2i(540, 960))
+	await _frames(4)
+	scene._build_menu()
+	await _frames(4)
+	await _settle_menu()
 	scene._show_settings()
 	await _frames(3)
 	_save_viewport("res://builds/screens/settings-540x960.png")
@@ -80,6 +101,10 @@ func _capture() -> void:
 func _frames(count: int) -> void:
 	for index in range(count):
 		await process_frame
+
+
+func _settle_menu() -> void:
+	await create_timer(0.75).timeout
 
 
 func _save_viewport(path: String) -> void:

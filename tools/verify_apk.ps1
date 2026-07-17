@@ -30,6 +30,7 @@ try {
         "assets/scripts/ui/arena_theme.gdc",
         "assets/scripts/ui/battle_announcement.gdc",
         "assets/scripts/ui/card_art_control.gdc",
+        "assets/scripts/ui/difficulty_sheet.gdc",
         "assets/scripts/ui/energy_segments.gdc",
         "assets/scripts/ui/lobby_diorama.gdc",
         "assets/scripts/ui/royal_backdrop.gdc",
@@ -106,7 +107,7 @@ try {
     }
 
     Write-Host "APK vérifié : $resolved"
-    Write-Host "Scripts d'exécution : 15/15 | Textures : $($textureNames.Count)/$($textureNames.Count) | Polices : 2/2 | Variante : $Variant | Taille : $([Math]::Round($apkSize / 1MB, 1)) Mo"
+    Write-Host "Scripts d'exécution : 16/16 | Textures : $($textureNames.Count)/$($textureNames.Count) | Polices : 2/2 | Variante : $Variant | Taille : $([Math]::Round($apkSize / 1MB, 1)) Mo"
 }
 finally {
     $archive.Dispose()
