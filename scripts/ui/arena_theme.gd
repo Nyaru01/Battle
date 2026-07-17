@@ -7,6 +7,7 @@ const KENNEY_BUTTON_BLUE: Texture2D = preload("res://assets/v050/ui/button-long-
 const KENNEY_BUTTON_BLUE_PRESSED: Texture2D = preload("res://assets/v050/ui/button-long-blue-pressed.png")
 const KENNEY_BUTTON_GOLD: Texture2D = preload("res://assets/v050/ui/button-long-gold.png")
 const KENNEY_BUTTON_GOLD_PRESSED: Texture2D = preload("res://assets/v050/ui/button-long-gold-pressed.png")
+const FORGED_BUTTON_BLUE: Texture2D = preload("res://assets/v057/ui/button-forged-blue-v057.png")
 
 const NAVY := Color("0a2240")
 const NAVY_DARK := Color("06162c")
@@ -100,17 +101,18 @@ static func fantasy_badge() -> StyleBoxFlat:
 	return style
 
 
-static func fantasy_action(pressed := false, hovered := false) -> StyleBoxFlat:
-	var background := Color("123e68")
-	if hovered:
-		background = Color("195482")
-	if pressed:
-		background = Color("0b2948")
-	var style := panel(background, Color("f2c65b") if not pressed else Color("9c6b28"), 13, 4, 3 if pressed else 8)
-	style.content_margin_left = 12.0
-	style.content_margin_right = 12.0
-	style.content_margin_top = 7.0
-	style.content_margin_bottom = 7.0
+static func fantasy_action(pressed := false, hovered := false) -> StyleBoxTexture:
+	var style := StyleBoxTexture.new()
+	style.texture = FORGED_BUTTON_BLUE
+	style.texture_margin_left = 75.0
+	style.texture_margin_right = 75.0
+	style.texture_margin_top = 0.0
+	style.texture_margin_bottom = 0.0
+	style.content_margin_left = 64.0
+	style.content_margin_right = 64.0
+	style.content_margin_top = 9.0
+	style.content_margin_bottom = 9.0
+	style.modulate_color = Color("c8e5ff") if hovered else Color("b5d3ed") if pressed else Color.WHITE
 	return style
 
 

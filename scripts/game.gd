@@ -154,7 +154,7 @@ func _build_menu() -> void:
 
 	var dock := _build_home_dock()
 	dock.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	dock.offset_top = -170
+	dock.offset_top = -184
 	home.add_child(dock)
 
 
@@ -250,7 +250,7 @@ func _build_home_header() -> Control:
 func _build_home_dock() -> Control:
 	var dock := Control.new()
 	dock.name = "HomeDock"
-	dock.custom_minimum_size.y = 170
+	dock.custom_minimum_size.y = 184
 	var frame := FantasyFrameScript.new()
 	frame.configure(FantasyFrame.FrameKind.DOCK)
 	frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -273,45 +273,29 @@ func _build_home_dock() -> Control:
 func _build_home_primary_action() -> Button:
 	var button := Button.new()
 	button.name = "CombatButton"
-	button.custom_minimum_size.y = 78
+	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	button.custom_minimum_size = Vector2(clampf(get_viewport().get_visible_rect().size.x * 0.72, 310.0, 480.0), 90.0)
+	button.tooltip_text = "Choisir la difficulté et lancer un duel"
 	button.set_meta("role", "primary_action")
 	button.add_theme_stylebox_override("normal", ArenaTheme.fantasy_action())
 	button.add_theme_stylebox_override("hover", ArenaTheme.fantasy_action(false, true))
 	button.add_theme_stylebox_override("pressed", ArenaTheme.fantasy_action(true))
 	button.add_theme_stylebox_override("focus", ArenaTheme.fantasy_action(false, true))
 	button.pressed.connect(_show_difficulty_sheet)
-	var content := HBoxContainer.new()
+	var content := VBoxContainer.new()
 	content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	content.offset_left = 22
-	content.offset_right = -18
+	content.offset_left = 64
+	content.offset_right = -64
+	content.offset_top = 16
+	content.offset_bottom = -16
 	content.alignment = BoxContainer.ALIGNMENT_CENTER
-	content.add_theme_constant_override("separation", 12)
+	content.add_theme_constant_override("separation", -5)
 	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(content)
-	var icon := TextureRect.new()
-	icon.texture = ICON_BATTLE
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.custom_minimum_size = Vector2(43, 43)
-	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content.add_child(icon)
-	var labels := VBoxContainer.new()
-	labels.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	labels.alignment = BoxContainer.ALIGNMENT_CENTER
-	labels.add_theme_constant_override("separation", -5)
-	labels.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content.add_child(labels)
-	var title := _title_label("COMBAT", 28, ArenaTheme.GOLD_LIGHT)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	var title := _title_label("COMBAT", 25, ArenaTheme.GOLD_LIGHT)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	labels.add_child(title)
-	var subtitle := _title_label("DUEL IA  •  %s" % DIFFICULTY_NAMES[selected_difficulty], 12, ArenaTheme.CYAN)
-	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	subtitle.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	labels.add_child(subtitle)
-	var arrow := _title_label("›", 32, Color.WHITE)
-	arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content.add_child(arrow)
+	content.add_child(title)
 	return button
 
 
@@ -1148,7 +1132,7 @@ func _show_settings() -> void:
 		row_panel.add_child(toggle)
 		layout.add_child(row_panel)
 	layout.add_child(_title_label("AUCUN COMPTE • AUCUNE PUBLICITÉ • 100 % HORS LIGNE", 11, ArenaTheme.TEXT_MUTED))
-	layout.add_child(_title_label("BATTLE v0.56 • KAYKIT + KENNEY CC0", 11, Color("7eb5d4")))
+	layout.add_child(_title_label("BATTLE v0.57 • KAYKIT + KENNEY CC0", 11, Color("7eb5d4")))
 	var close := Button.new()
 	close.text = "FERMER"
 	close.custom_minimum_size = Vector2(300, 58)

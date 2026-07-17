@@ -1,8 +1,8 @@
 # Plan de développement — Battle
 
-Version : 0.56
+Version : 0.57
 
-Statut : HUD fantasy sculpté, château plein écran et dock de navigation 0.56 intégrés ; validation tactile et thermique sur appareils physiques en cours
+Statut : HUD fantasy sculpté, château plein écran et bouton Combat texturé 0.57 intégrés ; validation tactile et thermique sur appareils physiques en cours
 
 Plateforme initiale : Android (APK)
 

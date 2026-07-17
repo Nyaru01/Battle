@@ -67,6 +67,7 @@ try {
         "app-icon-v050.png",
         "button-long-blue.png",
         "button-long-gold.png",
+        "button-forged-blue-v057.png",
         "border-ornate.png",
         "icon-home.png",
         "icon-cards.png",
