@@ -33,6 +33,11 @@ func _capture() -> void:
 		unit.y = 680.0 if unit.side == BattleSim.PLAYER else 470.0
 	await _frames(12)
 	_save_viewport("res://builds/screens/battle-540x960.png")
+	scene.simulation.double_energy = true
+	scene._update_hud()
+	await _frames(3)
+	_save_viewport("res://builds/screens/double-energy-540x960.png")
+	scene.simulation.double_energy = false
 	scene._select_card("fireball")
 	await _frames(4)
 	_save_viewport("res://builds/screens/targeting-540x960.png")

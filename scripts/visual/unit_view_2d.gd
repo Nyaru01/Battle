@@ -20,6 +20,7 @@ var finished := false
 var world_scale := 1.0
 var current_state := "spawn"
 var show_health_bar := true
+var show_team_ring := true
 
 
 func configure(id: int, card_id: String, team: int) -> void:
@@ -141,15 +142,18 @@ func _draw() -> void:
 		return
 	var alpha := character_sprite.modulate.a if character_sprite != null else 1.0
 	var footprint_scale := definition.visual_scale / 0.58
+	var team_color := ArenaTheme.CYAN if side == BattleSim.PLAYER else Color("ff6378")
 	draw_circle(Vector2(5, 31), 31.0 * footprint_scale, Color(0.01, 0.03, 0.05, 0.32 * alpha))
-	draw_circle(Vector2(0, 28), 25.0 * footprint_scale, Color(definition.accent, 0.15 * alpha))
-	draw_arc(Vector2(0, 28), 26.0 * footprint_scale, 0.0, TAU, 30, Color(definition.accent, 0.86 * alpha), 2.5)
+	if show_team_ring:
+		draw_circle(Vector2(0, 28), 25.0 * footprint_scale, Color(team_color, 0.14 * alpha))
+		draw_arc(Vector2(0, 28), 26.0 * footprint_scale, 0.0, TAU, 30, Color(team_color, 0.90 * alpha), 3.0)
 	if not show_health_bar:
 		return
 	var width := 65.0 * footprint_scale
 	var bar_position := Vector2(-width * 0.5, -104.0 * footprint_scale)
-	draw_rect(Rect2(bar_position, Vector2(width, 9)), Color(0.02, 0.04, 0.07, 0.94 * alpha), true)
+	draw_rect(Rect2(bar_position, Vector2(width, 11)), Color(team_color, 0.96 * alpha), true)
+	draw_rect(Rect2(bar_position + Vector2(2, 2), Vector2(width - 4.0, 7)), Color(0.02, 0.04, 0.07, 0.96 * alpha), true)
 	var ratio := clampf(hp / max_hp, 0.0, 1.0)
 	var health_color := Color("49d77f") if ratio > 0.3 else Color("f6c548")
 	health_color.a = alpha
-	draw_rect(Rect2(bar_position + Vector2(2, 2), Vector2((width - 4.0) * ratio, 5)), health_color, true)
+	draw_rect(Rect2(bar_position + Vector2(4, 4), Vector2((width - 8.0) * ratio, 3)), health_color, true)

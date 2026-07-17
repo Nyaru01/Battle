@@ -48,6 +48,7 @@ var result_layer: CanvasLayer
 var settings_layer: CanvasLayer
 var time_label: Label
 var energy_label: Label
+var energy_mode_label: Label
 var energy_bar: EnergySegments
 var core_label: Label
 var hint_label: Label
@@ -64,6 +65,8 @@ var drag_card_id := ""
 var drag_candidate_start := Vector2.ZERO
 var drag_active := false
 var suppress_card_tap := false
+var primary_action_button: Button
+var ui_animation_time := 0.0
 
 var sfx_bank: Dictionary = {}
 var sfx_players: Array[AudioStreamPlayer] = []
@@ -78,6 +81,11 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	ui_animation_time += delta
+	if is_instance_valid(primary_action_button):
+		primary_action_button.pivot_offset = primary_action_button.size * 0.5
+		var pulse := 1.0 + (sin(ui_animation_time * 2.5) + 1.0) * 0.006
+		primary_action_button.scale = Vector2.ONE * pulse
 	if state != ScreenState.BATTLE or simulation == null:
 		return
 	if not battle_paused:
@@ -245,6 +253,7 @@ func _build_menu() -> void:
 	_apply_button_theme(start, "success", 30)
 	start.pressed.connect(_start_battle)
 	layout.add_child(start)
+	primary_action_button = start
 
 	var navigation := HBoxContainer.new()
 	navigation.custom_minimum_size.y = 72
@@ -254,7 +263,7 @@ func _build_menu() -> void:
 	navigation.add_child(_menu_nav_button("CARTES", ICON_CARDS, _build_collection))
 	navigation.add_child(_menu_nav_button("ENTRAÎN.", ICON_TRAINING, _start_tutorial))
 	navigation.add_child(_menu_nav_button("RÉGLAGES", _ui_icon(ICON_SETTINGS_INDEX), _show_settings))
-	var version := _title_label("v0.50 • KAYKIT CC0 • HORS LIGNE", 11, Color("7eb5d4"))
+	var version := _title_label("v0.51 • KAYKIT CC0 • HORS LIGNE", 11, Color("7eb5d4"))
 	layout.add_child(version)
 
 
@@ -527,6 +536,10 @@ func _build_battle_footer() -> Control:
 	energy_label = _title_label("10", 21, Color("f5a5ff"))
 	energy_label.custom_minimum_size.x = 30
 	energy_row.add_child(energy_label)
+	energy_mode_label = _title_label("x1", 13, ArenaTheme.TEXT_MUTED)
+	energy_mode_label.custom_minimum_size = Vector2(38, 28)
+	energy_mode_label.add_theme_stylebox_override("normal", ArenaTheme.chip(false, ArenaTheme.MAGENTA))
+	energy_row.add_child(energy_mode_label)
 	energy_bar = EnergySegments.new()
 	energy_bar.maximum = BattleSim.MAX_ENERGY
 	energy_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -735,7 +748,8 @@ func _select_card(card_id: String) -> void:
 	if tutorial != null:
 		tutorial.select_card(card_id)
 	var type := String(BattleSim.CARDS[card_id].type)
-	hint_label.text = "Pose l’unité dans ta moitié" if type == "unit" else "vise une zone ennemie"
+	var card_name := String(BattleSim.CARDS[card_id].name).to_upper()
+	hint_label.text = "%s • Pose l’unité dans ta moitié" % card_name if type == "unit" else "%s • vise une zone ennemie" % card_name
 	if battle_world:
 		battle_world.set_targeting(type)
 	_update_hud()
@@ -788,8 +802,12 @@ func _update_hud() -> void:
 		intro_label.text = str(maxi(1, ceili(battle_intro_time - 0.55))) if battle_intro_time > 0.55 else "À L’ASSAUT !"
 	var seconds := ceili(simulation.time_left)
 	time_label.text = "%d:%02d" % [seconds / 60, seconds % 60]
+	time_label.add_theme_color_override("font_color", ArenaTheme.GOLD_LIGHT if simulation.double_energy else Color.WHITE)
 	energy_label.text = str(int(floor(float(simulation.energy[BattleSim.PLAYER]))))
 	energy_bar.value = simulation.energy[BattleSim.PLAYER]
+	energy_bar.boosted = simulation.double_energy
+	energy_mode_label.text = "x2" if simulation.double_energy else "x1"
+	energy_mode_label.add_theme_color_override("font_color", ArenaTheme.GOLD_LIGHT if simulation.double_energy else ArenaTheme.TEXT_MUTED)
 	core_label.text = "%d  %d—%d  %d" % [
 		int(simulation.towers[BattleSim.ENEMY].core), simulation.crowns[BattleSim.ENEMY],
 		simulation.crowns[BattleSim.PLAYER], int(simulation.towers[BattleSim.PLAYER].core),
@@ -804,7 +822,8 @@ func _update_hud() -> void:
 		button.disabled = not affordable
 		button.add_theme_stylebox_override("normal", _card_panel_style(card_id, selected_card == card_id, false))
 		button.pivot_offset = button.size * 0.5
-		button.scale = Vector2(1.06, 1.06) if selected_card == card_id else Vector2.ONE
+		var selected_scale := 1.065 + sin(ui_animation_time * 6.0) * 0.008
+		button.scale = Vector2.ONE * selected_scale if selected_card == card_id else Vector2.ONE
 		button.modulate = Color.WHITE if affordable else Color(0.53, 0.56, 0.62, 0.88)
 	if tutorial != null:
 		tutorial_label.visible = true
@@ -1174,10 +1193,12 @@ func _clear_ui() -> void:
 		ui_layer.free()
 	ui_layer = null
 	ui_root = null
+	primary_action_button = null
 	battle_world = null
 	arena_container = null
 	intro_label = null
 	next_card_art = null
+	energy_mode_label = null
 	card_buttons.clear()
 	drag_card_id = ""
 	drag_active = false

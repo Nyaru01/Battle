@@ -6,11 +6,24 @@ extends Control
 	set(new_value):
 		value = clampf(new_value, 0.0, maximum)
 		queue_redraw()
+@export var boosted := false:
+	set(new_value):
+		boosted = new_value
+		set_process(boosted)
+		queue_redraw()
+
+var animation_time := 0.0
 
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	custom_minimum_size.y = 22.0
+	set_process(boosted)
+
+
+func _process(delta: float) -> void:
+	animation_time += delta
+	queue_redraw()
 
 
 func _draw() -> void:
@@ -23,6 +36,9 @@ func _draw() -> void:
 		if fill > 0.0:
 			var inner := rect.grow(-3.0)
 			inner.size.x *= fill
-			draw_rect(inner, ArenaTheme.MAGENTA, true)
+			var fill_color := ArenaTheme.GOLD if boosted else ArenaTheme.MAGENTA
+			draw_rect(inner, fill_color, true)
 			if fill > 0.45:
-				draw_line(inner.position + Vector2(2.0, 2.0), inner.position + Vector2(inner.size.x - 2.0, 2.0), Color("f2a8ff"), 2.0)
+				var shine := Color("fff3ad") if boosted else Color("f2a8ff")
+				shine.a = 0.78 + sin(animation_time * 5.0) * 0.18 if boosted else 1.0
+				draw_line(inner.position + Vector2(2.0, 2.0), inner.position + Vector2(inner.size.x - 2.0, 2.0), shine, 2.0)

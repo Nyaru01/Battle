@@ -22,12 +22,12 @@ const RIG_TEXTURES := {
 }
 
 const PROFILES := {
-	"guardian": {"scale": 0.58, "motion": "melee", "accent": Color("63dcff"), "card": Color("163f72")},
-	"ranger": {"scale": 0.56, "motion": "ranged", "accent": Color("49d77f"), "card": Color("175a48")},
-	"colossus": {"scale": 0.65, "motion": "heavy", "accent": Color("f6c548"), "card": Color("684b36")},
-	"duelist": {"scale": 0.55, "motion": "dual", "accent": Color("d47cff"), "card": Color("56356f")},
-	"alchemist": {"scale": 0.57, "motion": "ranged", "accent": Color("ffb74d"), "card": Color("5d3986")},
-	"bulwark": {"scale": 0.63, "motion": "heavy", "accent": Color("9fe287"), "card": Color("40566b")},
+	"guardian": {"scale": 0.61, "motion": "melee", "accent": Color("63dcff"), "card": Color("163f72")},
+	"ranger": {"scale": 0.59, "motion": "ranged", "accent": Color("49d77f"), "card": Color("175a48")},
+	"colossus": {"scale": 0.69, "motion": "heavy", "accent": Color("f6c548"), "card": Color("684b36")},
+	"duelist": {"scale": 0.58, "motion": "dual", "accent": Color("d47cff"), "card": Color("56356f")},
+	"alchemist": {"scale": 0.60, "motion": "ranged", "accent": Color("ffb74d"), "card": Color("5d3986")},
+	"bulwark": {"scale": 0.67, "motion": "heavy", "accent": Color("9fe287"), "card": Color("40566b")},
 }
 
 @export var card_id := ""
