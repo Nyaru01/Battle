@@ -34,10 +34,26 @@ func _capture() -> void:
 	await _frames(12)
 	_save_viewport("res://builds/screens/battle-540x960.png")
 	scene.simulation.double_energy = true
+	scene.simulation.events.append({"type": "double_energy_started"})
+	scene._consume_battle_events()
 	scene._update_hud()
+	scene.battle_announcement._process(0.22)
 	await _frames(3)
 	_save_viewport("res://builds/screens/double-energy-540x960.png")
+	scene.battle_announcement._process(2.0)
 	scene.simulation.double_energy = false
+	scene.simulation.towers[BattleSim.ENEMY].lanes[0] = 0.0
+	scene.simulation.crowns[BattleSim.PLAYER] = 1
+	scene.simulation.events.append({"type": "tower_destroyed", "side": BattleSim.ENEMY, "lane": 0, "attacker": BattleSim.PLAYER})
+	scene._consume_battle_events()
+	scene.battle_world.sync(scene.simulation)
+	scene._update_hud()
+	scene.battle_announcement._process(0.22)
+	await _frames(3)
+	_save_viewport("res://builds/screens/tower-destroyed-540x960.png")
+	scene.battle_announcement._process(2.0)
+	scene.simulation.towers[BattleSim.ENEMY].lanes[0] = 1200.0
+	scene.simulation.crowns[BattleSim.PLAYER] = 0
 	scene._select_card("fireball")
 	await _frames(4)
 	_save_viewport("res://builds/screens/targeting-540x960.png")

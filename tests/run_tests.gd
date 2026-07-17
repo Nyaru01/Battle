@@ -25,7 +25,7 @@ func _run() -> void:
 	_test_profile_store()
 	_test_android_export_configuration()
 	_test_visual_system()
-	_test_v051_animated_characters()
+	_test_v052_animated_characters()
 	_test_progression()
 	_test_battle_intro()
 	_test_units_fight()
@@ -233,7 +233,7 @@ func _test_android_export_configuration() -> void:
 	_expect(config.count("export_files=PackedStringArray()") == 2, "Android presets do not rely on a selective scene list")
 	_expect(config.count("exclude_filter=\"Android/*,builds/*,tests/*,tools/*\"") == 2, "Android presets exclude the downloadable APK and non-runtime project resources")
 	_expect(config.count("export_path=\"Android/Battle-latest.apk\"") == 2, "both Android presets refresh the easy-to-find root APK")
-	_expect(config.count("version/code=51") == 2 and config.count("version/name=\"0.51.0-alpha\"") == 2, "both Android presets expose the v0.51 package version")
+	_expect(config.count("version/code=52") == 2 and config.count("version/name=\"0.52.0-alpha\"") == 2, "both Android presets expose the v0.52 package version")
 	var project := FileAccess.get_file_as_string("res://project.godot")
 	_expect("size/mode=3" in project and "stretch/aspect=\"expand\"" in project, "mobile canvas fills the screen without non-uniform stretching")
 	_expect(project.count("renderer/rendering_method=\"mobile\"") == 1, "battle uses the Vulkan-oriented mobile renderer")
@@ -267,6 +267,10 @@ func _test_visual_system() -> void:
 	_expect(world.preview_valid and world.preview_lane == 1, "spell drag preview accepts the enemy half")
 	world.end_deploy_preview()
 	_expect(world.preview_card.is_empty(), "drag preview clears cleanly after release")
+	world.present_event({"type": "hit", "side": BattleSim.PLAYER, "source": -1, "target": -1, "ranged": false, "target_state": {"lane": 0, "y": 520.0}})
+	_expect(world.effects.any(func(effect: Dictionary) -> bool: return effect.kind == "melee"), "melee hits create a visible slash effect")
+	world.present_event({"type": "unit_defeated", "side": BattleSim.ENEMY, "position": Vector2(510.0, 520.0)})
+	_expect(world.effects.any(func(effect: Dictionary) -> bool: return effect.kind == "defeat"), "defeated heroes create a visible burst effect")
 	world.free()
 	var diorama := LobbyDiorama.new()
 	diorama.size = Vector2(540.0, 330.0)
@@ -284,9 +288,17 @@ func _test_visual_system() -> void:
 	energy.boosted = true
 	_expect(energy.value == 10.0 and energy.boosted, "energy HUD clamps its value and exposes double-energy presentation")
 	energy.free()
+	var announcement := BattleAnnouncement.new()
+	announcement.size = Vector2(380.0, 80.0)
+	root.add_child(announcement)
+	announcement.show_message("ÉNERGIE x2", "LE RYTHME S’ACCÉLÈRE", ArenaTheme.GOLD_LIGHT, 0.5)
+	_expect(announcement.visible and announcement.message_count == 1 and announcement.title_label.text == "ÉNERGIE x2", "battle announcement presents major events immediately")
+	announcement._process(0.6)
+	_expect(not announcement.visible, "battle announcement dismisses itself without blocking play")
+	announcement.free()
 
 
-func _test_v051_animated_characters() -> void:
+func _test_v052_animated_characters() -> void:
 	for card_id in ["guardian", "ranger", "colossus", "duelist", "alchemist", "bulwark"]:
 		var definition := UnitRigDefinition.for_card(card_id)
 		_expect(definition.card_id == card_id and definition.atlas != null, "%s has a dedicated KayKit atlas" % card_id)
@@ -374,6 +386,16 @@ func _test_battle_intro() -> void:
 	_expect(not scene._deployment_error("fireball", Vector2(210.0, 800.0)).is_empty(), "spell targeting rejects the allied half")
 	_expect(scene._deployment_error("fireball", Vector2(210.0, 300.0)).is_empty(), "spell targeting accepts the enemy half")
 	_expect(scene.next_card_preview.get_meta("card_id") == scene.simulation.get_next_card(BattleSim.PLAYER), "HUD renders the next card preview")
+	scene.simulation.crowns = [2, 1]
+	scene._update_hud()
+	_expect(scene.score_label.text == "1  —  2" and "2200" in scene.core_label.text, "battle header separates crown score from fortress health")
+	scene._announce_battle_event({"type": "double_energy_started"})
+	_expect(scene.battle_announcement.visible and scene.battle_announcement.title_label.text == "ÉNERGIE x2", "double energy triggers a prominent arena announcement")
+	scene.simulation.energy[BattleSim.PLAYER] = 0.0
+	scene._update_hud()
+	scene.simulation.energy[BattleSim.PLAYER] = 10.0
+	scene._update_hud()
+	_expect(not scene.ready_card_timers.is_empty(), "cards flash when regenerated energy makes them playable")
 	scene.simulation.double_energy = true
 	scene._update_hud()
 	_expect(scene.energy_mode_label.text == "x2" and scene.energy_bar.boosted, "HUD makes double energy unmistakable")

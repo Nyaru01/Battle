@@ -77,8 +77,14 @@ func present_event(event: Dictionary) -> void:
 		"hit":
 			_play_unit_attack(int(event.get("source", -1)))
 			_play_unit_hit(int(event.get("target", -1)))
+			if not bool(event.get("ranged", false)):
+				var target_state: Dictionary = event.get("target_state", {})
+				_add_effect("melee", _snapshot_position(target_state), _team_color(int(event.get("side", BattleSim.PLAYER))), 0.28, 48.0)
+				shake_strength = maxf(shake_strength, 1.8)
 		"objective_hit":
 			_play_unit_attack(int(event.get("source", -1)))
+			if not bool(event.get("ranged", false)):
+				_add_effect("melee", Vector2(event.get("target_position", Vector2.ZERO)), _team_color(int(event.get("side", BattleSim.PLAYER))), 0.32, 58.0)
 		"projectile_impact":
 			var projectile: Dictionary = event.projectile
 			_play_unit_hit(int(projectile.get("target_id", -1)))
@@ -103,6 +109,8 @@ func present_event(event: Dictionary) -> void:
 			var position := Vector2(360.0, 955.0 if int(event.side) == BattleSim.PLAYER else 205.0)
 			_add_effect("destroy", position, GOLD, 1.05, 155.0)
 			shake_strength = maxf(shake_strength, 13.0)
+		"unit_defeated":
+			_add_effect("defeat", Vector2(event.get("position", Vector2.ZERO)), _team_color(int(event.get("side", BattleSim.PLAYER))), 0.58, 72.0)
 		"spell":
 			show_spell(String(event.card), int(event.side), int(event.lane))
 	queue_redraw()
@@ -368,6 +376,16 @@ func _draw_effects() -> void:
 				for ray in range(12):
 					var direction := Vector2.RIGHT.rotated(float(ray) * TAU / 12.0)
 					draw_circle(center + direction * radius, maxf(2.0, 7.0 * _uniform_scale() * opacity), color)
+			"melee":
+				var slash_angle := -0.9 + progress * 1.8
+				draw_arc(center, radius, slash_angle - 0.7, slash_angle + 0.7, 16, Color.WHITE, maxf(2.0, 8.0 * _uniform_scale() * opacity))
+				draw_arc(center, radius * 0.72, slash_angle - 0.6, slash_angle + 0.6, 14, color, maxf(2.0, 5.0 * _uniform_scale() * opacity))
+			"defeat":
+				draw_circle(center, radius * 0.52, Color(color, opacity * 0.12))
+				for ray in range(8):
+					var direction := Vector2.UP.rotated(float(ray) * TAU / 8.0 + 0.25)
+					var particle := center + direction * radius * (0.45 + progress * 0.65)
+					draw_circle(particle, maxf(1.5, 5.0 * _uniform_scale() * opacity), Color(color.lightened(0.35), opacity))
 			_:
 				draw_circle(center, radius * 0.48, Color(color, opacity * 0.16))
 				draw_arc(center, radius, 0.0, TAU, 28, color, maxf(2.0, 5.0 * _uniform_scale()))
@@ -408,6 +426,12 @@ func _tower_cell(index: int) -> Rect2:
 
 func _unit_design_position(unit: Dictionary) -> Vector2:
 	return Vector2(210.0 if int(unit.lane) == 0 else 510.0, float(unit.y)) + Vector2(float(unit.get("formation_x", 0.0)), 0.0)
+
+
+func _snapshot_position(snapshot: Dictionary) -> Vector2:
+	if snapshot.is_empty():
+		return Vector2.ZERO
+	return Vector2(210.0 if int(snapshot.get("lane", 0)) == 0 else 510.0, float(snapshot.get("y", HALF_Y))) + Vector2(float(snapshot.get("formation_x", 0.0)), 0.0)
 
 
 func _to_screen(design_position: Vector2) -> Vector2:

@@ -51,13 +51,17 @@ var energy_label: Label
 var energy_mode_label: Label
 var energy_bar: EnergySegments
 var core_label: Label
+var score_label: Label
 var hint_label: Label
 var tutorial_label: Label
 var intro_label: Label
 var next_card_preview: PanelContainer
 var next_card_label: Label
 var next_card_art: CardArtControl
+var battle_announcement: BattleAnnouncement
 var card_buttons: Dictionary = {}
+var card_affordable_state: Dictionary = {}
+var ready_card_timers: Dictionary = {}
 var arena_container: Control
 var battle_world: BattleWorld2D
 var hovered_lane := -1
@@ -88,6 +92,10 @@ func _process(delta: float) -> void:
 		primary_action_button.scale = Vector2.ONE * pulse
 	if state != ScreenState.BATTLE or simulation == null:
 		return
+	for card_id in ready_card_timers.keys():
+		ready_card_timers[card_id] = maxf(0.0, float(ready_card_timers[card_id]) - delta)
+		if float(ready_card_timers[card_id]) <= 0.0:
+			ready_card_timers.erase(card_id)
 	if not battle_paused:
 		if battle_intro_time > 0.0:
 			battle_intro_time = maxf(0.0, battle_intro_time - delta)
@@ -263,7 +271,7 @@ func _build_menu() -> void:
 	navigation.add_child(_menu_nav_button("CARTES", ICON_CARDS, _build_collection))
 	navigation.add_child(_menu_nav_button("ENTRAÎN.", ICON_TRAINING, _start_tutorial))
 	navigation.add_child(_menu_nav_button("RÉGLAGES", _ui_icon(ICON_SETTINGS_INDEX), _show_settings))
-	var version := _title_label("v0.51 • KAYKIT CC0 • HORS LIGNE", 11, Color("7eb5d4"))
+	var version := _title_label("v0.52 • KAYKIT CC0 • HORS LIGNE", 11, Color("7eb5d4"))
 	layout.add_child(version)
 
 
@@ -449,6 +457,14 @@ func _build_battle_screen() -> void:
 	tutorial_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tutorial_label.visible = tutorial != null
 	battle_world.add_child(tutorial_label)
+	battle_announcement = BattleAnnouncement.new()
+	battle_announcement.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	battle_announcement.offset_left = 78
+	battle_announcement.offset_right = -78
+	battle_announcement.offset_top = 76
+	battle_announcement.offset_bottom = 154
+	battle_announcement.z_index = 20
+	battle_world.add_child(battle_announcement)
 
 	intro_label = _title_label("3", 72, Color.WHITE)
 	intro_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
@@ -456,6 +472,7 @@ func _build_battle_screen() -> void:
 	intro_label.size = Vector2(264, 140)
 	intro_label.add_theme_stylebox_override("normal", ArenaTheme.panel(Color(0.02, 0.06, 0.10, 0.86), ArenaTheme.GOLD_LIGHT, 70, 5, 12))
 	intro_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	intro_label.z_index = 30
 	battle_world.add_child(intro_label)
 
 	layout.add_child(_build_battle_footer())
@@ -484,15 +501,25 @@ func _build_battle_header() -> Control:
 	var enemy_name := _title_label("IA %s" % DIFFICULTY_NAMES[selected_difficulty], 13, Color("ff8798"))
 	enemy_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	enemy.add_child(enemy_name)
+	var score_stack := VBoxContainer.new()
+	score_stack.custom_minimum_size.x = 118
+	score_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	score_stack.add_theme_constant_override("separation", -6)
+	row.add_child(score_stack)
+	var score_row := HBoxContainer.new()
+	score_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	score_row.add_theme_constant_override("separation", 5)
+	score_stack.add_child(score_row)
 	var crown := TextureRect.new()
 	crown.texture = ICON_CROWN
 	crown.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	crown.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	crown.custom_minimum_size = Vector2(25, 25)
-	row.add_child(crown)
-	core_label = _title_label("2200  0—0  2200", 14, ArenaTheme.TEXT)
-	core_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(core_label)
+	crown.custom_minimum_size = Vector2(24, 24)
+	score_row.add_child(crown)
+	score_label = _title_label("0  —  0", 20, ArenaTheme.GOLD_LIGHT)
+	score_row.add_child(score_label)
+	core_label = _title_label("2200  •  2200", 9, ArenaTheme.TEXT_MUTED)
+	score_stack.add_child(core_label)
 	var clock := TextureRect.new()
 	clock.texture = ICON_TIME
 	clock.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -792,6 +819,27 @@ func _consume_battle_events() -> void:
 			"tower_destroyed", "core_destroyed":
 				_play_sfx("destroyed")
 				_haptic(120, 0.68)
+		_announce_battle_event(event)
+
+
+func _announce_battle_event(event: Dictionary) -> void:
+	var event_type := String(event.get("type", ""))
+	match event_type:
+		"double_energy_started":
+			_show_battle_announcement("ÉNERGIE x2", "LE RYTHME S’ACCÉLÈRE", ArenaTheme.GOLD_LIGHT)
+		"overtime_started":
+			_show_battle_announcement("MORT SUBITE", "LA PROCHAINE TOUR DÉCIDE", Color("ff7185"), 2.0)
+		"tower_destroyed":
+			var allied_fell := int(event.get("side", BattleSim.ENEMY)) == BattleSim.PLAYER
+			_show_battle_announcement("TOUR ALLIÉE DÉTRUITE" if allied_fell else "TOUR ENNEMIE DÉTRUITE", "CONTRE-ATTAQUE !" if allied_fell else "UNE COURONNE GAGNÉE", Color("ff7185") if allied_fell else ArenaTheme.CYAN)
+		"core_destroyed":
+			var allied_fell := int(event.get("side", BattleSim.ENEMY)) == BattleSim.PLAYER
+			_show_battle_announcement("FORTERESSE DÉTRUITE", "DÉFAITE" if allied_fell else "VICTOIRE ROYALE", Color("ff7185") if allied_fell else ArenaTheme.GOLD_LIGHT, 2.0)
+
+
+func _show_battle_announcement(title: String, subtitle: String, color: Color, duration := 1.7) -> void:
+	if is_instance_valid(battle_announcement):
+		battle_announcement.show_message(title, subtitle, color, duration)
 
 
 func _update_hud() -> void:
@@ -808,10 +856,8 @@ func _update_hud() -> void:
 	energy_bar.boosted = simulation.double_energy
 	energy_mode_label.text = "x2" if simulation.double_energy else "x1"
 	energy_mode_label.add_theme_color_override("font_color", ArenaTheme.GOLD_LIGHT if simulation.double_energy else ArenaTheme.TEXT_MUTED)
-	core_label.text = "%d  %d—%d  %d" % [
-		int(simulation.towers[BattleSim.ENEMY].core), simulation.crowns[BattleSim.ENEMY],
-		simulation.crowns[BattleSim.PLAYER], int(simulation.towers[BattleSim.PLAYER].core),
-	]
+	score_label.text = "%d  —  %d" % [simulation.crowns[BattleSim.ENEMY], simulation.crowns[BattleSim.PLAYER]]
+	core_label.text = "%d  •  %d" % [int(simulation.towers[BattleSim.ENEMY].core), int(simulation.towers[BattleSim.PLAYER].core)]
 	var next_id := simulation.get_next_card(BattleSim.PLAYER)
 	next_card_preview.set_meta("card_id", next_id)
 	next_card_art.set_card(next_id)
@@ -819,12 +865,18 @@ func _update_hud() -> void:
 	for card_id in card_buttons:
 		var button: Button = card_buttons[card_id]
 		var affordable: bool = float(simulation.energy[BattleSim.PLAYER]) + 0.001 >= float(BattleSim.CARDS[card_id].cost)
+		var was_affordable: bool = bool(card_affordable_state.get(card_id, affordable))
+		if affordable and not was_affordable:
+			ready_card_timers[card_id] = 0.72
+		card_affordable_state[card_id] = affordable
+		var ready_flash := float(ready_card_timers.get(card_id, 0.0)) > 0.0
 		button.disabled = not affordable
-		button.add_theme_stylebox_override("normal", _card_panel_style(card_id, selected_card == card_id, false))
+		button.add_theme_stylebox_override("normal", _card_panel_style(card_id, selected_card == card_id or ready_flash, false))
 		button.pivot_offset = button.size * 0.5
 		var selected_scale := 1.065 + sin(ui_animation_time * 6.0) * 0.008
-		button.scale = Vector2.ONE * selected_scale if selected_card == card_id else Vector2.ONE
-		button.modulate = Color.WHITE if affordable else Color(0.53, 0.56, 0.62, 0.88)
+		var ready_scale := 1.0 + sin(ui_animation_time * 14.0) * 0.018
+		button.scale = Vector2.ONE * selected_scale if selected_card == card_id else Vector2.ONE * ready_scale if ready_flash else Vector2.ONE
+		button.modulate = Color("fff1bd") if ready_flash else Color.WHITE if affordable else Color(0.53, 0.56, 0.62, 0.88)
 	if tutorial != null:
 		tutorial_label.visible = true
 		tutorial_label.text = tutorial.instruction()
@@ -841,6 +893,8 @@ func _rebuild_hand() -> void:
 	for child in parent.get_children():
 		child.queue_free()
 	card_buttons.clear()
+	card_affordable_state.clear()
+	ready_card_timers.clear()
 	for card_id in simulation.get_hand(BattleSim.PLAYER):
 		var button := _battle_card_button(card_id)
 		parent.add_child(button)
@@ -1199,7 +1253,11 @@ func _clear_ui() -> void:
 	intro_label = null
 	next_card_art = null
 	energy_mode_label = null
+	battle_announcement = null
+	score_label = null
 	card_buttons.clear()
+	card_affordable_state.clear()
+	ready_card_timers.clear()
 	drag_card_id = ""
 	drag_active = false
 	suppress_card_tap = false
