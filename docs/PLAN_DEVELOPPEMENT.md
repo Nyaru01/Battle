@@ -1,8 +1,8 @@
 # Plan de développement — Battle
 
-Version : 0.52
+Version : 0.53
 
-Statut : refonte totale implémentée et feedback de combat 0.52 intégré ; validation tactile et thermique sur appareils physiques en cours
+Statut : arène plein écran sans étirement, ancrage/orientation des héros et placement libre 0.53 intégrés ; validation tactile et thermique sur appareils physiques en cours
 
 Plateforme initiale : Android (APK)
 

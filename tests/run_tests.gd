@@ -10,6 +10,7 @@ func _init() -> void:
 
 func _run() -> void:
 	_test_card_cost_and_validation()
+	_test_free_unit_placement()
 	_test_energy_regeneration()
 	_test_double_energy()
 	_test_spell_damage()
@@ -25,7 +26,7 @@ func _run() -> void:
 	_test_profile_store()
 	_test_android_export_configuration()
 	_test_visual_system()
-	_test_v052_animated_characters()
+	_test_v053_animated_characters()
 	_test_progression()
 	_test_battle_intro()
 	_test_units_fight()
@@ -44,6 +45,25 @@ func _test_card_cost_and_validation() -> void:
 	_expect(not simulation.play_card(BattleSim.PLAYER, "colossus", 0), "a card cannot be played without energy")
 	_expect(not simulation.play_card(BattleSim.PLAYER, "unknown", 0), "an unknown card is rejected")
 	_expect(not simulation.play_card(BattleSim.PLAYER, "guardian", 3), "an invalid lane is rejected")
+
+
+func _test_free_unit_placement() -> void:
+	_expect(BattleSim.is_valid_unit_placement(BattleSim.PLAYER, Vector2(590.0, 720.0)), "the full allied base accepts free unit placement")
+	_expect(not BattleSim.is_valid_unit_placement(BattleSim.PLAYER, Vector2(590.0, 500.0)), "free placement still rejects the enemy half")
+	var placed := BattleSim.new(110)
+	var position := Vector2(590.0, 720.0)
+	_expect(placed.play_card(BattleSim.PLAYER, "guardian", 0, position), "a unit can be deployed at an exact base position")
+	_expect(placed.units[0].lane == 1 and placed.units[0].x == position.x and placed.units[0].y == position.y, "deployment preserves x and y and derives the correct lane")
+	var rejected := BattleSim.new(111)
+	var initial_energy: float = rejected.energy[BattleSim.PLAYER]
+	_expect(not rejected.play_card(BattleSim.PLAYER, "guardian", 0, Vector2(40.0, 720.0)) and rejected.energy[BattleSim.PLAYER] == initial_energy, "out-of-bounds placement spends no energy")
+	var movement := BattleSim.new(112)
+	movement.energy = [10.0, 10.0]
+	movement.play_card(BattleSim.PLAYER, "guardian", 0, Vector2(110.0, 760.0))
+	movement.play_card(BattleSim.ENEMY, "guardian", 0, Vector2(300.0, 500.0))
+	var initial_x: float = movement.units[0].x
+	movement.step(0.2)
+	_expect(movement.units[0].x > initial_x and movement.units[0].facing_x > 0.0, "units steer and turn toward opponents from their chosen position")
 
 
 func _test_energy_regeneration() -> void:
@@ -233,7 +253,7 @@ func _test_android_export_configuration() -> void:
 	_expect(config.count("export_files=PackedStringArray()") == 2, "Android presets do not rely on a selective scene list")
 	_expect(config.count("exclude_filter=\"Android/*,builds/*,tests/*,tools/*\"") == 2, "Android presets exclude the downloadable APK and non-runtime project resources")
 	_expect(config.count("export_path=\"Android/Battle-latest.apk\"") == 2, "both Android presets refresh the easy-to-find root APK")
-	_expect(config.count("version/code=52") == 2 and config.count("version/name=\"0.52.0-alpha\"") == 2, "both Android presets expose the v0.52 package version")
+	_expect(config.count("version/code=53") == 2 and config.count("version/name=\"0.53.0-alpha\"") == 2, "both Android presets expose the v0.53 package version")
 	var project := FileAccess.get_file_as_string("res://project.godot")
 	_expect("size/mode=3" in project and "stretch/aspect=\"expand\"" in project, "mobile canvas fills the screen without non-uniform stretching")
 	_expect(project.count("renderer/rendering_method=\"mobile\"") == 1, "battle uses the Vulkan-oriented mobile renderer")
@@ -251,16 +271,17 @@ func _test_visual_system() -> void:
 	world.size = Vector2(540.0, 700.0)
 	root.add_child(world)
 	world._update_arena_rect()
-	_expect(absf(world.arena_rect.size.x / world.arena_rect.size.y - 2.0 / 3.0) < 0.001, "portrait arena preserves its authored aspect ratio")
-	var enemy_left := world.to_sim_position(world.arena_rect.position + world.arena_rect.size * Vector2(0.25, 0.25))
-	var player_right := world.to_sim_position(world.arena_rect.position + world.arena_rect.size * Vector2(0.75, 0.75))
+	_expect(absf(world.arena_rect.size.x / world.arena_rect.size.y - 2.0 / 3.0) < 0.001, "cover arena preserves its authored aspect ratio without stretching")
+	_expect(world.viewport_rect.size == Vector2(528.0, 692.0) and world.arena_rect.size.x >= world.viewport_rect.size.x and world.arena_rect.size.y >= world.viewport_rect.size.y, "cover arena fills the available play surface without black bands")
+	var enemy_left := world.to_sim_position(world.viewport_rect.position + world.viewport_rect.size * Vector2(0.25, 0.25))
+	var player_right := world.to_sim_position(world.viewport_rect.position + world.viewport_rect.size * Vector2(0.75, 0.75))
 	_expect(world.lane_at(enemy_left) == 0 and world.lane_at(player_right) == 1, "responsive arena mapping preserves both lanes")
 	_expect(not world.is_player_half(enemy_left) and world.is_player_half(player_right), "responsive arena mapping preserves deployment territories")
 	_expect(is_inf(world.to_sim_position(Vector2(-20.0, -20.0)).x), "touches outside the arena are ignored")
 	world.set_targeting("unit", 1)
 	_expect(world.targeting_type == "unit" and world.targeting_lane == 1, "targeting state reaches the animated renderer")
 	world.begin_deploy_preview("guardian")
-	world.update_deploy_preview(world.arena_rect.position + world.arena_rect.size * Vector2(0.25, 0.75))
+	world.update_deploy_preview(world._to_screen(Vector2(150.0, 720.0)))
 	_expect(world.preview_valid and world.preview_lane == 0, "unit drag preview accepts the allied half")
 	world.begin_deploy_preview("fireball")
 	world.update_deploy_preview(world.arena_rect.position + world.arena_rect.size * Vector2(0.75, 0.25))
@@ -298,7 +319,7 @@ func _test_visual_system() -> void:
 	announcement.free()
 
 
-func _test_v052_animated_characters() -> void:
+func _test_v053_animated_characters() -> void:
 	for card_id in ["guardian", "ranger", "colossus", "duelist", "alchemist", "bulwark"]:
 		var definition := UnitRigDefinition.for_card(card_id)
 		_expect(definition.card_id == card_id and definition.atlas != null, "%s has a dedicated KayKit atlas" % card_id)
@@ -323,6 +344,8 @@ func _test_v052_animated_characters() -> void:
 		_expect(view.current_state == "death", "%s gives death animation the highest priority" % card_id)
 		view._process(definition.state_duration("death"))
 		_expect(view.is_finished(), "%s completes its authored defeat animation" % card_id)
+		view.sync_state({"hp": 80.0, "max_hp": 100.0, "moving": false, "facing_x": -1.0})
+		_expect(view.character_sprite.flip_h and view.character_sprite.position.y == -22.0, "%s mirrors with its target and stays grounded" % card_id)
 		view.free()
 
 
@@ -411,13 +434,14 @@ func _test_battle_intro() -> void:
 	motion.position = scene.drag_candidate_start + Vector2(30.0, -40.0)
 	scene._input(motion)
 	_expect(scene.drag_active and scene.battle_world.preview_card == "guardian", "dragging a card creates its animated arena preview")
-	var allied_local: Vector2 = scene.battle_world.arena_rect.position + scene.battle_world.arena_rect.size * Vector2(0.25, 0.75)
+	var allied_local: Vector2 = scene.battle_world._to_screen(Vector2(145.0, 735.0))
 	var release := InputEventMouseButton.new()
 	release.button_index = MOUSE_BUTTON_LEFT
 	release.pressed = false
 	release.position = scene.battle_world.get_global_transform_with_canvas() * allied_local
 	scene._input(release)
 	_expect(scene.simulation.units.size() == 1 and scene.simulation.units[0].card_id == "guardian", "drag release deploys the selected card on the valid lane")
+	_expect(absf(float(scene.simulation.units[0].x) - 145.0) < 0.1 and absf(float(scene.simulation.units[0].y) - 735.0) < 0.1, "drag release preserves the chosen position inside the allied base")
 	_expect(not scene.drag_active and scene.battle_world.preview_card.is_empty(), "drag state clears after deployment")
 	var initial_wins: int = scene.profile.wins
 	scene.simulation.forfeit(BattleSim.ENEMY)

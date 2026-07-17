@@ -38,6 +38,8 @@ func sync_state(unit: Dictionary) -> void:
 	max_hp = maxf(1.0, float(unit.max_hp))
 	moving = bool(unit.get("moving", false))
 	walk_phase = float(unit.get("walk_phase", animation_time * 7.0))
+	if character_sprite != null:
+		character_sprite.flip_h = float(unit.get("facing_x", 1.0)) < 0.0
 	var pulse := float(unit.get("attack_pulse", 0.0))
 	if pulse > 0.12 and last_attack_pulse <= 0.12:
 		play_attack()
@@ -83,7 +85,7 @@ func _build_character() -> void:
 	character_sprite.region_enabled = true
 	character_sprite.region_filter_clip_enabled = true
 	character_sprite.scale = Vector2.ONE * definition.visual_scale
-	character_sprite.position.y = -36.0
+	character_sprite.position.y = -22.0
 	add_child(character_sprite)
 
 

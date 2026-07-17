@@ -18,6 +18,7 @@ const GOLD := Color("ffd766")
 
 var simulation: BattleSim
 var arena_rect := Rect2()
+var viewport_rect := Rect2()
 var unit_views: Dictionary = {}
 var unit_positions: Dictionary = {}
 var dying_views: Array[UnitView2D] = []
@@ -139,7 +140,7 @@ func update_deploy_preview(local_position: Vector2) -> void:
 		return
 	preview_lane = lane_at(sim_position)
 	var is_unit := String(BattleSim.CARDS[preview_card].type) == "unit"
-	preview_valid = is_player_half(sim_position) if is_unit else not is_player_half(sim_position)
+	preview_valid = BattleSim.is_valid_unit_placement(BattleSim.PLAYER, sim_position) if is_unit else not is_player_half(sim_position)
 	targeting_type = String(BattleSim.CARDS[preview_card].type)
 	targeting_lane = preview_lane
 	queue_redraw()
@@ -169,7 +170,7 @@ func show_spell(card_id: String, side: int, lane: int) -> void:
 
 
 func to_sim_position(local_position: Vector2) -> Vector2:
-	if not arena_rect.has_point(local_position) or arena_rect.size.x <= 0.0 or arena_rect.size.y <= 0.0:
+	if not viewport_rect.has_point(local_position) or arena_rect.size.x <= 0.0 or arena_rect.size.y <= 0.0:
 		return Vector2(INF, INF)
 	var normalized := (local_position - arena_rect.position) / arena_rect.size
 	return Vector2(normalized.x * DESIGN_WIDTH, DESIGN_TOP + normalized.y * DESIGN_HEIGHT)
@@ -230,16 +231,17 @@ func _draw() -> void:
 		_draw_projectiles()
 	_draw_effects()
 	_draw_preview()
-	draw_rect(draw_rect_value, Color("61d7ff"), false, 3.0)
+	draw_rect(viewport_rect, Color("61d7ff"), false, 3.0)
 
 
 func _update_arena_rect() -> void:
 	var available := Vector2(maxf(1.0, size.x - 12.0), maxf(1.0, size.y - 8.0))
+	viewport_rect = Rect2((size - available) * 0.5, available)
 	var target_size := available
 	if available.x / available.y > ARENA_ASPECT:
-		target_size.x = available.y * ARENA_ASPECT
-	else:
 		target_size.y = available.x / ARENA_ASPECT
+	else:
+		target_size.x = available.y * ARENA_ASPECT
 	arena_rect = Rect2((size - target_size) * 0.5, target_size)
 	queue_redraw()
 
@@ -260,6 +262,14 @@ func _draw_ambient() -> void:
 
 func _draw_targeting() -> void:
 	if targeting_type.is_empty():
+		return
+	if targeting_type == "unit":
+		var enemy_half := _design_rect_to_screen(Rect2(0, DESIGN_TOP, DESIGN_WIDTH, HALF_Y - DESIGN_TOP))
+		draw_rect(enemy_half, Color(1.0, 0.18, 0.28, 0.055), true)
+		var deploy_rect := Rect2(BattleSim.DEPLOY_MARGIN_X, BattleSim.PLAYER_DEPLOY_MIN_Y, BattleSim.ARENA_WIDTH - BattleSim.DEPLOY_MARGIN_X * 2.0, BattleSim.PLAYER_DEPLOY_MAX_Y - BattleSim.PLAYER_DEPLOY_MIN_Y)
+		var screen_rect := _design_rect_to_screen(deploy_rect)
+		draw_rect(screen_rect, Color(0.24, 0.93, 0.64, 0.18), true)
+		draw_rect(screen_rect, Color(0.34, 0.96, 0.70, 0.78), false, 3.0)
 		return
 	for half in range(2):
 		var player_half := half == 1
@@ -425,13 +435,15 @@ func _tower_cell(index: int) -> Rect2:
 
 
 func _unit_design_position(unit: Dictionary) -> Vector2:
-	return Vector2(210.0 if int(unit.lane) == 0 else 510.0, float(unit.y)) + Vector2(float(unit.get("formation_x", 0.0)), 0.0)
+	var x := float(unit.x) if unit.has("x") else (210.0 if int(unit.lane) == 0 else 510.0) + float(unit.get("formation_x", 0.0))
+	return Vector2(x, float(unit.y))
 
 
 func _snapshot_position(snapshot: Dictionary) -> Vector2:
 	if snapshot.is_empty():
 		return Vector2.ZERO
-	return Vector2(210.0 if int(snapshot.get("lane", 0)) == 0 else 510.0, float(snapshot.get("y", HALF_Y))) + Vector2(float(snapshot.get("formation_x", 0.0)), 0.0)
+	var x := float(snapshot.x) if snapshot.has("x") else (210.0 if int(snapshot.get("lane", 0)) == 0 else 510.0) + float(snapshot.get("formation_x", 0.0))
+	return Vector2(x, float(snapshot.get("y", HALF_Y)))
 
 
 func _to_screen(design_position: Vector2) -> Vector2:

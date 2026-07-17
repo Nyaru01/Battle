@@ -271,7 +271,7 @@ func _build_menu() -> void:
 	navigation.add_child(_menu_nav_button("CARTES", ICON_CARDS, _build_collection))
 	navigation.add_child(_menu_nav_button("ENTRAÎN.", ICON_TRAINING, _start_tutorial))
 	navigation.add_child(_menu_nav_button("RÉGLAGES", _ui_icon(ICON_SETTINGS_INDEX), _show_settings))
-	var version := _title_label("v0.52 • KAYKIT CC0 • HORS LIGNE", 11, Color("7eb5d4"))
+	var version := _title_label("v0.53 • KAYKIT CC0 • HORS LIGNE", 11, Color("7eb5d4"))
 	layout.add_child(version)
 
 
@@ -732,16 +732,17 @@ func _try_deploy(card_id: String, local_position: Vector2) -> bool:
 		return false
 	hovered_lane = battle_world.lane_at(sim_position)
 	var is_unit := String(BattleSim.CARDS[card_id].type) == "unit"
-	var valid_half := battle_world.is_player_half(sim_position) if is_unit else not battle_world.is_player_half(sim_position)
-	if not valid_half:
-		hint_label.text = "Zone interdite : vise la moitié %s" % ("alliée" if is_unit else "ennemie")
+	var valid_zone := BattleSim.is_valid_unit_placement(BattleSim.PLAYER, sim_position) if is_unit else not battle_world.is_player_half(sim_position)
+	if not valid_zone:
+		hint_label.text = "Zone interdite : reste dans la base alliée" if is_unit else "Zone interdite : vise la moitié ennemie"
 		_haptic(55, 0.25)
 		return false
 	if tutorial != null and not tutorial.can_deploy(card_id, hovered_lane):
 		hint_label.text = tutorial.instruction()
 		_haptic(55, 0.25)
 		return false
-	if simulation.play_card(BattleSim.PLAYER, card_id, hovered_lane):
+	var placement := sim_position if is_unit else Vector2(INF, INF)
+	if simulation.play_card(BattleSim.PLAYER, card_id, hovered_lane, placement):
 		if tutorial != null:
 			tutorial.deploy_card(card_id, hovered_lane)
 		selected_card = ""
@@ -776,7 +777,7 @@ func _select_card(card_id: String) -> void:
 		tutorial.select_card(card_id)
 	var type := String(BattleSim.CARDS[card_id].type)
 	var card_name := String(BattleSim.CARDS[card_id].name).to_upper()
-	hint_label.text = "%s • Pose l’unité dans ta moitié" % card_name if type == "unit" else "%s • vise une zone ennemie" % card_name
+	hint_label.text = "%s • Pose-la où tu veux dans ta base" % card_name if type == "unit" else "%s • vise une zone ennemie" % card_name
 	if battle_world:
 		battle_world.set_targeting(type)
 	_update_hud()
@@ -786,8 +787,8 @@ func _deployment_error(card_id: String, position: Vector2) -> String:
 	if not BattleSim.CARDS.has(card_id):
 		return "Carte inconnue"
 	var is_unit := String(BattleSim.CARDS[card_id].type) == "unit"
-	if is_unit and position.y < 590.0:
-		return "Déploie les unités dans ta moitié"
+	if is_unit and not BattleSim.is_valid_unit_placement(BattleSim.PLAYER, position):
+		return "Déploie les unités dans ta base"
 	if not is_unit and position.y >= 590.0:
 		return "Vise une zone ennemie"
 	return ""

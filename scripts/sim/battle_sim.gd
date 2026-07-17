@@ -16,6 +16,13 @@ const CORE_RANGE := 275.0
 const CORE_DAMAGE := 68.0
 const CORE_INTERVAL := 1.15
 const CORE_MAX_HEALTH := 2200.0
+const ARENA_WIDTH := 720.0
+const HALF_Y := 580.0
+const DEPLOY_MARGIN_X := 70.0
+const PLAYER_DEPLOY_MIN_Y := 610.0
+const PLAYER_DEPLOY_MAX_Y := 850.0
+const ENEMY_DEPLOY_MIN_Y := 280.0
+const ENEMY_DEPLOY_MAX_Y := 550.0
 const DEFAULT_DECK := [
 	"guardian", "ranger", "colossus", "fireball",
 	"duelist", "alchemist", "bulwark", "frost",
@@ -163,7 +170,7 @@ func _shuffle_deck(deck: Array) -> void:
 		deck[swap_index] = card
 
 
-func play_card(side: int, card_id: String, lane: int) -> bool:
+func play_card(side: int, card_id: String, lane: int, placement := Vector2(INF, INF)) -> bool:
 	if finished or side < PLAYER or side > ENEMY or lane < 0 or lane >= LANE_COUNT:
 		return false
 	if not CARDS.has(card_id):
@@ -172,16 +179,34 @@ func play_card(side: int, card_id: String, lane: int) -> bool:
 		return false
 	var level := clampi(int(card_levels[side].get(card_id, 1)), 1, MAX_CARD_LEVEL)
 	var card: Dictionary = scaled_card(CARDS[card_id], level)
+	var custom_placement := _has_custom_placement(placement)
+	if card.type == "unit" and custom_placement and not is_valid_unit_placement(side, placement):
+		return false
+	var effective_lane := lane
+	if card.type == "unit" and custom_placement:
+		effective_lane = 0 if placement.x < ARENA_WIDTH * 0.5 else 1
 	if energy[side] + 0.001 < card.cost:
 		return false
 	energy[side] -= card.cost
 	if card.type == "spell":
 		_cast_spell(side, card_id, lane, card)
 	else:
-		_spawn_unit(side, card_id, lane, card)
+		_spawn_unit(side, card_id, effective_lane, card, placement)
 	_cycle_card(side, card_id)
-	events.append({"type": "card_played", "side": side, "card": card_id, "lane": lane, "level": level})
+	events.append({"type": "card_played", "side": side, "card": card_id, "lane": effective_lane, "level": level, "position": placement if custom_placement else Vector2(INF, INF)})
 	return true
+
+
+static func is_valid_unit_placement(side: int, placement: Vector2) -> bool:
+	if side < PLAYER or side > ENEMY or not _has_custom_placement(placement):
+		return false
+	if placement.x < DEPLOY_MARGIN_X or placement.x > ARENA_WIDTH - DEPLOY_MARGIN_X:
+		return false
+	return placement.y >= PLAYER_DEPLOY_MIN_Y and placement.y <= PLAYER_DEPLOY_MAX_Y if side == PLAYER else placement.y >= ENEMY_DEPLOY_MIN_Y and placement.y <= ENEMY_DEPLOY_MAX_Y
+
+
+static func _has_custom_placement(placement: Vector2) -> bool:
+	return not is_inf(placement.x) and not is_inf(placement.y) and not is_nan(placement.x) and not is_nan(placement.y)
 
 
 static func level_multiplier(level: int) -> float:
@@ -251,18 +276,23 @@ func get_units_in_lane(side: int, lane: int) -> Array:
 	return units.filter(func(unit: Dictionary) -> bool: return unit.side == side and unit.lane == lane)
 
 
-func _spawn_unit(side: int, card_id: String, lane: int, card: Dictionary) -> void:
-	var spawn_y := 820.0 if side == PLAYER else 310.0
+func _spawn_unit(side: int, card_id: String, lane: int, card: Dictionary, placement: Vector2) -> void:
+	var custom_placement := _has_custom_placement(placement)
+	var spawn_y := placement.y if custom_placement else 820.0 if side == PLAYER else 310.0
+	var spawn_x := placement.x if custom_placement else 210.0 if lane == 0 else 510.0
 	var unit_count := maxi(1, int(card.get("count", 1)))
 	for member in range(unit_count):
 		var formation_x := (float(member) - float(unit_count - 1) * 0.5) * 56.0
+		var unit_x := clampf(spawn_x + formation_x, DEPLOY_MARGIN_X, ARENA_WIDTH - DEPLOY_MARGIN_X)
 		units.append({
 			"id": next_unit_id,
 			"side": side,
 			"card_id": card_id,
 			"lane": lane,
+			"x": unit_x,
 			"y": spawn_y,
 			"formation_x": formation_x,
+			"facing_x": 1.0 if unit_x < ARENA_WIDTH * 0.5 else -1.0,
 			"hp": card.hp,
 			"max_hp": card.hp,
 			"damage": card.damage,
@@ -299,7 +329,8 @@ func _update_units(delta: float) -> void:
 		unit.attack_pulse = maxf(0.0, float(unit.attack_pulse) - delta)
 		unit.slow_timer = maxf(0.0, unit.slow_timer - delta)
 		var target = _closest_enemy_unit(unit)
-		if target != null and absf(target.y - unit.y) <= unit.range:
+		var unit_position := Vector2(_unit_x(unit), float(unit.y))
+		if target != null and unit_position.distance_to(Vector2(_unit_x(target), float(target.y))) <= unit.range:
 			if unit.attack_timer <= 0.0:
 				var ranged := float(unit.range) >= 90.0
 				if ranged:
@@ -319,10 +350,12 @@ func _update_units(delta: float) -> void:
 				})
 			continue
 		var target_y := 240.0 if unit.side == PLAYER else 900.0
+		var target_x := 210.0 if int(unit.lane) == 0 else 510.0
 		var target_side: int = 1 - int(unit.side)
 		if towers[target_side].lanes[unit.lane] <= 0.0:
 			target_y = 205.0 if unit.side == PLAYER else 955.0
-		var distance := absf(target_y - unit.y)
+			target_x = ARENA_WIDTH * 0.5
+		var distance := unit_position.distance_to(Vector2(target_x, target_y))
 		if distance <= unit.range:
 			if unit.attack_timer <= 0.0:
 				var attacks_core: bool = towers[target_side].lanes[unit.lane] <= 0.0
@@ -348,6 +381,10 @@ func _update_units(delta: float) -> void:
 		var speed_multiplier := 0.55 if unit.slow_timer > 0.0 else 1.0
 		var distance_moved: float = unit.speed * speed_multiplier * delta
 		unit.y += direction * distance_moved
+		var desired_x := _unit_x(target) if target != null else target_x
+		if absf(desired_x - _unit_x(unit)) > 1.0:
+			unit.facing_x = signf(desired_x - _unit_x(unit))
+		unit.x = move_toward(_unit_x(unit), desired_x, distance_moved * 0.62)
 		unit.moving = true
 		unit.walk_phase = fmod(float(unit.walk_phase) + distance_moved * 0.22, TAU)
 
@@ -355,9 +392,16 @@ func _update_units(delta: float) -> void:
 func _unit_snapshot(unit: Dictionary) -> Dictionary:
 	return {
 		"lane": int(unit.lane),
+		"x": _unit_x(unit),
 		"y": float(unit.y),
 		"formation_x": float(unit.get("formation_x", 0.0)),
 	}
+
+
+static func _unit_x(unit: Dictionary) -> float:
+	if unit.has("x"):
+		return float(unit.x)
+	return (210.0 if int(unit.get("lane", 0)) == 0 else 510.0) + float(unit.get("formation_x", 0.0))
 
 
 func _damage_unit_target(source: Dictionary, target: Dictionary) -> void:
@@ -367,13 +411,13 @@ func _damage_unit_target(source: Dictionary, target: Dictionary) -> void:
 	for candidate in units:
 		if candidate.id == target.id or candidate.side == source.side or candidate.lane != source.lane:
 			continue
-		if absf(float(candidate.y) - float(target.y)) <= source.splash:
+		if Vector2(_unit_x(candidate), float(candidate.y)).distance_to(Vector2(_unit_x(target), float(target.y))) <= source.splash:
 			candidate.hp = maxf(0.0, candidate.hp - source.damage * 0.55)
 
 
 func _spawn_unit_projectile(source: Dictionary, target: Dictionary) -> void:
-	var from_x := 210.0 if int(source.lane) == 0 else 510.0
-	var to_x := 210.0 if int(target.lane) == 0 else 510.0
+	var from_x := _unit_x(source)
+	var to_x := _unit_x(target)
 	var speed := maxf(1.0, float(source.get("projectile_speed", 380.0)))
 	_spawn_projectile({
 		"kind": String(source.card_id),
@@ -395,8 +439,8 @@ func _spawn_unit_projectile(source: Dictionary, target: Dictionary) -> void:
 
 
 func _spawn_objective_projectile(source: Dictionary, target_side: int, target_core: bool, target_y: float) -> void:
-	var from_x := 210.0 if int(source.lane) == 0 else 510.0
-	var to_x := 360.0 if target_core else from_x
+	var from_x := _unit_x(source)
+	var to_x := 360.0 if target_core else 210.0 if int(source.lane) == 0 else 510.0
 	_spawn_projectile({
 		"kind": String(source.card_id),
 		"side": int(source.side),
@@ -429,7 +473,7 @@ func _spawn_defensive_projectile(side: int, lane: int, target: Dictionary, core:
 		"target_core": false,
 		"from_x": source_x,
 		"from_y": source_y,
-		"to_x": 210.0 if int(target.lane) == 0 else 510.0,
+		"to_x": _unit_x(target),
 		"to_y": float(target.y),
 		"speed": 560.0 if core else 500.0,
 		"damage": CORE_DAMAGE if core else TOWER_DAMAGE,
@@ -453,7 +497,7 @@ func _update_projectiles(delta: float) -> void:
 		var projectile: Dictionary = projectiles[index]
 		var target = _find_alive_unit(int(projectile.target_id)) if int(projectile.target_id) >= 0 else null
 		if target != null:
-			projectile.to_x = 210.0 if int(target.lane) == 0 else 510.0
+			projectile.to_x = _unit_x(target)
 			projectile.to_y = float(target.y)
 		projectile.elapsed = float(projectile.elapsed) + delta
 		if float(projectile.elapsed) + 0.0001 < float(projectile.duration):
@@ -487,7 +531,7 @@ func _damage_projectile_target(projectile: Dictionary, target: Dictionary) -> vo
 	for candidate in units:
 		if candidate.id == target.id or candidate.side == projectile.side or candidate.lane != target.lane:
 			continue
-		if absf(float(candidate.y) - float(target.y)) <= splash:
+		if Vector2(_unit_x(candidate), float(candidate.y)).distance_to(Vector2(_unit_x(target), float(target.y))) <= splash:
 			candidate.hp = maxf(0.0, float(candidate.hp) - float(projectile.damage) * 0.55)
 
 
@@ -527,7 +571,7 @@ func _closest_enemy_unit(source: Dictionary):
 	for candidate in units:
 		if candidate.hp <= 0.0 or candidate.side == source.side or candidate.lane != source.lane:
 			continue
-		var distance: float = absf(candidate.y - source.y)
+		var distance := Vector2(_unit_x(candidate), float(candidate.y)).distance_to(Vector2(_unit_x(source), float(source.y)))
 		if distance < best_distance:
 			best_distance = distance
 			best = candidate
@@ -563,7 +607,8 @@ func _closest_unit_to_position(target_side: int, lane: int, position_y: float, m
 	for unit in units:
 		if unit.hp <= 0.0 or unit.side != target_side or unit.lane != lane:
 			continue
-		var distance: float = absf(float(unit.y) - position_y)
+		var position_x := 210.0 if lane == 0 else 510.0
+		var distance := Vector2(_unit_x(unit), float(unit.y)).distance_to(Vector2(position_x, position_y))
 		if distance <= best_distance:
 			best = unit
 			best_distance = distance
@@ -576,7 +621,7 @@ func _closest_unit_to_core(target_side: int, position: Vector2, maximum_distance
 	for unit in units:
 		if unit.hp <= 0.0 or unit.side != target_side:
 			continue
-		var unit_position := Vector2(210.0 if unit.lane == 0 else 510.0, float(unit.y))
+		var unit_position := Vector2(_unit_x(unit), float(unit.y))
 		var distance := position.distance_to(unit_position)
 		if distance <= best_distance:
 			best = unit
@@ -617,7 +662,7 @@ func _remove_defeated_units() -> void:
 				"card": defeated.card_id,
 				"side": defeated.side,
 				"lane": defeated.lane,
-				"position": Vector2(210.0 if defeated.lane == 0 else 510.0, defeated.y),
+				"position": Vector2(_unit_x(defeated), defeated.y),
 			})
 			units.remove_at(index)
 

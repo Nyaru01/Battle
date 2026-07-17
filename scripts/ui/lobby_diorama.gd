@@ -14,9 +14,9 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	resized.connect(_layout_units)
 	for data in [
-		{"id": 901, "card": "ranger", "x": 0.23, "y": 0.71, "scale": 1.00, "accent": Color("49d77f")},
-		{"id": 902, "card": "colossus", "x": 0.77, "y": 0.72, "scale": 1.06, "accent": Color("f6c548")},
-		{"id": 903, "card": "guardian", "x": 0.50, "y": 0.66, "scale": 1.27, "accent": Color("63dcff")},
+		{"id": 901, "card": "ranger", "x": 0.23, "y": 0.77, "scale": 1.00, "accent": Color("49d77f")},
+		{"id": 902, "card": "colossus", "x": 0.77, "y": 0.78, "scale": 1.06, "accent": Color("f6c548")},
+		{"id": 903, "card": "guardian", "x": 0.50, "y": 0.76, "scale": 1.27, "accent": Color("63dcff")},
 	]:
 		var unit := UnitView2D.new()
 		unit.configure(int(data.id), String(data.card), BattleSim.ENEMY)

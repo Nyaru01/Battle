@@ -25,12 +25,10 @@ func _capture() -> void:
 	_save_viewport("res://builds/screens/intro-540x960.png")
 	scene.battle_intro_time = 0.0
 	scene.simulation.energy = [100.0, 100.0]
-	scene.simulation.play_card(BattleSim.PLAYER, "guardian", 0)
-	scene.simulation.play_card(BattleSim.PLAYER, "ranger", 1)
-	scene.simulation.play_card(BattleSim.ENEMY, "guardian", 1)
-	scene.simulation.play_card(BattleSim.ENEMY, "ranger", 0)
-	for unit in scene.simulation.units:
-		unit.y = 680.0 if unit.side == BattleSim.PLAYER else 470.0
+	scene.simulation.play_card(BattleSim.PLAYER, "guardian", 0, Vector2(120.0, 760.0))
+	scene.simulation.play_card(BattleSim.PLAYER, "ranger", 1, Vector2(585.0, 690.0))
+	scene.simulation.play_card(BattleSim.ENEMY, "guardian", 1, Vector2(600.0, 400.0))
+	scene.simulation.play_card(BattleSim.ENEMY, "ranger", 0, Vector2(115.0, 470.0))
 	await _frames(12)
 	_save_viewport("res://builds/screens/battle-540x960.png")
 	scene.simulation.double_energy = true
@@ -54,7 +52,7 @@ func _capture() -> void:
 	scene.battle_announcement._process(2.0)
 	scene.simulation.towers[BattleSim.ENEMY].lanes[0] = 1200.0
 	scene.simulation.crowns[BattleSim.PLAYER] = 0
-	scene._select_card("fireball")
+	scene._select_card("duelist")
 	await _frames(4)
 	_save_viewport("res://builds/screens/targeting-540x960.png")
 	scene._pause_battle()
@@ -67,6 +65,9 @@ func _capture() -> void:
 	DisplayServer.window_set_size(Vector2i(800, 1280))
 	await _frames(6)
 	_save_viewport("res://builds/screens/battle-tablet-800x1280.png")
+	DisplayServer.window_set_size(Vector2i(591, 1280))
+	await _frames(6)
+	_save_viewport("res://builds/screens/battle-tall-591x1280.png")
 	DisplayServer.window_set_size(Vector2i(540, 960))
 	await _frames(5)
 	scene.simulation.forfeit(BattleSim.ENEMY)
