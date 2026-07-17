@@ -26,7 +26,7 @@ func _run() -> void:
 	_test_profile_store()
 	_test_android_export_configuration()
 	_test_visual_system()
-	_test_v054_home_lobby()
+	_test_v055_home_lobby()
 	_test_v053_animated_characters()
 	_test_progression()
 	_test_battle_intro()
@@ -254,7 +254,7 @@ func _test_android_export_configuration() -> void:
 	_expect(config.count("export_files=PackedStringArray()") == 2, "Android presets do not rely on a selective scene list")
 	_expect(config.count("exclude_filter=\"Android/*,builds/*,tests/*,tools/*\"") == 2, "Android presets exclude the downloadable APK and non-runtime project resources")
 	_expect(config.count("export_path=\"Android/Battle-latest.apk\"") == 2, "both Android presets refresh the easy-to-find root APK")
-	_expect(config.count("version/code=54") == 2 and config.count("version/name=\"0.54.0-alpha\"") == 2, "both Android presets expose the v0.54 package version")
+	_expect(config.count("version/code=55") == 2 and config.count("version/name=\"0.55.0-alpha\"") == 2, "both Android presets expose the v0.55 package version")
 	var project := FileAccess.get_file_as_string("res://project.godot")
 	_expect("size/mode=3" in project and "stretch/aspect=\"expand\"" in project, "mobile canvas fills the screen without non-uniform stretching")
 	_expect(project.count("renderer/rendering_method=\"mobile\"") == 1, "battle uses the Vulkan-oriented mobile renderer")
@@ -267,6 +267,7 @@ func _test_visual_system() -> void:
 	_expect(ResourceLoader.exists("res://assets/fonts/Nunito-Variable.ttf"), "readable body font is packaged")
 	_expect(ResourceLoader.exists("res://assets/v040/ui/ui-icons-v040.png") and ResourceLoader.exists("res://assets/v040/ui/spell-art-v040.png"), "original v0.40 UI and spell atlases are packaged")
 	_expect(ResourceLoader.exists("res://assets/v040/environment/arena-royale-v040.png") and ResourceLoader.exists("res://assets/v040/environment/tower-parts-v040.png"), "original v0.40 arena and tower atlases are packaged")
+	_expect(ResourceLoader.exists("res://assets/v055/environment/lobby-castle-v055.png"), "the cohesive v0.55 castle lobby is packaged")
 	_expect(ResourceLoader.exists("res://assets/v050/ui/icon-crown.png") and ResourceLoader.exists("res://assets/v050/ui/icon-cards.png"), "Kenney CC0 navigation icons are packaged")
 	var world := BattleWorld2D.new()
 	world.size = Vector2(540.0, 700.0)
@@ -300,6 +301,7 @@ func _test_visual_system() -> void:
 	_expect(diorama.units.size() == 3, "home diorama stages a three-hero squad")
 	_expect(diorama.units[2].world_scale > diorama.units[0].world_scale, "home diorama gives the featured guardian stronger visual hierarchy")
 	_expect(diorama.units.all(func(unit: UnitView2D) -> bool: return not unit.show_health_bar and not unit.show_team_ring), "showcase heroes hide battle-only health and team markers")
+	_expect(diorama.units.all(func(unit: UnitView2D) -> bool: return unit.ground_shadow_alpha < 0.2), "lobby heroes use softer contact shadows than battle units")
 	_expect(not diorama.units[0].character_sprite.flip_h and diorama.units[1].character_sprite.flip_h, "lobby flank heroes face inward instead of sharing one direction")
 	var grounded_positions := diorama.units.map(func(unit: UnitView2D) -> Vector2: return unit.position)
 	diorama._process(0.5)
@@ -326,7 +328,7 @@ func _test_visual_system() -> void:
 	announcement.free()
 
 
-func _test_v054_home_lobby() -> void:
+func _test_v055_home_lobby() -> void:
 	var sheet := DifficultySheet.new()
 	sheet.configure(2)
 	root.add_child(sheet)
@@ -342,7 +344,9 @@ func _test_v054_home_lobby() -> void:
 	var scene: Node = load("res://scenes/main.tscn").instantiate()
 	root.add_child(scene)
 	_expect(scene.state == scene.ScreenState.MENU, "the redesigned home remains the application entry screen")
-	_expect(scene.ui_root.find_child("ProfileHeader", true, false) != null and scene.ui_root.find_child("HeroStage", true, false) != null, "home keeps a compact profile header and one dedicated hero stage")
+	var hero_stage: Node = scene.ui_root.find_child("HeroStage", true, false)
+	_expect(scene.ui_root.find_child("ProfileHeader", true, false) != null and hero_stage is LobbyDiorama, "home overlays a compact profile header on one full-screen castle stage")
+	_expect(scene.ui_root.find_child("ArenaTag", true, false) != null, "home identifies the squad without restoring the old nested arena banners")
 	_expect(scene.primary_action_button.name == "CombatButton" and scene.primary_action_button.get_meta("role") == "primary_action", "home exposes one dominant Combat action")
 	var navigation: Node = scene.ui_root.find_child("HomeNavigation", true, false)
 	_expect(navigation != null and navigation.get_child_count() == 4, "home navigation retains four consistent destinations")

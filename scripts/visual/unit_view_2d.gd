@@ -21,6 +21,7 @@ var world_scale := 1.0
 var current_state := "spawn"
 var show_health_bar := true
 var show_team_ring := true
+var ground_shadow_alpha := 0.32
 
 
 func configure(id: int, card_id: String, team: int) -> void:
@@ -145,7 +146,7 @@ func _draw() -> void:
 	var alpha := character_sprite.modulate.a if character_sprite != null else 1.0
 	var footprint_scale := definition.visual_scale / 0.58
 	var team_color := ArenaTheme.CYAN if side == BattleSim.PLAYER else Color("ff6378")
-	draw_circle(Vector2(5, 31), 31.0 * footprint_scale, Color(0.01, 0.03, 0.05, 0.32 * alpha))
+	draw_circle(Vector2(5, 31), 31.0 * footprint_scale, Color(0.01, 0.03, 0.05, ground_shadow_alpha * alpha))
 	if show_team_ring:
 		draw_circle(Vector2(0, 28), 25.0 * footprint_scale, Color(team_color, 0.14 * alpha))
 		draw_arc(Vector2(0, 28), 26.0 * footprint_scale, 0.0, TAU, 30, Color(team_color, 0.90 * alpha), 3.0)

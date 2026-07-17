@@ -1,10 +1,10 @@
-# Distribution Android 0.54
+# Distribution Android 0.55
 
 Le vertical slice produit un APK de développement Arm64 :
 
 - `Android/Battle-latest.apk`, chemin stable remplacé à chaque export ;
 - identifiant `com.nyaru01.battle` ;
-- `versionCode 54`, `versionName 0.54.0-alpha` ;
+- `versionCode 55`, `versionName 0.55.0-alpha` ;
 - API 24 minimum, API cible 36 ; Android 10 ou plus récent recommandé ;
 - architecture `arm64-v8a` uniquement ;
 - portrait, mode immersif et rendu Vulkan Mobile ;

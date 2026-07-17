@@ -1,8 +1,8 @@
 class_name LobbyDiorama
 extends Control
 
-const ARENA := preload("res://assets/v040/environment/arena-royale-v040.png")
-const BASE_SOURCE := Rect2(0, 590, 1024, 820)
+const ARENA := preload("res://assets/v055/environment/lobby-castle-v055.png")
+const BASE_SOURCE := Rect2(0, 0, 1024, 1536)
 
 var units: Array[UnitView2D] = []
 var animation_time := 0.0
@@ -16,17 +16,17 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	resized.connect(_layout_units)
 	for data in [
-		{"id": 901, "card": "ranger", "x": 0.24, "y": 0.76, "scale": 1.30, "facing": 1.0, "accent": Color("49d77f")},
-		{"id": 902, "card": "colossus", "x": 0.76, "y": 0.77, "scale": 1.37, "facing": -1.0, "accent": Color("f6c548")},
-		{"id": 903, "card": "guardian", "x": 0.50, "y": 0.72, "scale": 1.68, "facing": 1.0, "accent": Color("63dcff")},
+		{"id": 901, "card": "ranger", "x": 0.29, "y": 0.655, "scale": 1.60, "facing": 1.0},
+		{"id": 902, "card": "colossus", "x": 0.71, "y": 0.655, "scale": 1.69, "facing": -1.0},
+		{"id": 903, "card": "guardian", "x": 0.50, "y": 0.615, "scale": 1.98, "facing": 1.0},
 	]:
 		var unit := UnitView2D.new()
 		unit.configure(int(data.id), String(data.card), BattleSim.ENEMY)
 		unit.show_health_bar = false
 		unit.show_team_ring = false
+		unit.ground_shadow_alpha = 0.18
 		unit.set_meta("anchor", Vector2(float(data.x), float(data.y)))
 		unit.set_meta("showcase_scale", float(data.scale))
-		unit.set_meta("accent", Color(data.accent))
 		unit.sync_state({"hp": 100.0, "max_hp": 100.0, "moving": false, "walk_phase": 0.0, "attack_pulse": 0.0, "facing_x": float(data.facing)})
 		unit.spawn_elapsed = -0.12 * float(units.size())
 		add_child(unit)
@@ -46,7 +46,7 @@ func _process(delta: float) -> void:
 
 
 func _layout_units() -> void:
-	var scale_value := clampf(minf(size.x / 540.0, size.y / 500.0), 0.68, 1.24)
+	var scale_value := clampf(minf(size.x / 720.0, size.y / 1280.0), 0.72, 1.28)
 	for unit in units:
 		unit.set_world_scale(scale_value * float(unit.get_meta("showcase_scale", 1.0)))
 		unit.position = Vector2(unit.get_meta("anchor")) * size
@@ -72,19 +72,3 @@ func _draw() -> void:
 		return
 	last_source_rect = cover_source_rect(size)
 	draw_texture_rect_region(ARENA, Rect2(Vector2.ZERO, size), last_source_rect)
-	draw_rect(Rect2(Vector2.ZERO, size), Color(0.02, 0.07, 0.12, 0.10), true)
-	draw_rect(Rect2(0, 0, size.x, size.y * 0.20), Color(0.005, 0.025, 0.06, 0.36), true)
-	draw_rect(Rect2(0, size.y * 0.78, size.x, size.y * 0.22), Color(0.005, 0.025, 0.05, 0.34), true)
-	_draw_ground_glow(Vector2(0.24, 0.76) * size, Color("49d77f"), false)
-	_draw_ground_glow(Vector2(0.76, 0.77) * size, Color("f6c548"), false)
-	_draw_ground_glow(Vector2(0.50, 0.72) * size, Color("63dcff"), true)
-
-
-func _draw_ground_glow(center: Vector2, accent: Color, featured: bool) -> void:
-	var radius := 48.0 if featured else 38.0
-	var pulse := 0.06 + (sin(animation_time * 1.8 + center.x * 0.01) + 1.0) * 0.018
-	draw_set_transform(center + Vector2(0, 29), 0.0, Vector2(1.35, 0.34))
-	draw_circle(Vector2.ZERO, radius + 5.0, Color(0.0, 0.02, 0.04, 0.24))
-	draw_circle(Vector2.ZERO, radius, Color(accent, pulse))
-	draw_arc(Vector2.ZERO, radius, 0.0, TAU, 36, Color(accent, 0.54), 2.0 if featured else 1.5)
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)

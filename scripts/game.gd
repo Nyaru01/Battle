@@ -136,6 +136,10 @@ func _build_menu() -> void:
 	ui_layer = CanvasLayer.new()
 	add_child(ui_layer)
 	ui_root = _screen_root(ArenaTheme.NAVY)
+	var stage := LobbyDiorama.new()
+	stage.name = "HeroStage"
+	stage.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	ui_root.add_child(stage)
 	var safe := _safe_margin()
 	ui_root.add_child(safe)
 	var home := Control.new()
@@ -147,22 +151,16 @@ func _build_menu() -> void:
 	header.offset_bottom = 70
 	home.add_child(header)
 
-	var stage_slot := Control.new()
-	stage_slot.name = "StageSlot"
-	stage_slot.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	stage_slot.offset_top = 80
-	stage_slot.offset_bottom = -168
-	stage_slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	home.add_child(stage_slot)
-	var stage_height := clampf(get_viewport().get_visible_rect().size.y * 0.54, 340.0, 640.0)
-	var stage := _build_home_stage()
-	stage.anchor_left = 0.0
-	stage.anchor_top = 0.5
-	stage.anchor_right = 1.0
-	stage.anchor_bottom = 0.5
-	stage.offset_top = -stage_height * 0.5
-	stage.offset_bottom = stage_height * 0.5
-	stage_slot.add_child(stage)
+	var arena_tag := _build_home_arena_tag()
+	arena_tag.anchor_left = 0.5
+	arena_tag.anchor_top = 0.0
+	arena_tag.anchor_right = 0.5
+	arena_tag.anchor_bottom = 0.0
+	arena_tag.offset_left = -128
+	arena_tag.offset_top = 80
+	arena_tag.offset_right = 128
+	arena_tag.offset_bottom = 112
+	home.add_child(arena_tag)
 
 	var bottom_stack := VBoxContainer.new()
 	bottom_stack.name = "HomeActions"
@@ -180,7 +178,7 @@ func _build_home_header() -> Control:
 	var panel := PanelContainer.new()
 	panel.name = "ProfileHeader"
 	panel.custom_minimum_size.y = 70
-	panel.add_theme_stylebox_override("panel", ArenaTheme.home_surface(Color("0b2c50"), Color("55a6d4"), 18, 4))
+	panel.add_theme_stylebox_override("panel", ArenaTheme.home_surface(Color(0.025, 0.10, 0.20, 0.94), ArenaTheme.GOLD, 18, 5))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
 	panel.add_child(row)
@@ -197,7 +195,7 @@ func _build_home_header() -> Control:
 	var name_row := HBoxContainer.new()
 	name_row.add_theme_constant_override("separation", 8)
 	identity.add_child(name_row)
-	var player_name := _title_label("CAPITAINE NYARU", 18, Color.WHITE)
+	var player_name := _title_label("CAPITAINE NYARU", 19, Color.WHITE)
 	player_name.name = "PlayerName"
 	player_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	player_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -223,7 +221,7 @@ func _build_home_header() -> Control:
 	progress_row.add_child(xp_bar)
 	var wallet := PanelContainer.new()
 	wallet.name = "Wallet"
-	wallet.add_theme_stylebox_override("panel", ArenaTheme.home_chip(ArenaTheme.MAGENTA, true))
+	wallet.add_theme_stylebox_override("panel", ArenaTheme.home_chip(ArenaTheme.GOLD))
 	var wallet_row := HBoxContainer.new()
 	wallet_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	wallet_row.add_theme_constant_override("separation", 3)
@@ -234,44 +232,20 @@ func _build_home_header() -> Control:
 	shard.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	shard.custom_minimum_size = Vector2(25, 25)
 	wallet_row.add_child(shard)
-	wallet_row.add_child(_title_label(str(profile.coins), 18, Color.WHITE))
+	wallet_row.add_child(_title_label(str(profile.coins), 18, ArenaTheme.GOLD_LIGHT))
 	row.add_child(wallet)
 	return panel
 
 
-func _build_home_stage() -> Control:
-	var panel := PanelContainer.new()
-	panel.name = "HeroStage"
-	panel.clip_contents = true
-	var stage_style := ArenaTheme.home_surface(Color("08233e"), Color("4a91ba"), 22, 8)
-	for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
-		stage_style.set_content_margin(side, 0.0)
-	panel.add_theme_stylebox_override("panel", stage_style)
-	var stack := Control.new()
-	panel.add_child(stack)
-	var diorama := LobbyDiorama.new()
-	diorama.name = "LobbyDiorama"
-	diorama.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	stack.add_child(diorama)
-	var heading := HBoxContainer.new()
-	heading.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	heading.offset_left = 12
-	heading.offset_right = -12
-	heading.offset_top = 12
-	heading.offset_bottom = 50
-	heading.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	stack.add_child(heading)
-	var arena_name := _title_label("HAUTS-RIVAGES", 13, Color.WHITE)
-	arena_name.add_theme_stylebox_override("normal", ArenaTheme.home_chip(ArenaTheme.CYAN))
-	heading.add_child(arena_name)
-	var heading_spacer := Control.new()
-	heading_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	heading.add_child(heading_spacer)
-	var difficulty := _title_label(DIFFICULTY_NAMES[selected_difficulty], 12, ArenaTheme.NAVY_DARK)
-	difficulty.name = "ActiveDifficulty"
-	difficulty.add_theme_stylebox_override("normal", ArenaTheme.home_chip(ArenaTheme.GOLD, true))
-	heading.add_child(difficulty)
-	return panel
+func _build_home_arena_tag() -> Control:
+	var tag := Label.new()
+	tag.name = "ArenaTag"
+	tag.text = "ESCOUADE  •  HAUTS-RIVAGES"
+	tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tag.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	tag.add_theme_stylebox_override("normal", ArenaTheme.home_chip(ArenaTheme.GOLD))
+	ArenaTheme.apply_heading(tag, 13, ArenaTheme.GOLD_LIGHT)
+	return tag
 
 
 func _build_home_primary_action() -> Button:
@@ -1149,7 +1123,7 @@ func _show_settings() -> void:
 		row_panel.add_child(toggle)
 		layout.add_child(row_panel)
 	layout.add_child(_title_label("AUCUN COMPTE • AUCUNE PUBLICITÉ • 100 % HORS LIGNE", 11, ArenaTheme.TEXT_MUTED))
-	layout.add_child(_title_label("BATTLE v0.54 • KAYKIT + KENNEY CC0", 11, Color("7eb5d4")))
+	layout.add_child(_title_label("BATTLE v0.55 • KAYKIT + KENNEY CC0", 11, Color("7eb5d4")))
 	var close := Button.new()
 	close.text = "FERMER"
 	close.custom_minimum_size = Vector2(300, 58)

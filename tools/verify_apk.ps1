@@ -53,6 +53,7 @@ try {
 
     $textureNames = @(
         "arena-royale-v040.png",
+        "lobby-castle-v055.png",
         "tower-parts-v040.png",
         "spell-art-v040.png",
         "ui-icons-v040.png",

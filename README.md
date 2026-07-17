@@ -1,11 +1,11 @@
 # Battle
 
-Jeu mobile original de stratégie en arène, en temps réel et jouable hors ligne contre une IA. La v0.54 apporte un lobby royal entièrement recomposé : héros agrandis et ancrés, hiérarchie épurée, progression visible et choix de difficulté déplacé après le bouton Combat.
+Jeu mobile original de stratégie en arène, en temps réel et jouable hors ligne contre une IA. La v0.55 remplace l’ancien accueil en panneaux par un véritable château plein écran : estrade intégrée, héros animés, commandes superposées et direction artistique bleu-or unifiée.
 
-## Vertical slice 0.54
+## Vertical slice 0.55
 
 - six héros KayKit distincts, chacun avec 100 images : apparition, repos, marche, attaque, impact et défaite, de face et de dos ;
-- accueil royal responsive avec trio de héros agrandis et orientés vers le centre, profil et XP compacts, action Combat dominante, navigation unifiée et fiche de difficulté dédiée ;
+- accueil château plein écran avec profondeur illustrée, trio animé posé sur son estrade, profil et XP superposés, action Combat dominante, navigation unifiée et fiche de difficulté dédiée ;
 - collection de huit cartes avec portraits animés, statistiques et améliorations ;
 - arène verticale illustrée en cadrage `cover` 2:3 sans déformation ni bandes noires, tours modulaires, eau animée, projectiles, sorts, impacts et secousses de caméra ;
 - placement libre des unités dans la base alliée, position x/y conservée, trajectoires convergentes, projectiles issus de la position réelle et orientation dynamique vers la cible ;
@@ -14,7 +14,7 @@ Jeu mobile original de stratégie en arène, en temps réel et jouable hors lign
 - annonces d’arène pour l’énergie x2, la mort subite et les objectifs détruits, score de couronnes séparé de la santé des forteresses et nouveaux effets de mêlée/défaite ;
 - trois difficultés d’IA, tutoriel, pause, résultat, progression et sauvegarde hors ligne ;
 - interface vérifiée en 540×960, 591×1280, 720×1280 et 800×1280 ;
-- 338 assertions automatisées, 1 000 combats IA reproductibles et profil local à 20 héros animés.
+- 341 assertions automatisées, 1 000 combats IA reproductibles et profil local à 20 héros animés.
 
 Les modèles et composants d’interface tiers sont distribués sous CC0 par KayKit et Kenney. Les polices Baloo 2 et Nunito sont sous SIL Open Font License. Aucun actif de Clash Royale n’est embarqué ; le détail des sources et empreintes est dans [docs/ASSET_PROVENANCE.md](docs/ASSET_PROVENANCE.md).
 
@@ -36,7 +36,7 @@ powershell -ExecutionPolicy Bypass -File tools/verify_apk.ps1 -ApkPath "Android/
 
 L’APK courant se trouve toujours dans [Android/Battle-latest.apk](Android/Battle-latest.apk). Chaque export remplace ce fichier stable afin qu’il reste immédiatement visible depuis la racine du dépôt.
 
-Configuration : `versionCode 54`, `versionName 0.54.0-alpha`, API 24 minimum, API cible 36, `arm64-v8a`, portrait, mode immersif et Vulkan Mobile. Android 10 ou plus récent est recommandé.
+Configuration : `versionCode 55`, `versionName 0.55.0-alpha`, API 24 minimum, API cible 36, `arm64-v8a`, portrait, mode immersif et Vulkan Mobile. Android 10 ou plus récent est recommandé.
 
 ## Documentation
 

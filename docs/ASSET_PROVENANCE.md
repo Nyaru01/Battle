@@ -1,4 +1,4 @@
-# Provenance des actifs visuels — v0.50
+# Provenance des actifs visuels — v0.55
 
 Ce registre documente tous les actifs visuels distribués. Les archives sources 3D ne sont pas versionnées : seuls les sprites 2D pré-rendus et les composants d’interface nécessaires au jeu sont inclus.
 
@@ -38,6 +38,7 @@ Les boutons de navigation, la bordure ornementale et les pictogrammes utiles ont
 
 ## Actifs originaux conservés
 
+- `assets/v055/environment/lobby-castle-v055.png` : décor original de château royal généré le 17 juillet 2026 avec la génération d’images OpenAI intégrée à Codex, sans personnage, texte, logo ni structure de marque reconnaissable — SHA-256 `B1B10955069D0864A9D9BF06AE4E4F21D2F87DBFE8249248F83D8E4FEA788DF9` ;
 - `assets/v040/environment/arena-royale-v040.png` et `tower-parts-v040.png` : arène et tours originales générées le 16 juillet 2026 avec la génération d’images OpenAI intégrée à Codex ;
 - `assets/v040/ui/spell-art-v040.png`, `ui-icons-v040.png` et l’emblème copié vers `assets/v050/ui/app-icon-v050.png` : sorts, pictogrammes et emblème originaux générés dans la même session ;
 - les captures de référence et archives sources ne sont ni versionnées ni distribuées.
