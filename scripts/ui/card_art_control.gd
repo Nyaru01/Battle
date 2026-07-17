@@ -33,11 +33,17 @@ func _draw() -> void:
 		return
 	var definition := UnitRigDefinition.for_card(card_id)
 	draw_rect(rect, definition.card_background, true)
-	var pulse := 1.0 + sin(animation_time * 2.2) * 0.018
-	var torso_size := Vector2(rect.size.x * 0.88, rect.size.y * 1.18) * pulse
-	var torso_rect := Rect2(Vector2(rect.size.x * 0.5 - torso_size.x * 0.5, rect.size.y * 0.23 - torso_size.y * 0.18), torso_size)
-	var head_size := Vector2(rect.size.x * 0.78, rect.size.y * 0.96) * pulse
-	var head_rect := Rect2(Vector2(rect.size.x * 0.5 - head_size.x * 0.5, -rect.size.y * 0.08 + sin(animation_time * 2.2) * 2.0), head_size)
-	draw_circle(Vector2(rect.size.x * 0.5, rect.size.y * 0.48), minf(rect.size.x, rect.size.y) * 0.43, Color(definition.accent, 0.13))
-	draw_texture_rect_region(definition.atlas, torso_rect, definition.cell_region(0, 0))
-	draw_texture_rect_region(definition.atlas, head_rect, definition.cell_region(0, 1))
+	var center := Vector2(rect.size.x * 0.5, rect.size.y * 0.52)
+	var glow_radius := minf(rect.size.x, rect.size.y) * (0.44 + sin(animation_time * 1.8) * 0.012)
+	draw_circle(center, glow_radius, Color(definition.accent, 0.17))
+	draw_circle(center, glow_radius * 0.68, Color(definition.accent, 0.10))
+	for ray in range(10):
+		var angle := float(ray) * TAU / 10.0 + animation_time * 0.04
+		var direction := Vector2.RIGHT.rotated(angle)
+		draw_line(center + direction * glow_radius * 0.78, center + direction * glow_radius * 1.08, Color(definition.accent, 0.13), 2.0)
+	var art_size := minf(rect.size.x * 0.98, rect.size.y * 1.25)
+	var pulse := 1.0 + sin(animation_time * 2.2) * 0.016
+	var art_rect := Rect2(center - Vector2.ONE * art_size * 0.5 + Vector2(0.0, rect.size.y * 0.06), Vector2.ONE * art_size * pulse)
+	var idle_frame := int(animation_time * definition.state_fps("idle"))
+	draw_texture_rect_region(definition.atlas, art_rect, definition.frame_region("idle", idle_frame, false))
+	draw_rect(Rect2(Vector2(0.0, rect.size.y - 4.0), Vector2(rect.size.x, 4.0)), Color(definition.accent, 0.78), true)

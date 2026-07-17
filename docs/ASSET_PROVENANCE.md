@@ -1,34 +1,54 @@
-# Provenance des actifs visuels
+# Provenance des actifs visuels — v0.50
 
-Ce registre documente les actifs distribués dans la v0.40. Toutes les illustrations ont été créées avec la génération d’images OpenAI intégrée à Codex le 16 juillet 2026. Aucun actif, logo, personnage ou fichier propriétaire tiers n’a été utilisé.
+Ce registre documente tous les actifs visuels distribués. Les archives sources 3D ne sont pas versionnées : seuls les sprites 2D pré-rendus et les composants d’interface nécessaires au jeu sont inclus.
 
-## Rigs articulés
+## Personnages KayKit — CC0
 
-Fichiers : `assets/v040/rigs/*-rig-v040.png` pour Gardien, Éclaireuse, Colosse, Lames jumelles, Alchimiste et Rempart.
+Sources officielles :
 
-Résumé des prompts : six combattants fantasy originaux, volumes de jouets 3D peints, silhouette très lisible sur mobile et palette propre à chaque carte. Chaque atlas suit une grille stricte 4×4 : torse, tête, bras, jambes, arme et accessoire vus de face puis de dos, sur fond chromatique uniforme. Les images ont ensuite été détourées localement et assemblées en huit sprites articulés par `unit_view_2d.gd`.
+- KayKit Adventurers Free 2.0 — https://kaylousberg.itch.io/kaykit-adventurers — archive `KayKit_Adventurers_2.0_FREE.zip` — SHA-256 `ABE48F4763FBA0896BAB486EE9E6D08CA6B5B3884B9601F235C8847AE94DC479` ;
+- KayKit Character Animations 1.1 — https://kaylousberg.itch.io/kaykit-character-animations — archive `KayKit_Character_Animations_1.1.zip` — SHA-256 `65882F31F905AD2E953819648A59287CDEAB8F623908D5EF701971D3758BE20F` ;
+- licence déclarée dans les deux archives : Creative Commons Zero 1.0 (CC0).
 
-## Arène et tours
+Correspondance des cartes :
 
-Fichiers : `assets/v040/environment/arena-royale-v040.png` et `tower-parts-v040.png`.
+| Carte | Modèle | Équipement | Attaque |
+|---|---|---|---|
+| Gardien | Knight | épée et bouclier rond | attaque horizontale 1 main |
+| Éclaireuse | Ranger | arc et carquois | lâcher de flèche |
+| Colosse | Barbarian | hache lourde à 2 mains | frappe verticale 2 mains |
+| Lames jumelles | Rogue Hooded | deux dagues | attaque ambidextre |
+| Alchimiste | Mage | baguette et fiole/mug | tir magique |
+| Rempart | Knight sans cape | masse-hache et grand bouclier carré | contre de bouclier |
 
-Résumé des prompts : arène verticale fantasy royale originale, symétrique, deux voies, rivière turquoise, deux ponts, végétation abondante et six fondations vides ; atlas séparé de tours en pierre, or et cristal cyan, états normal, tir et destruction. Aucun personnage, texte ou logo dans le décor source.
+Fichiers distribués : `assets/v050/characters/*-kaykit-v050.png`.
 
-## Sorts et interface
+`tools/generate_v050_sprites.gd` charge les GLTF officiels, applique les animations sur leur squelette commun, attache l’équipement aux os KayKit et effectue un rendu 3D éclairé dans Godot. Chaque atlas 1920×1920 contient une grille 10×10 de cellules 192×192 : 50 images de face puis 50 de dos. Les séquences sont apparition 8, repos 8, marche 10, attaque 10, impact 4 et défaite 10.
 
-Fichiers : `assets/v040/ui/spell-art-v040.png`, `ui-icons-v040.png` et `app-icon-v040.png`.
+## Interface Kenney — CC0
 
-Résumé des prompts : Comète et Stase sous forme d’illustrations énergétiques opposées ; huit pictogrammes fantasy sans texte sur grille 4×2 ; emblème d’application original bleu, cyan et or, lisible à petite taille. Les atlas nécessitant de la transparence ont été détourés localement par clé chromatique.
+Sources officielles :
+
+- UI Pack RPG Expansion 1.0 — https://kenney.nl/assets/ui-pack-rpg-expansion — SHA-256 `C69C30C09D74DF542842E4EC811735B6D260CD6C9E2EE261D7B894D259A6ADB4` ;
+- Fantasy UI Borders 1.0 — https://kenney.nl/assets/fantasy-ui-borders — SHA-256 `59532DA3BD61195A425585455B40BAA6CBF1EDA8227C42ADCEF31A535A737769` ;
+- Board Game Icons 1.1 — https://kenney.nl/assets/board-game-icons — SHA-256 `05F4358381D8B16B303B2F056393B76CE3F6A58228599E88CAA2EAB11D4C2946` ;
+- licence déclarée sur chaque page et dans les archives : Creative Commons Zero 1.0 (CC0).
+
+Les boutons de navigation, la bordure ornementale et les pictogrammes utiles ont été copiés dans `assets/v050/ui/`. Leur couleur, composition et comportement responsive sont appliqués en GDScript ; les archives complètes ne sont pas distribuées.
+
+## Actifs originaux conservés
+
+- `assets/v040/environment/arena-royale-v040.png` et `tower-parts-v040.png` : arène et tours originales générées le 16 juillet 2026 avec la génération d’images OpenAI intégrée à Codex ;
+- `assets/v040/ui/spell-art-v040.png`, `ui-icons-v040.png` et l’emblème copié vers `assets/v050/ui/app-icon-v050.png` : sorts, pictogrammes et emblème originaux générés dans la même session ;
+- les captures de référence et archives sources ne sont ni versionnées ni distribuées.
 
 ## Typographies
 
-- `Baloo2-Variable.ttf` : titres et boutons ronds à fort impact ;
-- `Nunito-Variable.ttf` : texte courant lisible sur mobile ;
+- `Baloo2-Variable.ttf` : titres et boutons ;
+- `Nunito-Variable.ttf` : texte courant ;
 - origine : dépôts officiels Google Fonts ;
 - licence : SIL Open Font License 1.1, conservée dans `assets/fonts/OFL-Baloo2.txt` et `OFL-Nunito.txt`.
 
-## Rendu et animation
+## Propriété intellectuelle
 
-Le rendu final est original et écrit en GDScript : composition d’arène, interpolation, rigs découpés, poses de marche et d’attaque par profil, déploiement, dégâts, mort, eau, tours, projectiles, sorts, ciblage et prévisualisation de pose. La v0.40 ne distribue plus les anciens atlases 0.32.
-
-La capture de référence fournie pendant la conception n’est ni versionnée ni distribuée avec le jeu ; elle a servi uniquement à qualifier le niveau de lisibilité et de finition attendu.
+Le jeu s’inspire des conventions générales du genre stratégie en arène. Aucun personnage, nom, logo, son, texte, statistique ou fichier propriétaire de Clash Royale n’est inclus. KayKit, Kenney et les actifs originaux ci-dessus constituent l’intégralité des sources visuelles distribuées.

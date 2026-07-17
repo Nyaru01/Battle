@@ -18,6 +18,7 @@ func _ready() -> void:
 	]:
 		var unit := UnitView2D.new()
 		unit.configure(int(data.id), String(data.card), BattleSim.ENEMY)
+		unit.show_health_bar = false
 		unit.set_meta("anchor", Vector2(float(data.x), float(data.y)))
 		unit.sync_state({"hp": 100.0, "max_hp": 100.0, "moving": false, "walk_phase": 0.0, "attack_pulse": 0.0})
 		add_child(unit)

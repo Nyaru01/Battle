@@ -3,17 +3,22 @@ extends RefCounted
 
 const HEADING_FONT: Font = preload("res://assets/fonts/Baloo2-Variable.ttf")
 const BODY_FONT: Font = preload("res://assets/fonts/Nunito-Variable.ttf")
+const KENNEY_BUTTON_BLUE: Texture2D = preload("res://assets/v050/ui/button-long-blue.png")
+const KENNEY_BUTTON_BLUE_PRESSED: Texture2D = preload("res://assets/v050/ui/button-long-blue-pressed.png")
+const KENNEY_BUTTON_GOLD: Texture2D = preload("res://assets/v050/ui/button-long-gold.png")
+const KENNEY_BUTTON_GOLD_PRESSED: Texture2D = preload("res://assets/v050/ui/button-long-gold-pressed.png")
 
-const NAVY := Color("071529")
-const NAVY_RAISED := Color("122f52")
-const NAVY_LIGHT := Color("235b83")
-const BLUE := Color("1789e8")
-const CYAN := Color("58e5ff")
-const GOLD := Color("f4aa28")
-const GOLD_LIGHT := Color("ffe68b")
-const RED := Color("e8475f")
-const GREEN := Color("58df82")
-const MAGENTA := Color("a94ee8")
+const NAVY := Color("0a2240")
+const NAVY_DARK := Color("06162c")
+const NAVY_RAISED := Color("123b68")
+const NAVY_LIGHT := Color("246ba2")
+const BLUE := Color("1676d2")
+const CYAN := Color("63dcff")
+const GOLD := Color("f6c548")
+const GOLD_LIGHT := Color("fff0a6")
+const RED := Color("e64e63")
+const GREEN := Color("49d77f")
+const MAGENTA := Color("b54bdd")
 const TEXT := Color("f7fbff")
 const TEXT_MUTED := Color("b9d0db")
 
@@ -31,7 +36,7 @@ static func panel(background: Color, border: Color, radius := 16, border_width :
 	style.border_color = border
 	style.set_border_width_all(border_width)
 	style.set_corner_radius_all(radius)
-	style.shadow_color = Color(0.0, 0.0, 0.0, 0.54)
+	style.shadow_color = Color(0.0, 0.0, 0.0, 0.48)
 	style.shadow_size = shadow
 	style.shadow_offset = Vector2(0.0, 4.0)
 	style.anti_aliasing = true
@@ -47,20 +52,52 @@ static func inset_panel(background := NAVY_RAISED, border := NAVY_LIGHT, radius 
 	return style
 
 
+static func royal_panel(background := Color("0d315b"), border := CYAN, radius := 20) -> StyleBoxFlat:
+	var style := panel(background, border, radius, 3, 10)
+	style.content_margin_left = 14.0
+	style.content_margin_right = 14.0
+	style.content_margin_top = 12.0
+	style.content_margin_bottom = 12.0
+	style.border_color = Color(border, 0.78)
+	return style
+
+
+static func chip(active: bool, accent := GOLD) -> StyleBoxFlat:
+	var background := Color(accent, 0.96) if active else Color("11365e")
+	var border := GOLD_LIGHT if active else Color("417bac")
+	var style := panel(background, border, 18, 3, 4)
+	style.content_margin_left = 8.0
+	style.content_margin_right = 8.0
+	style.content_margin_top = 5.0
+	style.content_margin_bottom = 5.0
+	return style
+
+
+static func kenney_button(pressed := false, gold := false) -> StyleBoxTexture:
+	var style := StyleBoxTexture.new()
+	style.texture = KENNEY_BUTTON_GOLD_PRESSED if gold and pressed else KENNEY_BUTTON_GOLD if gold else KENNEY_BUTTON_BLUE_PRESSED if pressed else KENNEY_BUTTON_BLUE
+	for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
+		style.set_texture_margin(side, 11.0)
+		style.set_content_margin(side, 7.0)
+	style.modulate_color = Color("ffe28b") if gold else Color("8ddcff")
+	return style
+
+
 static func button_colors(kind: String) -> Array[Color]:
 	match kind:
-		"primary": return [Color("087fd3"), Color("8cf0ff"), Color("075793")]
-		"gold": return [Color("cb7c13"), Color("fff0a5"), Color("8a490b")]
-		"danger": return [Color("b52d47"), Color("ff92a1"), Color("71172c")]
-		_: return [NAVY_RAISED, Color("6aa9d2"), Color("091b35")]
+		"primary": return [BLUE, CYAN, Color("0b4b96")]
+		"gold": return [Color("d99c19"), GOLD_LIGHT, Color("8b5b08")]
+		"success": return [Color("24a95b"), Color("90f4ae"), Color("116438")]
+		"danger": return [Color("b62e47"), Color("ff9caa"), Color("71172c")]
+		_: return [NAVY_RAISED, Color("6bb8e9"), NAVY_DARK]
 
 
 static func apply_button(button: BaseButton, kind: String, font_size: int) -> void:
 	var colors := button_colors(kind)
-	button.add_theme_stylebox_override("normal", panel(colors[0], colors[1], 16, 4, 7))
-	button.add_theme_stylebox_override("hover", panel(colors[0].lightened(0.08), colors[1].lightened(0.10), 16, 4, 9))
-	button.add_theme_stylebox_override("pressed", panel(colors[0].darkened(0.13), colors[2], 16, 4, 3))
-	button.add_theme_stylebox_override("focus", panel(colors[0], GOLD_LIGHT, 16, 5, 9))
+	button.add_theme_stylebox_override("normal", panel(colors[0], colors[1], 18, 4, 8))
+	button.add_theme_stylebox_override("hover", panel(colors[0].lightened(0.08), colors[1].lightened(0.10), 18, 4, 10))
+	button.add_theme_stylebox_override("pressed", panel(colors[0].darkened(0.13), colors[2], 18, 4, 3))
+	button.add_theme_stylebox_override("focus", panel(colors[0], GOLD_LIGHT, 18, 5, 10))
 	button.add_theme_stylebox_override("disabled", panel(Color("26343d"), Color("465965"), 16, 2, 3))
 	button.add_theme_font_override("font", HEADING_FONT)
 	button.add_theme_font_size_override("font_size", font_size)
@@ -89,9 +126,9 @@ static func apply_body(label: Label, font_size: int, color := TEXT_MUTED) -> voi
 
 static func card_style(card_id: String, selected: bool, disabled: bool) -> StyleBoxFlat:
 	var colors := {
-		"guardian": Color("245c7b"), "ranger": Color("397052"), "colossus": Color("715039"),
-		"fireball": Color("8a3d2b"), "duelist": Color("604485"), "alchemist": Color("87532f"),
-		"bulwark": Color("435b66"), "frost": Color("2d7798"),
+		"guardian": Color("17558d"), "ranger": Color("24704d"), "colossus": Color("795238"),
+		"fireball": Color("913d2f"), "duelist": Color("66418e"), "alchemist": Color("713f8e"),
+		"bulwark": Color("405d72"), "frost": Color("23789e"),
 	}
 	var background: Color = colors.get(card_id, NAVY_RAISED)
 	if disabled:

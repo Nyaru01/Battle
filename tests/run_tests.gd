@@ -25,7 +25,7 @@ func _run() -> void:
 	_test_profile_store()
 	_test_android_export_configuration()
 	_test_visual_system()
-	_test_v040_rigs()
+	_test_v050_animated_characters()
 	_test_progression()
 	_test_battle_intro()
 	_test_units_fight()
@@ -233,12 +233,12 @@ func _test_android_export_configuration() -> void:
 	_expect(config.count("export_files=PackedStringArray()") == 2, "Android presets do not rely on a selective scene list")
 	_expect(config.count("exclude_filter=\"Android/*,builds/*,tests/*,tools/*\"") == 2, "Android presets exclude the downloadable APK and non-runtime project resources")
 	_expect(config.count("export_path=\"Android/Battle-latest.apk\"") == 2, "both Android presets refresh the easy-to-find root APK")
-	_expect(config.count("version/code=40") == 2 and config.count("version/name=\"0.40.0-alpha\"") == 2, "both Android presets expose the v0.40 package version")
+	_expect(config.count("version/code=50") == 2 and config.count("version/name=\"0.50.0-alpha\"") == 2, "both Android presets expose the v0.50 package version")
 	var project := FileAccess.get_file_as_string("res://project.godot")
 	_expect("size/mode=3" in project and "stretch/aspect=\"expand\"" in project, "mobile canvas fills the screen without non-uniform stretching")
 	_expect(project.count("renderer/rendering_method=\"mobile\"") == 1, "battle uses the Vulkan-oriented mobile renderer")
 	_expect("window_width_override" not in project and "window_height_override" not in project, "desktop window overrides cannot letterbox Android")
-	_expect("assets/v040/ui/app-icon-v040.png" in project, "the v0.40 crest is the packaged application icon")
+	_expect("assets/v050/ui/app-icon-v050.png" in project, "the v0.50 crest is the packaged application icon")
 
 
 func _test_visual_system() -> void:
@@ -246,6 +246,7 @@ func _test_visual_system() -> void:
 	_expect(ResourceLoader.exists("res://assets/fonts/Nunito-Variable.ttf"), "readable body font is packaged")
 	_expect(ResourceLoader.exists("res://assets/v040/ui/ui-icons-v040.png") and ResourceLoader.exists("res://assets/v040/ui/spell-art-v040.png"), "original v0.40 UI and spell atlases are packaged")
 	_expect(ResourceLoader.exists("res://assets/v040/environment/arena-royale-v040.png") and ResourceLoader.exists("res://assets/v040/environment/tower-parts-v040.png"), "original v0.40 arena and tower atlases are packaged")
+	_expect(ResourceLoader.exists("res://assets/v050/ui/icon-crown.png") and ResourceLoader.exists("res://assets/v050/ui/icon-cards.png"), "Kenney CC0 navigation icons are packaged")
 	var world := BattleWorld2D.new()
 	world.size = Vector2(540.0, 700.0)
 	root.add_child(world)
@@ -269,21 +270,30 @@ func _test_visual_system() -> void:
 	world.free()
 
 
-func _test_v040_rigs() -> void:
+func _test_v050_animated_characters() -> void:
 	for card_id in ["guardian", "ranger", "colossus", "duelist", "alchemist", "bulwark"]:
 		var definition := UnitRigDefinition.for_card(card_id)
-		_expect(definition.card_id == card_id and definition.atlas != null, "%s has a dedicated articulated atlas" % card_id)
-		_expect(definition.cell_region(3, 3).end.x <= definition.atlas.get_width() and definition.cell_region(3, 3).end.y <= definition.atlas.get_height(), "%s rig exposes a valid 4x4 part grid" % card_id)
+		_expect(definition.card_id == card_id and definition.atlas != null, "%s has a dedicated KayKit atlas" % card_id)
+		_expect(definition.atlas.get_width() == 1920 and definition.atlas.get_height() == 1920, "%s atlas exposes the authored 10x10 frame grid" % card_id)
+		for state_name in ["spawn", "idle", "walk", "attack", "hit", "death"]:
+			var front := definition.frame_region(state_name, 0, false)
+			var back := definition.frame_region(state_name, 0, true)
+			_expect(front.end.x <= definition.atlas.get_width() and back.end.y <= definition.atlas.get_height() and front != back, "%s exposes front and back frames for %s" % [card_id, state_name])
 		var view := UnitView2D.new()
 		view.configure(400 + assertions, card_id, BattleSim.PLAYER)
 		root.add_child(view)
-		_expect(view.sprites.size() == 8, "%s assembles eight independently animated body parts" % card_id)
+		_expect(view.character_sprite != null and view.current_state == "spawn", "%s starts with its authored spawn animation" % card_id)
+		view.spawn_elapsed = definition.state_duration("spawn")
 		view.sync_state({"hp": 80.0, "max_hp": 100.0, "moving": true, "walk_phase": 1.4, "attack_pulse": 0.2})
-		view._process(0.1)
-		_expect(view.moving and view.attack_timer > 0.0, "%s reacts to movement and attack state" % card_id)
+		view._process(0.01)
+		_expect(view.moving and view.current_state == "attack", "%s reacts to movement and attack state" % card_id)
 		view.play_hit()
+		view._process(0.01)
+		_expect(view.current_state == "hit", "%s gives hit reaction priority over attack" % card_id)
 		view.play_death()
-		view._process(0.7)
+		view._process(0.01)
+		_expect(view.current_state == "death", "%s gives death animation the highest priority" % card_id)
+		view._process(definition.state_duration("death"))
 		_expect(view.is_finished(), "%s completes its authored defeat animation" % card_id)
 		view.free()
 

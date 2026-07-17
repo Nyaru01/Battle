@@ -1,6 +1,6 @@
 # Rapport de simulation IA
 
-Dernière campagne : 2026-07-16 — règles inchangées dans le vertical slice 0.40.0-alpha
+Dernière campagne : 2026-07-17 — règles inchangées dans le vertical slice 0.50.0-alpha
 
 ```powershell
 godot --headless --path . --script res://tools/run_balance.gd -- --matches=1000
@@ -17,6 +17,4 @@ godot --headless --path . --script res://tools/run_balance.gd -- --matches=1000
 | Commandes IA invalides | 0 |
 | États finaux invalides | 0 |
 
-Cette campagne introduit des projectiles autoritaires : les tirs de l’Éclaireuse, de l’Alchimiste et des forteresses appliquent désormais leurs dégâts à l’impact. Un tir dont la cible meurt pendant le trajet se dissipe sans dégâts et sans nouvelle cible.
-
-La durée moyenne reste pratiquement identique à la référence 0.28 (213,4 s). Les 1 000 combats se terminent sans blocage, état invalide ou commande refusée. L’ordre d’exécution des contrôleurs alterne à chaque match et les difficultés tournent entre initiation, tactique et expert.
+La v0.50 ne modifie aucune règle, statistique, progression ni décision d’IA. Les 1 000 combats se terminent sans blocage, état invalide ou commande refusée. L’ordre d’exécution des contrôleurs alterne à chaque match et les difficultés tournent entre initiation, tactique et expert.

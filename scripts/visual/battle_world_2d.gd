@@ -281,7 +281,7 @@ func _draw_preview() -> void:
 		draw_texture_rect_region(SPELL_ART, ghost_rect, source, Color(1, 1, 1, 0.72))
 	else:
 		var definition := UnitRigDefinition.for_card(preview_card)
-		draw_texture_rect_region(definition.atlas, ghost_rect, definition.cell_region(0, 1), Color(1, 1, 1, 0.76))
+		draw_texture_rect_region(definition.atlas, ghost_rect, definition.frame_region("idle", 0, true), Color(1, 1, 1, 0.76))
 
 
 func _draw_objectives() -> void:

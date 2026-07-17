@@ -29,7 +29,9 @@ try {
         "assets/scripts/sim/battle_sim.gdc",
         "assets/scripts/ui/arena_theme.gdc",
         "assets/scripts/ui/card_art_control.gdc",
+        "assets/scripts/ui/energy_segments.gdc",
         "assets/scripts/ui/lobby_diorama.gdc",
+        "assets/scripts/ui/royal_backdrop.gdc",
         "assets/scripts/visual/battle_world_2d.gdc",
         "assets/scripts/visual/unit_rig_definition.gdc",
         "assets/scripts/visual/unit_view_2d.gdc",
@@ -50,15 +52,25 @@ try {
     $textureNames = @(
         "arena-royale-v040.png",
         "tower-parts-v040.png",
-        "guardian-rig-v040.png",
-        "ranger-rig-v040.png",
-        "colossus-rig-v040.png",
-        "duelist-rig-v040.png",
-        "alchemist-rig-v040.png",
-        "bulwark-rig-v040.png",
         "spell-art-v040.png",
         "ui-icons-v040.png",
-        "app-icon-v040.png"
+        "guardian-kaykit-v050.png",
+        "ranger-kaykit-v050.png",
+        "colossus-kaykit-v050.png",
+        "duelist-kaykit-v050.png",
+        "alchemist-kaykit-v050.png",
+        "bulwark-kaykit-v050.png",
+        "app-icon-v050.png",
+        "button-long-blue.png",
+        "button-long-gold.png",
+        "border-ornate.png",
+        "icon-home.png",
+        "icon-cards.png",
+        "icon-training.png",
+        "icon-battle.png",
+        "icon-crown.png",
+        "icon-time.png",
+        "icon-award.png"
     )
     $missingTextures = @()
     foreach ($textureName in $textureNames) {
@@ -93,7 +105,7 @@ try {
     }
 
     Write-Host "APK vérifié : $resolved"
-    Write-Host "Scripts d'exécution : 12/12 | Textures : 11/11 | Polices : 2/2 | Variante : $Variant | Taille : $([Math]::Round($apkSize / 1MB, 1)) Mo"
+    Write-Host "Scripts d'exécution : 14/14 | Textures : $($textureNames.Count)/$($textureNames.Count) | Polices : 2/2 | Variante : $Variant | Taille : $([Math]::Round($apkSize / 1MB, 1)) Mo"
 }
 finally {
     $archive.Dispose()
