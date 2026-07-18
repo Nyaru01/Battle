@@ -68,6 +68,8 @@ try {
         "button-long-blue.png",
         "button-long-gold.png",
         "button-forged-blue-v057.png",
+        "button-forged-compact-v058.png",
+        "button-forged-square-v058.png",
         "border-ornate.png",
         "icon-home.png",
         "icon-cards.png",

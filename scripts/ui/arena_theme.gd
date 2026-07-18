@@ -8,6 +8,8 @@ const KENNEY_BUTTON_BLUE_PRESSED: Texture2D = preload("res://assets/v050/ui/butt
 const KENNEY_BUTTON_GOLD: Texture2D = preload("res://assets/v050/ui/button-long-gold.png")
 const KENNEY_BUTTON_GOLD_PRESSED: Texture2D = preload("res://assets/v050/ui/button-long-gold-pressed.png")
 const FORGED_BUTTON_BLUE: Texture2D = preload("res://assets/v057/ui/button-forged-blue-v057.png")
+const FORGED_BUTTON_COMPACT: Texture2D = preload("res://assets/v058/ui/button-forged-compact-v058.png")
+const FORGED_BUTTON_SQUARE: Texture2D = preload("res://assets/v058/ui/button-forged-square-v058.png")
 
 const NAVY := Color("0a2240")
 const NAVY_DARK := Color("06162c")
@@ -116,17 +118,14 @@ static func fantasy_action(pressed := false, hovered := false) -> StyleBoxTextur
 	return style
 
 
-static func nav_button(active: bool, pressed := false) -> StyleBoxFlat:
-	var background := Color("16466d") if active else Color("101c29")
-	var border := Color("f2c65b") if active else Color("60482d")
-	if pressed:
-		background = background.darkened(0.14)
-	var style := panel(background, border, 8, 2 if active else 1, 1 if pressed else 3)
-	style.border_width_top = 4 if active else 2
+static func nav_button(active: bool, pressed := false, hovered := false) -> StyleBoxTexture:
+	var style := _forged_button_style(false, pressed, hovered, false, "primary" if active else "secondary")
+	style.texture_margin_left = 24.0
+	style.texture_margin_right = 24.0
 	style.content_margin_left = 4.0
 	style.content_margin_right = 4.0
-	style.content_margin_top = 5.0
-	style.content_margin_bottom = 5.0
+	style.content_margin_top = 8.0
+	style.content_margin_bottom = 8.0
 	return style
 
 
@@ -151,28 +150,55 @@ static func kenney_button(pressed := false, gold := false) -> StyleBoxTexture:
 	return style
 
 
-static func button_colors(kind: String) -> Array[Color]:
-	match kind:
-		"primary": return [BLUE, CYAN, Color("0b4b96")]
-		"gold": return [Color("d99c19"), GOLD_LIGHT, Color("8b5b08")]
-		"success": return [Color("24a95b"), Color("90f4ae"), Color("116438")]
-		"danger": return [Color("b62e47"), Color("ff9caa"), Color("71172c")]
-		_: return [NAVY_RAISED, Color("6bb8e9"), NAVY_DARK]
+static func _forged_button_style(square: bool, pressed: bool, hovered: bool, disabled: bool, kind: String) -> StyleBoxTexture:
+	var style := StyleBoxTexture.new()
+	style.texture = FORGED_BUTTON_SQUARE if square else FORGED_BUTTON_COMPACT
+	if square:
+		for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
+			style.set_texture_margin(side, 0.0)
+			style.set_content_margin(side, 7.0)
+	else:
+		style.texture_margin_left = 50.0
+		style.texture_margin_right = 50.0
+		style.texture_margin_top = 0.0
+		style.texture_margin_bottom = 0.0
+		style.content_margin_left = 28.0
+		style.content_margin_right = 28.0
+		style.content_margin_top = 7.0
+		style.content_margin_bottom = 7.0
+	var tint := Color.WHITE
+	if kind == "secondary":
+		tint = Color("b9c7d5")
+	elif kind == "danger":
+		tint = Color("e0b9c4")
+	if hovered:
+		tint = tint.lightened(0.12)
+	if pressed:
+		tint = tint.darkened(0.24)
+	if disabled:
+		tint = Color(0.35, 0.39, 0.44, 0.72)
+	style.modulate_color = tint
+	return style
 
 
 static func apply_button(button: BaseButton, kind: String, font_size: int) -> void:
-	var colors := button_colors(kind)
-	button.add_theme_stylebox_override("normal", panel(colors[0], colors[1], 18, 4, 8))
-	button.add_theme_stylebox_override("hover", panel(colors[0].lightened(0.08), colors[1].lightened(0.10), 18, 4, 10))
-	button.add_theme_stylebox_override("pressed", panel(colors[0].darkened(0.13), colors[2], 18, 4, 3))
-	button.add_theme_stylebox_override("focus", panel(colors[0], GOLD_LIGHT, 18, 5, 10))
-	button.add_theme_stylebox_override("disabled", panel(Color("26343d"), Color("465965"), 16, 2, 3))
+	var square := button.custom_minimum_size.x > 0.0 and button.custom_minimum_size.x <= 76.0
+	button.add_theme_stylebox_override("normal", _forged_button_style(square, false, false, false, kind))
+	button.add_theme_stylebox_override("hover", _forged_button_style(square, false, true, false, kind))
+	button.add_theme_stylebox_override("pressed", _forged_button_style(square, true, false, false, kind))
+	button.add_theme_stylebox_override("focus", _forged_button_style(square, false, true, false, kind))
+	button.add_theme_stylebox_override("disabled", _forged_button_style(square, false, false, true, kind))
 	button.add_theme_font_override("font", HEADING_FONT)
 	button.add_theme_font_size_override("font_size", font_size)
-	button.add_theme_color_override("font_color", TEXT)
+	var font_color := Color("ffc2ca") if kind == "danger" else GOLD_LIGHT
+	button.add_theme_color_override("font_color", font_color)
 	button.add_theme_color_override("font_hover_color", Color.WHITE)
-	button.add_theme_color_override("font_pressed_color", Color.WHITE)
+	button.add_theme_color_override("font_pressed_color", GOLD)
 	button.add_theme_color_override("font_disabled_color", Color("75858e"))
+	button.add_theme_color_override("icon_normal_color", Color.WHITE)
+	button.add_theme_color_override("icon_hover_color", GOLD_LIGHT)
+	button.add_theme_color_override("icon_pressed_color", Color("b7c6d4"))
+	button.add_theme_color_override("icon_disabled_color", Color("68727c"))
 	button.add_theme_constant_override("outline_size", 4)
 	button.add_theme_color_override("font_outline_color", Color(0.02, 0.06, 0.10, 0.72))
 	button.custom_minimum_size.y = maxf(button.custom_minimum_size.y, 48.0)

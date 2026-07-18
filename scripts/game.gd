@@ -154,7 +154,7 @@ func _build_menu() -> void:
 
 	var dock := _build_home_dock()
 	dock.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	dock.offset_top = -184
+	dock.offset_top = -196
 	home.add_child(dock)
 
 
@@ -250,7 +250,7 @@ func _build_home_header() -> Control:
 func _build_home_dock() -> Control:
 	var dock := Control.new()
 	dock.name = "HomeDock"
-	dock.custom_minimum_size.y = 184
+	dock.custom_minimum_size.y = 196
 	var frame := FantasyFrameScript.new()
 	frame.configure(FantasyFrame.FrameKind.DOCK)
 	frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -302,7 +302,7 @@ func _build_home_primary_action() -> Button:
 func _build_home_navigation() -> Control:
 	var navigation := HBoxContainer.new()
 	navigation.name = "HomeNavigation"
-	navigation.custom_minimum_size.y = 68
+	navigation.custom_minimum_size.y = 74
 	navigation.add_theme_constant_override("separation", 2)
 	navigation.add_child(_menu_nav_button("ACCUEIL", ICON_HOME, _build_menu, true))
 	navigation.add_child(_menu_nav_button("CARTES", ICON_CARDS, _build_collection))
@@ -1119,20 +1119,15 @@ func _show_settings() -> void:
 		{"label": "SONS DU COMBAT", "enabled": sound_enabled, "callback": _toggle_sound},
 		{"label": "VIBRATIONS", "enabled": haptics_enabled, "callback": _toggle_haptics},
 	]:
-		var row_panel := PanelContainer.new()
-		row_panel.custom_minimum_size = Vector2(370, 66)
-		row_panel.add_theme_stylebox_override("panel", ArenaTheme.inset_panel(Color("102a4b"), Color("376f9d"), 16))
 		var toggle := CheckButton.new()
 		toggle.text = String(config.label)
+		toggle.custom_minimum_size = Vector2(370, 66)
 		toggle.button_pressed = bool(config.enabled)
-		toggle.add_theme_font_override("font", ArenaTheme.HEADING_FONT)
-		toggle.add_theme_font_size_override("font_size", 17)
-		toggle.add_theme_color_override("font_color", Color.WHITE)
+		ArenaTheme.apply_button(toggle, "gold" if bool(config.enabled) else "secondary", 17)
 		toggle.toggled.connect(Callable(config.callback))
-		row_panel.add_child(toggle)
-		layout.add_child(row_panel)
+		layout.add_child(toggle)
 	layout.add_child(_title_label("AUCUN COMPTE • AUCUNE PUBLICITÉ • 100 % HORS LIGNE", 11, ArenaTheme.TEXT_MUTED))
-	layout.add_child(_title_label("BATTLE v0.57 • KAYKIT + KENNEY CC0", 11, Color("7eb5d4")))
+	layout.add_child(_title_label("BATTLE v0.58 • KAYKIT + KENNEY CC0", 11, Color("7eb5d4")))
 	var close := Button.new()
 	close.text = "FERMER"
 	close.custom_minimum_size = Vector2(300, 58)
@@ -1271,13 +1266,15 @@ func _menu_nav_button(label_text: String, icon_texture: Texture2D, callback: Cal
 	button.name = "Nav%s" % label_text.replace(".", "").replace("É", "E")
 	button.set_meta("navigation_label", label_text)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button.custom_minimum_size.y = 68
+	button.custom_minimum_size.y = 74
 	button.add_theme_stylebox_override("normal", ArenaTheme.nav_button(active))
-	button.add_theme_stylebox_override("hover", ArenaTheme.nav_button(active))
+	button.add_theme_stylebox_override("hover", ArenaTheme.nav_button(active, false, true))
 	button.add_theme_stylebox_override("pressed", ArenaTheme.nav_button(active, true))
 	button.add_theme_stylebox_override("focus", ArenaTheme.nav_button(active))
 	var content := VBoxContainer.new()
 	content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	content.offset_top = 9
+	content.offset_bottom = -9
 	content.alignment = BoxContainer.ALIGNMENT_CENTER
 	content.add_theme_constant_override("separation", -3)
 	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1286,10 +1283,10 @@ func _menu_nav_button(label_text: String, icon_texture: Texture2D, callback: Cal
 	icon.texture = icon_texture
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.custom_minimum_size = Vector2(0, 31)
+	icon.custom_minimum_size = Vector2(0, 25)
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.add_child(icon)
-	var caption := _title_label(label_text, 11, ArenaTheme.GOLD_LIGHT if active else Color("c2d9e5"))
+	var caption := _title_label(label_text, 10, ArenaTheme.GOLD_LIGHT if active else Color("d8e4eb"))
 	caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.add_child(caption)
 	button.pressed.connect(callback)

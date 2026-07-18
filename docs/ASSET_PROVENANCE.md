@@ -1,4 +1,4 @@
-# Provenance des actifs visuels — v0.57
+# Provenance des actifs visuels — v0.58
 
 Ce registre documente tous les actifs visuels distribués. Les archives sources 3D ne sont pas versionnées : seuls les sprites 2D pré-rendus et les composants d’interface nécessaires au jeu sont inclus.
 
@@ -38,6 +38,8 @@ Les boutons de navigation, la bordure ornementale et les pictogrammes utiles ont
 
 ## Actifs originaux conservés
 
+- `assets/v058/ui/button-forged-compact-v058.png` : plaque compacte originale en métal forgé, émail bleu et liseré doré, générée le 18 juillet 2026 avec la génération d’images OpenAI intégrée à Codex, puis détourée et préparée pour les actions et onglets — SHA-256 `05592A06098027EB186F7C08E0EABD3D01E8514B0643D4DB910D58F17549E584` ;
+- `assets/v058/ui/button-forged-square-v058.png` : cadre carré original assorti, généré et préparé dans le même flux pour les commandes Retour, Fermer et Pause — SHA-256 `D5BA7C3D545AD36B324503982340B4B1AB28C10FF0ED144C8D53D23E1F20FAF8` ;
 - `assets/v057/ui/button-forged-blue-v057.png` : bouton original en métal forgé, émail bleu et liseré doré, généré le 17 juillet 2026 avec la génération d’images OpenAI intégrée à Codex, puis détouré, réduit et préparé en texture extensible — SHA-256 `E0FC149408C72D063CE084C93B5B114772C9C59529F890CFF5B2B22AE4E2531F` ;
 - `assets/v055/environment/lobby-castle-v055.png` : décor original de château royal généré le 17 juillet 2026 avec la génération d’images OpenAI intégrée à Codex, sans personnage, texte, logo ni structure de marque reconnaissable — SHA-256 `B1B10955069D0864A9D9BF06AE4E4F21D2F87DBFE8249248F83D8E4FEA788DF9` ;
 - `assets/v040/environment/arena-royale-v040.png` et `tower-parts-v040.png` : arène et tours originales générées le 16 juillet 2026 avec la génération d’images OpenAI intégrée à Codex ;

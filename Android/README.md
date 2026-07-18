@@ -2,7 +2,7 @@
 
 ## Version actuelle
 
-- Battle `0.57.0-alpha` (`versionCode 57`) ;
+- Battle `0.58.0-alpha` (`versionCode 58`) ;
 - Android Arm64, Android 7.0 minimum et Android 10 ou plus récent recommandé ;
 - [Télécharger directement Battle-latest.apk](Battle-latest.apk).
 
